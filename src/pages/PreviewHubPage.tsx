@@ -19,6 +19,12 @@ const previewCards: PreviewCardProps[] = [
     icon: ClipboardList,
   },
   {
+    to: '/recuperar-senha',
+    title: 'Recuperar senha',
+    description: 'Tela de solicitação de recuperação de senha por e-mail.',
+    icon: KeyRound,
+  },
+  {
     to: '/planos',
     title: 'Planos',
     description: 'Abra a página pública de planos exatamente como está hoje.',
