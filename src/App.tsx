@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
+import RecuperarSenhaPage from "./pages/RecuperarSenhaPage";
+import NovaSenhaPage from "./pages/NovaSenhaPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardPage from "./pages/DashboardPage";
 import GestaoPage from "./pages/GestaoPage";
