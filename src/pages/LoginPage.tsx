@@ -181,13 +181,12 @@ export default function LoginPage() {
               </Button>
 
               <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => { setResetMode(!resetMode); setError(''); setResetSent(false); }}
+                <Link
+                  to="/recuperar-senha"
                   className="text-sm text-primary hover:underline transition-colors"
                 >
-                  {resetMode ? 'Voltar ao login' : 'Esqueci minha senha'}
-                </button>
+                  Esqueci minha senha
+                </Link>
               </div>
             </form>
           )}
