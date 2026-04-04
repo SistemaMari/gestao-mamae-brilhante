@@ -329,7 +329,7 @@ export default function CadastroConvitePage() {
               </SelectTrigger>
               <SelectContent>
                 {especialidades.map((e) => (
-                  <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+                  <SelectItem key={e} value={e}>{e}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

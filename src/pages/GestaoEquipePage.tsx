@@ -37,7 +37,7 @@ export default function GestaoEquipePage() {
   const [membros, setMembros] = useState<Membro[]>([]);
   const [loading, setLoading] = useState(true);
   const [unidadeId, setUnidadeId] = useState<string | null>(null);
-  const [profissionalId, setProfissionalId] = useState<string | null>(null);
+  const [_profissionalId, setProfissionalId] = useState<string | null>(null);
 
   // Modal de convite
   const [showInviteModal, setShowInviteModal] = useState(false);

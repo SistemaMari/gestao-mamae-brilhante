@@ -15,6 +15,8 @@ import AdminPage from "./pages/AdminPage";
 import ConsolidarPage from "./pages/ConsolidarPage";
 import PlanosPage from "./pages/PlanosPage";
 import CompletarPerfilPage from "./pages/CompletarPerfilPage";
+import GestaoEquipePage from "./pages/GestaoEquipePage";
+import CadastroConvitePage from "./pages/CadastroConvitePage";
 import PreviewHubPage, { PreviewCompletarPerfilPage } from "./pages/PreviewHubPage";
 import NotFound from "./pages/NotFound";
 
