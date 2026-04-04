@@ -448,6 +448,7 @@ export default function DashboardPage() {
       <BlockingModal
         open={showBlockingModal}
         onClose={() => setShowBlockingModal(false)}
+        tipo="pacientes"
       />
     </div>
   );
