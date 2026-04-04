@@ -13,6 +13,7 @@ import AdminPage from "./pages/AdminPage";
 import ConsolidarPage from "./pages/ConsolidarPage";
 import PlanosPage from "./pages/PlanosPage";
 import CompletarPerfilPage from "./pages/CompletarPerfilPage";
+import PreviewHubPage, { PreviewCompletarPerfilPage } from "./pages/PreviewHubPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,7 +26,13 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<Navigate to="/preview" replace />} />
+            <Route path="/preview" element={<PreviewHubPage />} />
+            <Route path="/preview/completar-perfil" element={<PreviewCompletarPerfilPage />} />
+            <Route path="/preview/dashboard" element={<DashboardPage />} />
+            <Route path="/preview/gestao" element={<GestaoPage />} />
+            <Route path="/preview/admin" element={<AdminPage />} />
+            <Route path="/preview/consolidar" element={<ConsolidarPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/planos" element={<PlanosPage />} />

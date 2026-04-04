@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -191,6 +191,15 @@ export default function LoginPage() {
               </div>
             </form>
           )}
+        </div>
+
+        <div className="mt-4 text-center">
+          <p className="text-sm text-muted-foreground">
+            Quer só visualizar o que já foi criado?{' '}
+            <Link to="/preview" className="font-medium text-primary transition-colors hover:opacity-80">
+              Abrir prévias sem login
+            </Link>
+          </p>
         </div>
       </div>
     </div>
