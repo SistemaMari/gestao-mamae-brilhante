@@ -11,6 +11,8 @@ import DashboardPage from "./pages/DashboardPage";
 import GestaoPage from "./pages/GestaoPage";
 import AdminPage from "./pages/AdminPage";
 import ConsolidarPage from "./pages/ConsolidarPage";
+import PlanosPage from "./pages/PlanosPage";
+import CompletarPerfilPage from "./pages/CompletarPerfilPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +28,8 @@ const App = () => (
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/planos" element={<PlanosPage />} />
+            <Route path="/completar-perfil" element={<ProtectedRoute><CompletarPerfilPage /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/gestao" element={<ProtectedRoute><GestaoPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />

@@ -1,11 +1,13 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfissionalData } from '@/hooks/useProfissionalData';
 import { Loader2 } from 'lucide-react';
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, profile } = useAuth();
+  const { profissionalData, loading: loadingProf, perfilIncompleto } = useProfissionalData();
 
-  if (loading) {
+  if (loading || loadingProf) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -28,6 +30,11 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         </div>
       </div>
     );
+  }
+
+  // Verificar perfil incompleto para profissionais (consultório / institucional)
+  if ((profile === 'consultorio' || profile === 'institucional') && perfilIncompleto) {
+    return <Navigate to="/completar-perfil" replace />;
   }
 
   return <>{children}</>;
