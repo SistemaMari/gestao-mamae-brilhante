@@ -13,31 +13,17 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [resetMode, setResetMode] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
 
-  const { signIn, resetPassword } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
 
-  const isFormValid = email.trim() !== '' && (resetMode || password.length >= 6);
+  const isFormValid = email.trim() !== '' && password.length >= 6;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (resetMode) {
-      setIsLoading(true);
-      const { error } = await resetPassword(email);
-      setIsLoading(false);
-      if (error) {
-        setError(error);
-      } else {
-        setResetSent(true);
-      }
-      return;
-    }
-
     setIsLoading(true);
+
     const { error } = await signIn(email, password);
 
     if (error) {
@@ -78,7 +64,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-[400px] animate-fade-in">
-        {/* Logo placeholder */}
+        {/* Logo */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
             <span className="font-heading text-2xl font-bold text-primary">DM</span>
@@ -94,102 +80,83 @@ export default function LoginPage() {
         {/* Card do formulário */}
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           <h2 className="mb-6 font-heading text-lg font-semibold text-foreground">
-            {resetMode ? 'Recuperar senha' : 'Entrar'}
+            Entrar
           </h2>
 
-          {resetSent ? (
-            <div className="space-y-4">
-              <div className="rounded-lg bg-accent p-4">
-                <p className="text-sm text-accent-foreground">
-                  E-mail de recuperação enviado para <strong>{email}</strong>. Verifique sua caixa de entrada.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => { setResetMode(false); setResetSent(false); setError(''); }}
-              >
-                Voltar ao login
-              </Button>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                E-mail
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-foreground">
-                  E-mail
-                </Label>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium text-foreground">
+                Senha
+              </Label>
+              <div className="relative">
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Mínimo 6 caracteres"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
                   required
+                  minLength={6}
+                  className="pr-10"
                 />
-              </div>
-
-              {!resetMode && (
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium text-foreground">
-                    Senha
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Mínimo 6 caracteres"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      autoComplete="current-password"
-                      required
-                      minLength={6}
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      tabIndex={-1}
-                      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {error && (
-                <div className="rounded-lg bg-destructive/10 p-3">
-                  <p className="text-sm text-destructive">{error}</p>
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={!isFormValid || isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {resetMode ? 'Enviando...' : 'Entrando...'}
-                  </>
-                ) : (
-                  resetMode ? 'Enviar e-mail de recuperação' : 'Entrar'
-                )}
-              </Button>
-
-              <div className="text-center">
-                <Link
-                  to="/recuperar-senha"
-                  className="text-sm text-primary hover:underline transition-colors"
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                 >
-                  Esqueci minha senha
-                </Link>
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
-            </form>
-          )}
+            </div>
+
+            {error && (
+              <div className="rounded-lg bg-destructive/10 p-3">
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={!isFormValid || isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Entrando...
+                </>
+              ) : (
+                'Entrar'
+              )}
+            </Button>
+
+            <div className="text-center">
+              <Link
+                to="/recuperar-senha"
+                className="text-sm text-primary hover:underline transition-colors"
+              >
+                Esqueci minha senha
+              </Link>
+            </div>
+          </form>
         </div>
 
         <div className="mt-4 text-center">
