@@ -35,6 +35,7 @@ const App = () => (
             <Route path="/vitrine/completar-perfil" element={<PreviewCompletarPerfilPage />} />
             <Route path="/vitrine/dashboard" element={<DashboardPage />} />
             <Route path="/vitrine/gestao" element={<GestaoPage />} />
+            <Route path="/vitrine/gestao/equipe" element={<GestaoEquipePage />} />
             <Route path="/vitrine/admin" element={<AdminPage />} />
             <Route path="/vitrine/consolidar" element={<ConsolidarPage />} />
             <Route path="/preview" element={<Navigate to="/" replace />} />
