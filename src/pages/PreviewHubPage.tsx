@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, ClipboardList, LayoutDashboard, Shield, Stethoscope, LucideIcon } from 'lucide-react';
+import { ArrowRight, ClipboardList, LayoutDashboard, Shield, Stethoscope, KeyRound, LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import ProfileForm, { ProfileFormData } from '@/components/ProfileForm';
 
@@ -16,6 +16,12 @@ const previewCards: PreviewCardProps[] = [
     title: 'Completar perfil',
     description: 'Veja e edite visualmente o formulário real sem bloqueio de login.',
     icon: ClipboardList,
+  },
+  {
+    to: '/recuperar-senha',
+    title: 'Recuperar senha',
+    description: 'Tela de solicitação de recuperação de senha por e-mail.',
+    icon: KeyRound,
   },
   {
     to: '/planos',

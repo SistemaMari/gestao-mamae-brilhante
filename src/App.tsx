@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
+import RecuperarSenhaPage from "./pages/RecuperarSenhaPage";
+import NovaSenhaPage from "./pages/NovaSenhaPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardPage from "./pages/DashboardPage";
 import GestaoPage from "./pages/GestaoPage";
@@ -40,7 +42,9 @@ const App = () => (
             <Route path="/preview/admin" element={<Navigate to="/vitrine/admin" replace />} />
             <Route path="/preview/consolidar" element={<Navigate to="/vitrine/consolidar" replace />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/recuperar-senha" element={<RecuperarSenhaPage />} />
+            <Route path="/nova-senha" element={<NovaSenhaPage />} />
+            <Route path="/reset-password" element={<Navigate to="/nova-senha" replace />} />
             <Route path="/planos" element={<PlanosPage />} />
             <Route path="/completar-perfil" element={<ProtectedRoute skipProfileCheck><CompletarPerfilPage /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
