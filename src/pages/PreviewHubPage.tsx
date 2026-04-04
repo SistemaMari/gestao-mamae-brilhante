@@ -53,6 +53,18 @@ const previewCards: PreviewCardProps[] = [
     description: 'Veja a área de consolidação em construção em um clique.',
     icon: ClipboardList,
   },
+  {
+    to: '/vitrine/gestao/equipe',
+    title: 'Gerenciar Equipe',
+    description: 'Tela do gestor para gerenciar profissionais e enviar convites.',
+    icon: Users,
+  },
+  {
+    to: '/convite/token-exemplo-preview',
+    title: 'Cadastro via Convite',
+    description: 'Tela pública de cadastro quando um profissional recebe convite.',
+    icon: UserPlus,
+  },
 ];
 
 function PreviewCard({ to, title, description, icon: Icon }: PreviewCardProps) {
