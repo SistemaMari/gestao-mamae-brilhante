@@ -14,7 +14,116 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admins: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gestores_gerais: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profissionais: {
+        Row: {
+          created_at: string
+          crm: string | null
+          especialidade: string | null
+          id: string
+          nome: string
+          perfil_institucional: string | null
+          plano: string
+          unidade_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          crm?: string | null
+          especialidade?: string | null
+          id?: string
+          nome: string
+          perfil_institucional?: string | null
+          plano?: string
+          unidade_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          crm?: string | null
+          especialidade?: string | null
+          id?: string
+          nome?: string
+          perfil_institucional?: string | null
+          plano?: string
+          unidade_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profissionais_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unidades: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          tipo: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          tipo?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          tipo?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
