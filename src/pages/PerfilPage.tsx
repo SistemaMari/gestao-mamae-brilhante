@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { UserCog, Loader2 } from 'lucide-react';
@@ -19,20 +20,54 @@ const DUMMY_PROFILE: PerfilData = {
   pais: 'Brasil',
 };
 
+const DUMMY_EMAIL = 'mari.exemplo@dramari.com';
+
 export default function PerfilPage() {
-  const { user } = useAuth();
-  const [data, setData] = useState<PerfilData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
+  const location = useLocation();
+  const isPreview = location.pathname.startsWith('/vitrine');
+  const [data, setData] = useState<PerfilData | null>(isPreview ? DUMMY_PROFILE : null);
+  const [loading, setLoading] = useState(!isPreview);
 
   useEffect(() => {
-    if (!user) { setData(DUMMY_PROFILE); setLoading(false); return; }
-    supabase
-      .from('profissionais')
-      .select('nome, crm, especialidade, estado, pais')
-      .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data: d }) => { setData(d as PerfilData | null); setLoading(false); });
-  }, [user]);
+    if (isPreview) {
+      setData(DUMMY_PROFILE);
+      setLoading(false);
+      return;
+    }
+
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+
+    if (!user) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchProfile = async () => {
+      setLoading(true);
+      const { data: profileData } = await supabase
+        .from('profissionais')
+        .select('nome, crm, especialidade, estado, pais')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+      setData(profileData as PerfilData | null);
+      setLoading(false);
+    };
+
+    void fetchProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, isPreview, user]);
 
   if (loading) {
     return (
@@ -44,7 +79,7 @@ export default function PerfilPage() {
 
   const fields = [
     { label: 'Nome', value: data?.nome },
-    { label: 'E-mail', value: user?.email },
+    { label: 'E-mail', value: isPreview ? DUMMY_EMAIL : user?.email },
     { label: 'Especialidade', value: data?.especialidade },
     { label: 'CRM', value: data?.crm },
     { label: 'Estado', value: data?.estado },
