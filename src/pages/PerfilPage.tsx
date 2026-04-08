@@ -11,13 +11,21 @@ interface PerfilData {
   pais: string | null;
 }
 
+const DUMMY_PROFILE: PerfilData = {
+  nome: 'Dra. Mari Exemplo',
+  crm: 'CRM 12345/SP',
+  especialidade: 'Obstetrícia',
+  estado: 'São Paulo',
+  pais: 'Brasil',
+};
+
 export default function PerfilPage() {
   const { user } = useAuth();
   const [data, setData] = useState<PerfilData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
+    if (!user) { setData(DUMMY_PROFILE); setLoading(false); return; }
     supabase
       .from('profissionais')
       .select('nome, crm, especialidade, estado, pais')
