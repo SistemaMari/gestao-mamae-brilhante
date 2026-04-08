@@ -23,6 +23,7 @@ import PreviewHubPage, {
   PreviewGestaoEquipePage,
   PreviewCadastroConvitePage,
 } from "./pages/PreviewHubPage";
+import PreviewAppShell from "./components/PreviewAppShell";
 import PacientePage from "./pages/PacientePage";
 import PerfilPage from "./pages/PerfilPage";
 import NotFound from "./pages/NotFound";
