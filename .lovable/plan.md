@@ -1,45 +1,48 @@
 
 
-# Plano: Vitrine com App Shell (sidebar + header com dados fictícios)
+# Plano: Prompt 8 — Formulário Consulta 1 (Dados da Paciente + Pedido de Exame)
 
-## Problema
-As rotas `/vitrine/dashboard`, `/vitrine/planos`, `/vitrine/perfil` etc. renderizam as páginas "soltas", sem o App Shell (sidebar, header, breadcrumb). Isso impede de visualizar como o sistema final ficará.
+## Resumo
+Construir o formulário completo da Consulta 1 e a página de ficha da paciente (FichaPacientePage), com persistência em banco (consultas + pacientes) e versão preview com localStorage.
 
-## Solução
-Criar um wrapper `PreviewAppShell` que replica o `AppShellClinico` mas com dados fictícios (sem autenticação). As rotas da vitrine passam a renderizar dentro desse shell.
+## Mudanças no banco de dados
 
-### Etapas
+**1. Adicionar coluna `data_nascimento` na tabela `pacientes`**
+- `data_nascimento DATE` (nullable para manter compatibilidade)
 
-**1. Criar componente `PreviewAppShell`**
-- Arquivo: `src/components/PreviewAppShell.tsx`
-- Cópia simplificada do `AppShellClinico` com dados hardcoded:
-  - Nome: "Dra. Mari Exemplo"
-  - Plano: "Plano Teste — 3/10 laudos"
-  - Sidebar com os mesmos 4 itens mas apontando para rotas `/vitrine/*`
-  - Breadcrumb funcional baseado na rota atual
-  - Mobile hamburger funcional
-  - Botão "Sair" redireciona para `/` (vitrine hub)
-- Usa `<Outlet />` para renderizar o conteúdo interno
+**2. Criar tabela `consultas`**
+- `id UUID PK`, `paciente_id UUID FK→pacientes`, `profissional_id UUID FK→profissionais`
+- `tipo TEXT` (consulta_1, retorno_1, etc.), `numero_sequencial INT`
+- `data DATE NOT NULL`, `ig_semanas INT`, `ig_dias INT`
+- `observacoes TEXT`, `status_gerado TEXT`
+- `created_at TIMESTAMPTZ DEFAULT now()`
+- RLS: profissional vê/insere só suas consultas
 
-**2. Atualizar rotas da vitrine em `App.tsx`**
-- Agrupar as rotas da vitrine dentro de um layout route usando `PreviewAppShell`:
-  ```
-  <Route element={<PreviewAppShell />}>
-    <Route path="/vitrine/dashboard" element={<DashboardPage />} />
-    <Route path="/vitrine/paciente/nova" element={<PacientePage />} />
-    <Route path="/vitrine/planos" element={<PlanosPage />} />
-    <Route path="/vitrine/perfil" element={<PerfilPage />} />
-  </Route>
-  ```
-- Rotas que têm layout próprio (completar-perfil, gestao/equipe, cadastro-convite) continuam fora do shell
+**3. Habilitar RLS na tabela `consultas`** com policies para select/insert vinculadas a `profissional_id = auth.uid()` via join com profissionais.
 
-**3. Adicionar cards na vitrine hub**
-- Adicionar card "Meu Perfil" apontando para `/vitrine/perfil`
-- Atualizar card "Dashboard clínico" e "Planos" para ficarem dentro do shell
+## Mudanças no frontend
 
-**4. Ajuste nas páginas**
-- `DashboardPage`, `PlanosPage`, `PerfilPage` já funcionam sem auth (estado vazio/placeholder) — nenhuma mudança de lógica necessária
+**1. Componente `Consulta1Form`** (`src/components/Consulta1Form.tsx`)
+- 7 campos conforme spec: Nome completo*, Data nascimento* (com cálculo de idade ao lado), Número de identificação (condicional ao `identificador_padrao` do profissional), Idade gestacional (semanas 0-42 + dias 0-6 lado a lado)*, Data da consulta* (default hoje), Observações clínicas, DMG em gestação anterior* (Sim/Não com borda lilás)
+- Todos com ícone ⓘ e tooltip
+- Validação: campos obrigatórios em vermelho se vazios
+- Ao salvar: chama `pode_criar_ficha()`, insere em `pacientes` + `consultas`, redireciona para `/paciente/:id`
 
-### Resultado
-Ao clicar em "Dashboard clínico" na vitrine, o usuário verá a página completa com sidebar à esquerda, header no topo com saudação e badge de plano — exatamente como o sistema final ficará para um profissional logado.
+**2. Componente `FichaPacientePage`** (refatorar `PacientePage.tsx`)
+- Cabeçalho: nome, idade calculada, IG atual (IG consulta 1 + dias decorridos), número de identificação, tag de status
+- Banner DMG anterior (fixo, não fechável, fundo amarelo/laranja)
+- Card de confirmação verde (#DCFCE7) com 3 partes: orientação glicemia jejum, janela GTT calculada, notas técnicas
+- Histórico de consultas (cronológico)
+- Botão "+ Nova consulta de retorno" (placeholder por ora)
+
+**3. Preview (vitrine)**
+- Expandir `PreviewPaciente` com `data_nascimento`, `data_consulta`, `ig_semanas`, `ig_dias`, `observacoes`, `consultas[]`
+- Salvar tudo em localStorage, exibir ficha completa sem login
+
+**4. Rotas**
+- `/paciente/nova` e `/vitrine/paciente/nova` → formulário Consulta 1
+- `/paciente/:id` e `/vitrine/paciente/:id` → FichaPacientePage com dados reais ou localStorage
+
+## Resultado
+Ao clicar "+Nova Paciente", abre o formulário Consulta 1. Ao salvar, cria ficha com cabeçalho, banner DMG (se aplicável), card de confirmação com orientações e janela GTT, e botão para próximo retorno.
 
