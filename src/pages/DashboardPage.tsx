@@ -113,7 +113,6 @@ const PAGE_SIZE = 20;
 
 export default function DashboardPage() {
   const { profissionalData, loading: profLoading } = useProfissionalData();
-  const { profissionalData, loading: profLoading } = useProfissionalData();
   const navigate = useNavigate();
 
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
