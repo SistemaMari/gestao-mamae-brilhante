@@ -42,12 +42,19 @@ const App = () => (
             <Route path="/" element={<PreviewHubPage />} />
             <Route path="/vitrine" element={<Navigate to="/" replace />} />
             <Route path="/vitrine/completar-perfil" element={<PreviewCompletarPerfilPage />} />
-            <Route path="/vitrine/dashboard" element={<DashboardPage />} />
             <Route path="/vitrine/gestao" element={<GestaoPage />} />
             <Route path="/vitrine/gestao/equipe" element={<PreviewGestaoEquipePage />} />
             <Route path="/vitrine/admin" element={<AdminPage />} />
             <Route path="/vitrine/consolidar" element={<ConsolidarPage />} />
             <Route path="/vitrine/cadastro-convite" element={<PreviewCadastroConvitePage />} />
+
+            {/* Vitrine com App Shell */}
+            <Route element={<PreviewAppShell />}>
+              <Route path="/vitrine/dashboard" element={<DashboardPage />} />
+              <Route path="/vitrine/paciente/nova" element={<PacientePage />} />
+              <Route path="/vitrine/planos" element={<PlanosPage />} />
+              <Route path="/vitrine/perfil" element={<PerfilPage />} />
+            </Route>
 
             {/* Redirects /preview → /vitrine */}
             <Route path="/preview" element={<Navigate to="/" replace />} />
