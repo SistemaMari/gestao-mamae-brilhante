@@ -35,6 +35,63 @@ export type Database = {
         }
         Relationships: []
       }
+      consultas: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          ig_dias: number | null
+          ig_semanas: number | null
+          numero_sequencial: number
+          observacoes: string | null
+          paciente_id: string
+          profissional_id: string
+          status_gerado: string | null
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          id?: string
+          ig_dias?: number | null
+          ig_semanas?: number | null
+          numero_sequencial?: number
+          observacoes?: string | null
+          paciente_id: string
+          profissional_id: string
+          status_gerado?: string | null
+          tipo?: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          ig_dias?: number | null
+          ig_semanas?: number | null
+          numero_sequencial?: number
+          observacoes?: string | null
+          paciente_id?: string
+          profissional_id?: string
+          status_gerado?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultas_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultas_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       convites: {
         Row: {
           convidado_por: string
@@ -100,6 +157,7 @@ export type Database = {
       pacientes: {
         Row: {
           created_at: string
+          data_nascimento: string | null
           data_proximo_retorno: string | null
           data_ultima_consulta: string | null
           dmg_gestacao_anterior: boolean | null
@@ -118,6 +176,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          data_nascimento?: string | null
           data_proximo_retorno?: string | null
           data_ultima_consulta?: string | null
           dmg_gestacao_anterior?: boolean | null
@@ -136,6 +195,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          data_nascimento?: string | null
           data_proximo_retorno?: string | null
           data_ultima_consulta?: string | null
           dmg_gestacao_anterior?: boolean | null
