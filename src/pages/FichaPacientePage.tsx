@@ -98,6 +98,20 @@ export default function FichaPacientePage() {
   }, [paciente?.data_nascimento]);
 
   const primeiraConsulta = consultas.find((c) => c.tipo === 'consulta_1');
+  const canShowRetorno1 = paciente?.status_ficha === 'aguardando_gj' && !!primeiraConsulta && !showRetorno1;
+  const canShowRetorno1Form = showRetorno1 && paciente?.status_ficha === 'aguardando_gj' && !!primeiraConsulta;
+
+  const reloadPaciente = () => {
+    if (!id) return;
+    if (isPreview) {
+      const p = getPreviewPacienteById(id);
+      if (p) {
+        setPaciente(p);
+        setConsultas(p.consultas || []);
+      }
+    }
+    setShowRetorno1(false);
+  };
 
   // Current IG calculated from consulta 1
   const igAtual = useMemo(() => {
