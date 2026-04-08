@@ -336,6 +336,3 @@ export default function FichaPacientePage() {
     </div>
   );
 }
-
-// Inline toast import for the placeholder button
-import { toast } from 'sonner';
