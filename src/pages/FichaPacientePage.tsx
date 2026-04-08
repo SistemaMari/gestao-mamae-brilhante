@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import {
   AlertTriangle, Calendar, Clock, FileText, Plus, User,
 } from 'lucide-react';
+import Retorno1Form from '@/components/Retorno1Form';
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
@@ -39,6 +40,7 @@ export default function FichaPacientePage() {
   const [paciente, setPaciente] = useState<PreviewPaciente | null>(null);
   const [consultas, setConsultas] = useState<PreviewConsulta[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showRetorno1, setShowRetorno1] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -96,6 +98,20 @@ export default function FichaPacientePage() {
   }, [paciente?.data_nascimento]);
 
   const primeiraConsulta = consultas.find((c) => c.tipo === 'consulta_1');
+  const canShowRetorno1 = paciente?.status_ficha === 'aguardando_gj' && !!primeiraConsulta && !showRetorno1;
+  const canShowRetorno1Form = showRetorno1 && paciente?.status_ficha === 'aguardando_gj' && !!primeiraConsulta;
+
+  const reloadPaciente = () => {
+    if (!id) return;
+    if (isPreview) {
+      const p = getPreviewPacienteById(id);
+      if (p) {
+        setPaciente(p);
+        setConsultas(p.consultas || []);
+      }
+    }
+    setShowRetorno1(false);
+  };
 
   // Current IG calculated from consulta 1
   const igAtual = useMemo(() => {
@@ -327,15 +343,42 @@ export default function FichaPacientePage() {
           </Accordion>
         )}
 
+        {/* Retorno 1 form */}
+        {canShowRetorno1Form && primeiraConsulta && paciente && (
+          <div className="mt-4">
+            <Retorno1Form
+              paciente={paciente}
+              primeiraConsulta={primeiraConsulta}
+              isPreview={isPreview}
+              onSaved={reloadPaciente}
+              onCancel={() => setShowRetorno1(false)}
+            />
+          </div>
+        )}
+
         {/* Botão nova consulta de retorno */}
-        <Button
-          variant="outline"
-          className="mt-4 w-full"
-          onClick={() => toast('Consulta de retorno ainda não implementada (Prompt 9).')}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          + Nova consulta de retorno
-        </Button>
+        {canShowRetorno1 && (
+          <Button
+            variant="outline"
+            className="mt-4 w-full"
+            onClick={() => setShowRetorno1(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            + Nova consulta de retorno
+          </Button>
+        )}
+
+        {/* Botão para status que não são aguardando_gj (futuro) */}
+        {paciente && paciente.status_ficha !== 'aguardando_gj' && (
+          <Button
+            variant="outline"
+            className="mt-4 w-full"
+            onClick={() => toast('Próximo retorno ainda não implementado.')}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            + Nova consulta de retorno
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -37,6 +37,7 @@ export type Database = {
       }
       consultas: {
         Row: {
+          cenario_clinico: string | null
           created_at: string
           data: string
           id: string
@@ -50,6 +51,7 @@ export type Database = {
           tipo: string
         }
         Insert: {
+          cenario_clinico?: string | null
           created_at?: string
           data?: string
           id?: string
@@ -63,6 +65,7 @@ export type Database = {
           tipo?: string
         }
         Update: {
+          cenario_clinico?: string | null
           created_at?: string
           data?: string
           id?: string
@@ -129,6 +132,67 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exames_glicemia: {
+        Row: {
+          consulta_id: string
+          created_at: string
+          data_exame: string
+          id: string
+          ig_dias_na_data: number | null
+          ig_semanas_na_data: number | null
+          paciente_id: string
+          profissional_id: string
+          tipo_exame: string
+          valor_mgdl: number
+        }
+        Insert: {
+          consulta_id: string
+          created_at?: string
+          data_exame?: string
+          id?: string
+          ig_dias_na_data?: number | null
+          ig_semanas_na_data?: number | null
+          paciente_id: string
+          profissional_id: string
+          tipo_exame?: string
+          valor_mgdl: number
+        }
+        Update: {
+          consulta_id?: string
+          created_at?: string
+          data_exame?: string
+          id?: string
+          ig_dias_na_data?: number | null
+          ig_semanas_na_data?: number | null
+          paciente_id?: string
+          profissional_id?: string
+          tipo_exame?: string
+          valor_mgdl?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exames_glicemia_consulta_id_fkey"
+            columns: ["consulta_id"]
+            isOneToOne: false
+            referencedRelation: "consultas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exames_glicemia_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exames_glicemia_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais"
             referencedColumns: ["id"]
           },
         ]
