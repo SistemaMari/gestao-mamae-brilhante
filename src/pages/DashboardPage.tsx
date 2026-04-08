@@ -205,13 +205,34 @@ export default function DashboardPage() {
       <div>
 
         {/* Plan usage bar */}
-        {profissionalData && (
+        {(profissionalData || isPreview) && (
           <div className="mb-6 rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-foreground">Laudos utilizados</span>
-              <span className="text-sm text-muted-foreground">{profissionalData.laudos_usados}/{profissionalData.laudos_limite}</span>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm font-medium text-foreground">
+                {isPreview ? 'Plano Teste' : `Plano ${profissionalData?.plano ?? ''}`}
+              </span>
+              <button
+                onClick={() => navigate(`${isPreview ? '/vitrine' : ''}/planos`)}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Gerenciar plano
+              </button>
             </div>
-            <Progress value={usagePercent} className="h-2" />
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Laudos utilizados</span>
+              <span className="text-sm text-muted-foreground">
+                {isPreview ? '3' : profissionalData?.laudos_usados}/{isPreview ? '10' : profissionalData?.laudos_limite}
+              </span>
+            </div>
+            <Progress value={isPreview ? 30 : usagePercent} className="h-2" />
+            {((isPreview) || (profissionalData?.plano === 'free')) && (
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Pacientes</span>
+                <span className="text-sm text-muted-foreground">
+                  {isPreview ? pacientes.length : pacientes.length} de 3
+                </span>
+              </div>
+            )}
           </div>
         )}
 
