@@ -12,7 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  AlertTriangle, Calendar, ChevronDown, Clock, FileText, Plus, User,
+  AlertTriangle, Calendar, Clock, FileText, Plus, User,
 } from 'lucide-react';
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
