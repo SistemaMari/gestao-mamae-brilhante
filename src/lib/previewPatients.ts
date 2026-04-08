@@ -82,14 +82,15 @@ const SEED_PATIENTS: PreviewPaciente[] = [
     data_proximo_retorno: null,
     tipo_retorno: null,
     consultas: [
-      { id: 'c2-1', tipo: 'consulta_1', numero_sequencial: 1, data: daysAgo(60), ig_semanas: 12, ig_dias: 0, observacoes: null, status_gerado: 'aguardando_gj' },
+      { id: 'c2-1', tipo: 'consulta_1', numero_sequencial: 1, data: daysAgo(60), ig_semanas: 12, ig_dias: 0, observacoes: 'Primeira gestação. Sem comorbidades. PA 110/70.', status_gerado: 'aguardando_gj' },
+      { id: 'c2-2', tipo: 'retorno', numero_sequencial: 2, data: daysAgo(7), ig_semanas: 19, ig_dias: 4, observacoes: 'GJ: 78 mg/dL — resultado normal. Solicitar GTT 75g na janela de 24-28 semanas.', status_gerado: 'aguardando_gtt' },
     ],
   },
   {
     id: 'demo-3',
     nome: 'Juliana de Oliveira',
     data_nascimento: '1988-11-05',
-    numero_identificacao: null,
+    numero_identificacao: '33445566',
     dum: daysAgo(210),
     usg_data: null,
     usg_ig_semanas: null,
@@ -100,7 +101,9 @@ const SEED_PATIENTS: PreviewPaciente[] = [
     data_proximo_retorno: null,
     tipo_retorno: null,
     consultas: [
-      { id: 'c3-1', tipo: 'consulta_1', numero_sequencial: 1, data: daysAgo(120), ig_semanas: 13, ig_dias: 0, observacoes: null, status_gerado: 'aguardando_gj' },
+      { id: 'c3-1', tipo: 'consulta_1', numero_sequencial: 1, data: daysAgo(120), ig_semanas: 13, ig_dias: 0, observacoes: 'Terceira gestação. Sem histórico de DMG. IMC 24.', status_gerado: 'aguardando_gj' },
+      { id: 'c3-2', tipo: 'retorno', numero_sequencial: 2, data: daysAgo(90), ig_semanas: 17, ig_dias: 1, observacoes: 'GJ: 81 mg/dL — normal. Agendar GTT 75g entre 24-28 sem.', status_gerado: 'aguardando_gtt' },
+      { id: 'c3-3', tipo: 'retorno', numero_sequencial: 3, data: daysAgo(14), ig_semanas: 28, ig_dias: 0, observacoes: 'GTT 75g: jejum 79, 1h 138, 2h 120 — todos normais. DMG afastado. Seguir pré-natal habitual.', status_gerado: 'dmg_afastado' },
     ],
   },
   {
@@ -118,7 +121,9 @@ const SEED_PATIENTS: PreviewPaciente[] = [
     data_proximo_retorno: daysFromNow(1),
     tipo_retorno: 'consulta',
     consultas: [
-      { id: 'c4-1', tipo: 'consulta_1', numero_sequencial: 1, data: daysAgo(100), ig_semanas: 14, ig_dias: 0, observacoes: 'DMG em gestação anterior.', status_gerado: 'aguardando_gj' },
+      { id: 'c4-1', tipo: 'consulta_1', numero_sequencial: 1, data: daysAgo(100), ig_semanas: 14, ig_dias: 0, observacoes: 'DMG em gestação anterior (2021). IMC 31. PA 120/80.', status_gerado: 'aguardando_gj' },
+      { id: 'c4-2', tipo: 'retorno', numero_sequencial: 2, data: daysAgo(70), ig_semanas: 18, ig_dias: 2, observacoes: 'GJ: 95 mg/dL — alterada (≥ 92). DMG confirmado por GJ. Iniciar orientação nutricional e perfil glicêmico.', status_gerado: 'dmg_confirmado' },
+      { id: 'c4-3', tipo: 'retorno', numero_sequencial: 3, data: daysAgo(5), ig_semanas: 27, ig_dias: 3, observacoes: 'Perfil glicêmico: jejum 88, pós-café 125, pós-almoço 118. Controle adequado com dieta. Manter conduta.', status_gerado: 'dmg_confirmado' },
     ],
   },
   {
@@ -136,15 +141,17 @@ const SEED_PATIENTS: PreviewPaciente[] = [
     data_proximo_retorno: daysAgo(2),
     tipo_retorno: 'consulta',
     consultas: [
-      { id: 'c5-1', tipo: 'consulta_1', numero_sequencial: 1, data: daysAgo(100), ig_semanas: 18, ig_dias: 0, observacoes: null, status_gerado: 'aguardando_gj' },
+      { id: 'c5-1', tipo: 'consulta_1', numero_sequencial: 1, data: daysAgo(100), ig_semanas: 18, ig_dias: 0, observacoes: 'DMG em gestação anterior (2019). Obesidade grau I. PA 130/85.', status_gerado: 'aguardando_gj' },
+      { id: 'c5-2', tipo: 'retorno', numero_sequencial: 2, data: daysAgo(70), ig_semanas: 22, ig_dias: 2, observacoes: 'GJ: 98 mg/dL — alterada. DMG confirmado. Encaminhar para nutricionista e iniciar perfil glicêmico.', status_gerado: 'dmg_confirmado' },
+      { id: 'c5-3', tipo: 'retorno', numero_sequencial: 3, data: daysAgo(10), ig_semanas: 30, ig_dias: 4, observacoes: 'Perfil glicêmico: jejum 92, pós-café 142, pós-almoço 135. Controle limítrofe. Reforçar dieta, reavaliar em 7 dias.', status_gerado: 'dmg_confirmado' },
     ],
   },
   {
     id: 'demo-6',
     nome: 'Fernanda Costa Lima',
     data_nascimento: '1997-09-12',
-    numero_identificacao: null,
-    dum: daysAgo(252),
+    numero_identificacao: '77889900',
+    dum: daysAgo(280),
     usg_data: null,
     usg_ig_semanas: null,
     usg_ig_dias: null,
@@ -154,7 +161,10 @@ const SEED_PATIENTS: PreviewPaciente[] = [
     data_proximo_retorno: null,
     tipo_retorno: null,
     consultas: [
-      { id: 'c6-1', tipo: 'consulta_1', numero_sequencial: 1, data: daysAgo(150), ig_semanas: 15, ig_dias: 0, observacoes: null, status_gerado: 'aguardando_gj' },
+      { id: 'c6-1', tipo: 'consulta_1', numero_sequencial: 1, data: daysAgo(190), ig_semanas: 13, ig_dias: 0, observacoes: 'Primeira gestação. Sem comorbidades prévias. IMC 26.', status_gerado: 'aguardando_gj' },
+      { id: 'c6-2', tipo: 'retorno', numero_sequencial: 2, data: daysAgo(160), ig_semanas: 17, ig_dias: 1, observacoes: 'GJ: 88 mg/dL — normal. Agendar GTT 75g entre 24-28 sem.', status_gerado: 'aguardando_gtt' },
+      { id: 'c6-3', tipo: 'retorno', numero_sequencial: 3, data: daysAgo(100), ig_semanas: 25, ig_dias: 5, observacoes: 'GTT 75g: jejum 82, 1h 187, 2h 148 — 1h alterada (≥ 180). DMG confirmado.', status_gerado: 'dmg_confirmado' },
+      { id: 'c6-4', tipo: 'retorno', numero_sequencial: 4, data: daysAgo(1), ig_semanas: 39, ig_dias: 6, observacoes: 'Parto cesáreo em 39+6 sem. RN 3.450g, Apgar 8/9. Sem intercorrências. Alta hospitalar.', status_gerado: 'resultado_parto' },
     ],
   },
   {
@@ -172,7 +182,10 @@ const SEED_PATIENTS: PreviewPaciente[] = [
     data_proximo_retorno: null,
     tipo_retorno: null,
     consultas: [
-      { id: 'c7-1', tipo: 'consulta_1', numero_sequencial: 1, data: daysAgo(80), ig_semanas: 15, ig_dias: 0, observacoes: null, status_gerado: 'aguardando_gj' },
+      { id: 'c7-1', tipo: 'consulta_1', numero_sequencial: 1, data: daysAgo(80), ig_semanas: 15, ig_dias: 0, observacoes: 'Segunda gestação. Sem DMG anterior. IMC 28. PA 120/75.', status_gerado: 'aguardando_gj' },
+      { id: 'c7-2', tipo: 'retorno', numero_sequencial: 2, data: daysAgo(50), ig_semanas: 19, ig_dias: 2, observacoes: 'GJ: 101 mg/dL — alterada. DMG confirmado. Iniciar dieta e perfil glicêmico.', status_gerado: 'dmg_confirmado' },
+      { id: 'c7-3', tipo: 'retorno', numero_sequencial: 3, data: daysAgo(20), ig_semanas: 23, ig_dias: 3, observacoes: 'Perfil glicêmico com dieta: jejum 96, pós-café 158, pós-almoço 145. Controle inadequado. Iniciada insulina NPH 10UI noturna.', status_gerado: 'dmg_confirmado' },
+      { id: 'c7-4', tipo: 'retorno', numero_sequencial: 4, data: daysAgo(2), ig_semanas: 25, ig_dias: 5, observacoes: 'Insulina NPH 14UI. Perfil: jejum 94, pós-café 162, pós-almoço 150. Controle inadequado mesmo com insulina. Encaminhar para endocrinologista — acompanhamento compartilhado.', status_gerado: 'encaminhada_endocrino' },
     ],
   },
 ];
