@@ -343,15 +343,42 @@ export default function FichaPacientePage() {
           </Accordion>
         )}
 
+        {/* Retorno 1 form */}
+        {canShowRetorno1Form && primeiraConsulta && paciente && (
+          <div className="mt-4">
+            <Retorno1Form
+              paciente={paciente}
+              primeiraConsulta={primeiraConsulta}
+              isPreview={isPreview}
+              onSaved={reloadPaciente}
+              onCancel={() => setShowRetorno1(false)}
+            />
+          </div>
+        )}
+
         {/* Botão nova consulta de retorno */}
-        <Button
-          variant="outline"
-          className="mt-4 w-full"
-          onClick={() => toast('Consulta de retorno ainda não implementada (Prompt 9).')}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          + Nova consulta de retorno
-        </Button>
+        {canShowRetorno1 && (
+          <Button
+            variant="outline"
+            className="mt-4 w-full"
+            onClick={() => setShowRetorno1(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            + Nova consulta de retorno
+          </Button>
+        )}
+
+        {/* Botão para status que não são aguardando_gj (futuro) */}
+        {paciente && paciente.status_ficha !== 'aguardando_gj' && (
+          <Button
+            variant="outline"
+            className="mt-4 w-full"
+            onClick={() => toast('Próximo retorno ainda não implementado.')}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            + Nova consulta de retorno
+          </Button>
+        )}
       </div>
     </div>
   );
