@@ -112,7 +112,7 @@ function getReturnBadge(paciente: Paciente): { type: 'proximo' | 'vencido'; tool
 const PAGE_SIZE = 20;
 
 export default function DashboardPage() {
-  const { signOut, user } = useAuth();
+  const { profissionalData, loading: profLoading } = useProfissionalData();
   const { profissionalData, loading: profLoading } = useProfissionalData();
   const navigate = useNavigate();
 
