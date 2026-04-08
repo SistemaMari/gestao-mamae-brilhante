@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info, Loader2 } from 'lucide-react';
-import { differenceInYears, differenceInDays, addDays } from 'date-fns';
+import { differenceInYears, addDays } from 'date-fns';
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -64,14 +64,6 @@ export default function Consulta1Form() {
     return addDays(new Date(dataConsulta), -totalDias).toISOString().slice(0, 10);
   }, [igAtConsulta, dataConsulta]);
 
-  // Janela GTT: 24-28 semanas a partir da DUM
-  const janelaGTT = useMemo(() => {
-    if (!dumCalculada) return null;
-    const dum = new Date(dumCalculada);
-    const inicio = addDays(dum, 24 * 7);
-    const fim = addDays(dum, 28 * 7);
-    return { inicio: inicio.toISOString().slice(0, 10), fim: fim.toISOString().slice(0, 10) };
-  }, [dumCalculada]);
 
   const isValid = nome.trim() && dataNascimento && igSemanas && dataConsulta && dmgAnterior !== null;
 

@@ -10,9 +10,8 @@ import {
 } from '@/lib/previewPatients';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
-  AlertTriangle, Calendar, Clock, FileText, Info, Plus, User,
+  AlertTriangle, Calendar, Clock, FileText, Plus, User,
 } from 'lucide-react';
 import { differenceInYears, differenceInDays, addDays, format } from 'date-fns';
 
@@ -30,8 +29,8 @@ export default function FichaPacientePage() {
   const location = useLocation();
   const navigate = useNavigate();
   const isPreview = location.pathname.startsWith('/vitrine');
-  const { user } = useAuth();
-  const { profissionalData } = useProfissionalData();
+  useAuth();
+  useProfissionalData();
 
   const [paciente, setPaciente] = useState<PreviewPaciente | null>(null);
   const [consultas, setConsultas] = useState<PreviewConsulta[]>([]);
