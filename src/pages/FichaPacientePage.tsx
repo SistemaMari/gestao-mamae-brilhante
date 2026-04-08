@@ -40,6 +40,7 @@ export default function FichaPacientePage() {
   const [paciente, setPaciente] = useState<PreviewPaciente | null>(null);
   const [consultas, setConsultas] = useState<PreviewConsulta[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showRetorno1, setShowRetorno1] = useState(false);
 
   useEffect(() => {
     if (!id) return;
