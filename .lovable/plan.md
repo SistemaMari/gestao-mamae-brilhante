@@ -1,35 +1,31 @@
 
 
-# Plano atualizado: Enriquecer dados demo + renomear labels
+# Plano: Campos do cabeçalho sempre visíveis + consultas expansíveis
 
-## 1. Renomear labels (3 arquivos)
+## Problema
+Os 6 campos do cabeçalho usam renderização condicional (`{value && ...}`), então se um dado está vazio o campo desaparece. Isso causa inconsistência entre fichas. Além disso, as consultas no histórico não são clicáveis.
 
-| De | Para | Arquivo(s) |
-|----|------|------------|
-| `"Encaminhada — endocrino"` | `"Associar endocrino"` | `FichaPacientePage.tsx` (linha 25), `DashboardPage.tsx` (linha 47) |
-| `"IG atual:"` | `"IG hoje:"` | `FichaPacientePage.tsx` (linha 200) |
-| `"DUM calculada:"` | `"DUM:"` | `FichaPacientePage.tsx` (linha ~227) |
+## 1. Tornar os 6 campos sempre visíveis
 
-## 2. Reordenar IG no cabeçalho da ficha
+Em `src/pages/FichaPacientePage.tsx` (linhas 177-232), remover todas as condições `{value && ...}` dos 6 campos. Quando o valor estiver ausente, exibir "—" como placeholder.
 
-Em `FichaPacientePage.tsx`, trocar a ordem dos itens para que **"IG na consulta 1"** apareça **antes** de **"IG hoje"** (atualmente IG atual vem primeiro).
+Campos (nesta ordem fixa):
+1. Nascimento
+2. Identificação
+3. IG na consulta 1
+4. IG hoje
+5. Data da consulta 1
+6. DUM
 
-## 3. Enriquecer os 7 perfis demo
+## 2. Consultas no histórico expansíveis
 
-Em `src/lib/previewPatients.ts`, adicionar dados realistas a cada paciente:
+Substituir os `<div>` estáticos do histórico por componentes `Accordion` (já existe em `src/components/ui/accordion.tsx`). Ao clicar, expande mostrando observações completas, IG e status.
 
-| Paciente | Mudanças |
-|----------|----------|
-| **Maria Luísa** (demo-1) | Manter como está |
-| **Ana Carolina** (demo-2) | Observações + consulta retorno coerente com `aguardando_gtt` |
-| **Juliana** (demo-3) | `numero_identificacao` + observações + retorno GJ normal → `dmg_afastado` |
-| **Patrícia** (demo-4) | Múltiplas consultas coerentes com `dmg_confirmado` + DMG anterior |
-| **Camila** (demo-5) | Observações + retorno DMG confirmado + retorno atrasado |
-| **Fernanda** (demo-6) | `numero_identificacao` + consultas até `resultado_parto` |
-| **Beatriz** (demo-7) | Observações + retorno coerente com `associar_endocrino` |
+## 3. Forçar refresh do localStorage
+
+Incrementar a versão do storage key em `src/lib/previewPatients.ts` para invalidar cache antigo.
 
 ## Arquivos modificados
-- `src/pages/FichaPacientePage.tsx` — labels + reordenar IG
-- `src/pages/DashboardPage.tsx` — label "Associar endocrino"
-- `src/lib/previewPatients.ts` — seed data enriquecido
+- `src/pages/FichaPacientePage.tsx` — campos incondicionais + accordion no histórico
+- `src/lib/previewPatients.ts` — versão do storage key
 
