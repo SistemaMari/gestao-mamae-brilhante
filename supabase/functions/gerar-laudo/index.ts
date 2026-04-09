@@ -10,6 +10,38 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Modo teste: envia payload de exemplo ao webhook sem autenticação
+  const isTest = req.headers.get("x-test-mode") === "true";
+  if (isTest) {
+    const webhookUrl = Deno.env.get("N8N_WEBHOOK_URL");
+    if (!webhookUrl) {
+      return new Response(JSON.stringify({ error: "N8N_WEBHOOK_URL não configurada" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const testPayload = {
+      timestamp: new Date().toISOString(),
+      tipo_requisicao: "gerar_laudo",
+      modo: "TESTE",
+      profissional: { id: "test-prof", nome: "Dra. Teste", crm: "CRM/SP 123456", especialidade: "Obstetrícia" },
+      paciente: { id: "test-pac", nome: "Maria Teste", dum: "2026-01-10", status_ficha: "dmg_confirmado", ig_atual: { semanas: 12, dias: 5 } },
+      consulta_atual: { id: "test-cons", tipo: "retorno_1", numero_sequencial: 2, data: "2026-04-09", cenario_clinico: "dmg_confirmado" },
+      exames_glicemia: [{ tipo_exame: "glicemia_jejum", valor_mgdl: 98 }, { tipo_exame: "ttog_75g_1h", valor_mgdl: 185 }],
+      cenario_clinico: "dmg_confirmado",
+    };
+    try {
+      const resp = await fetch(webhookUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(testPayload) });
+      const body = await resp.text();
+      return new Response(JSON.stringify({ test: true, webhook_status: resp.status, webhook_response: body }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ test: true, error: e.message }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   try {
     // Auth check
     const authHeader = req.headers.get("Authorization");
