@@ -46,6 +46,7 @@ const App = () => (
             <Route path="/vitrine/gestao" element={<GestaoPage />} />
             <Route path="/vitrine/gestao/equipe" element={<PreviewGestaoEquipePage />} />
             <Route path="/vitrine/admin" element={<AdminPage />} />
+            <Route path="/vitrine/admin/base-conhecimento" element={<BaseConhecimentoPage />} />
             <Route path="/vitrine/consolidar" element={<ConsolidarPage />} />
             <Route path="/vitrine/cadastro-convite" element={<PreviewCadastroConvitePage />} />
 
