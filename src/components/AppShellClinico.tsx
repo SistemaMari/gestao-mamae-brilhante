@@ -50,6 +50,7 @@ function useBreadcrumb() {
   if (path === '/planos') return { parent: null, current: 'Meu Plano' };
   if (path === '/perfil') return { parent: null, current: 'Meu Perfil' };
   if (path === '/completar-perfil') return { parent: null, current: 'Completar Perfil' };
+  if (path === '/dashboard/metricas') return { parent: null, current: 'Meu Dashboard' };
   return null;
 }
 
