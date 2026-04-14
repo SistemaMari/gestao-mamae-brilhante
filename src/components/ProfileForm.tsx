@@ -61,11 +61,8 @@ export default function ProfileForm({ initialData, onSubmit, isLoading, submitLa
   const stateData = useMemo(() => countryData?.states.find(s => s.value === form.estado), [countryData, form.estado]);
   const filteredCities = useMemo(() => {
     if (isOutro) return [];
-    const cities = stateData?.cities || [];
-    if (!citySearch) return cities;
-    const search = citySearch.toLowerCase();
-    return cities.filter(c => c.toLowerCase().includes(search));
-  }, [stateData, citySearch, isOutro]);
+    return stateData?.cities || [];
+  }, [stateData, isOutro]);
 
   const required: (keyof ProfileFormData)[] = ['nome', 'crm', 'especialidade', 'pais', 'estado', 'cidade', 'idioma'];
 
@@ -85,11 +82,9 @@ export default function ProfileForm({ initialData, onSubmit, isLoading, submitLa
       if (field === 'pais') {
         next.estado = '';
         next.cidade = '';
-        setCitySearch('');
       }
       if (field === 'estado') {
         next.cidade = '';
-        setCitySearch('');
       }
       return next;
     });
