@@ -111,7 +111,7 @@ export default function FichaPacientePage() {
   }, [paciente?.data_nascimento]);
 
   const primeiraConsulta = consultas.find((c) => c.tipo === 'consulta_1');
-  const consultaAtiva = consultas.length > 0 ? consultas[consultas.length - 1] : null;
+  const _consultaAtiva = consultas.length > 0 ? consultas[consultas.length - 1] : null;
   const consultasHistorico = consultas.length > 1 ? consultas.slice(0, -1).reverse() : [];
 
   const canShowRetorno1 = paciente?.status_ficha === 'aguardando_gj' && !!primeiraConsulta && !showRetorno1;
@@ -182,22 +182,23 @@ export default function FichaPacientePage() {
     setEditSaving(true);
 
     if (isPreview) {
-      // Update preview data
-      const updatedPaciente = {
-        ...paciente,
+      const updatedConsultas = consultas.map((c) =>
+        c.id === primeiraConsulta.id
+          ? { ...c, data: editDataConsulta, observacoes: editObservacoes.trim() || null }
+          : c
+      );
+      updatePreviewPaciente(id, {
         nome: editNome.trim(),
         data_nascimento: editDataNascimento,
         numero_identificacao: editNumeroId.trim() || null,
         dmg_gestacao_anterior: editDmgAnterior,
-        consultas: consultas.map((c) =>
-          c.id === primeiraConsulta.id
-            ? { ...c, data: editDataConsulta, observacoes: editObservacoes.trim() || null }
-            : c
-        ),
-      };
-      updatePreviewPaciente(updatedPaciente);
-      setPaciente(updatedPaciente);
-      setConsultas(updatedPaciente.consultas);
+        consultas: updatedConsultas,
+      });
+      const updated = getPreviewPacienteById(id);
+      if (updated) {
+        setPaciente(updated);
+        setConsultas(updated.consultas || []);
+      }
       window.dispatchEvent(new Event('preview-pacientes-updated'));
       toast.success('Dados atualizados com sucesso.');
       setEditing(false);
