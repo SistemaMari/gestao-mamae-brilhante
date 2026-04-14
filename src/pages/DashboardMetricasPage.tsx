@@ -550,14 +550,13 @@ export default function DashboardMetricasPage() {
 }
 
 // --- StatusCard component ---
-function StatusCard({ icon, label, value, detail, bg, border, isAlert }: {
+function StatusCard({ icon, label, value, detail, bg, border }: {
   icon: React.ReactNode;
   label: string;
   value: number;
   detail?: string;
   bg: string;
   border: string;
-  isAlert?: boolean;
 }) {
   return (
     <div
