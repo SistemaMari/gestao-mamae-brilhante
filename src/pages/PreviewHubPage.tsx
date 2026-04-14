@@ -433,18 +433,15 @@ export function PreviewCadastroConvitePage() {
   if (submitted) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
-        <div className="w-full max-w-[520px] rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
+        <div className="w-full max-w-[500px] rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
             <CheckCircle2 className="h-7 w-7" />
           </div>
-          <h1 className="mt-5 font-heading text-2xl font-bold text-foreground">Prévia concluída com sucesso</h1>
+          <h1 className="mt-5 font-heading text-2xl font-bold text-foreground">Conta criada com sucesso!</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Nesta etapa visual, o cadastro não grava dados reais. O objetivo aqui é validar a experiência do formulário.
+            Redirecionando para o login...
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Link to="/">
-              <Button variant="outline">Voltar para a vitrine</Button>
-            </Link>
             <Link to="/login">
               <Button>Ir para o login</Button>
             </Link>
