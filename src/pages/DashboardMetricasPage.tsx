@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useProfissionalData } from '@/hooks/useProfissionalData';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,6 @@ const COLORS = {
 export default function DashboardMetricasPage() {
   const { profissionalData, loading: profLoading } = useProfissionalData();
   const location = useLocation();
-  const navigate = useNavigate();
   const isPreview = location.pathname.startsWith('/vitrine');
 
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
@@ -188,7 +187,7 @@ export default function DashboardMetricasPage() {
   const endocrinoPercent = dmgCount > 0 ? Math.round((endocrino / dmgCount) * 100) : 0;
 
   // Diet-only control: DMG patients without cenario_3 or cenario_7
-  const dmgPatientIds = new Set(dmgConfirmados.map(p => p.id));
+  const _dmgPatientIds = new Set(dmgConfirmados.map(p => p.id));
   const patientsWithInsulin = new Set(
     filteredConsultas
       .filter(c => c.cenario_clinico === 'cenario_3' || c.cenario_clinico === 'cenario_7')

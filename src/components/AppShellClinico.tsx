@@ -5,7 +5,7 @@ import { useProfissionalData } from '@/hooks/useProfissionalData';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Users, UserPlus, CreditCard, UserCog, LogOut, Menu, X,
-  ChevronRight, User, Loader2
+  ChevronRight, User, Loader2, BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -14,9 +14,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import BlockingModal from '@/components/BlockingModal';
 
-const navItems = [
+const navItemsClinical = [
   { label: 'Pacientes', icon: Users, path: '/dashboard' },
   { label: 'Nova Paciente', icon: UserPlus, path: '/paciente/nova', checkLimit: true },
+  { label: 'Meu Dashboard', icon: BarChart3, path: '/dashboard/metricas' },
+];
+
+const navItemsAdmin = [
   { label: 'Meu Plano', icon: CreditCard, path: '/planos' },
   { label: 'Meu Perfil', icon: UserCog, path: '/perfil' },
 ];
