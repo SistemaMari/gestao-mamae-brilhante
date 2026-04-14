@@ -38,7 +38,7 @@ export default function FichaPacientePage() {
   const navigate = useNavigate();
   const isPreview = location.pathname.startsWith('/vitrine');
   useAuth();
-  const { profissionalData } = useProfissionalData();
+  useProfissionalData();
 
   const [paciente, setPaciente] = useState<PreviewPaciente | null>(null);
   const [consultas, setConsultas] = useState<PreviewConsulta[]>([]);
