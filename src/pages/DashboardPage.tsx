@@ -36,7 +36,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; meaning: str
   dmg_confirmado: {
     label: 'DMG confirmado',
     color: 'bg-orange-500',
-    meaning: 'Diabete Mellitus Gestacional confirmado. Paciente em acompanhamento ativo.',
+    meaning: 'Diagnóstico positivo (GJ ≥ 92, GTT alterado ou Overt). Em acompanhamento ativo.',
   },
   resultado_parto: {
     label: 'Resultado do parto',
@@ -46,7 +46,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; meaning: str
   encaminhada_endocrino: {
     label: 'Associar endocrino',
     color: 'bg-red-500',
-    meaning: 'Cenário 7: controle inadequado com insulina. Acompanhamento compartilhado GO + endocrinologista.',
+    meaning: 'Cenário 7: controle inadequado com insulina. Dra. Mari encerrada. Acompanhamento compartilhado GO + endocrinologista.',
   },
 };
 
@@ -225,11 +225,18 @@ export default function DashboardPage() {
               </span>
             </div>
             <Progress value={isPreview ? 30 : usagePercent} className="h-2" />
-            {((isPreview) || (profissionalData?.plano === 'free')) && (
+            {profissionalData?.plano === 'free' ? (
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Pacientes</span>
                 <span className="text-sm text-muted-foreground">
-                  {isPreview ? pacientes.length : pacientes.length} de 3
+                  {pacientes.length} de 3
+                </span>
+              </div>
+            ) : (
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Pacientes</span>
+                <span className="text-sm text-muted-foreground">
+                  {pacientes.length}
                 </span>
               </div>
             )}
