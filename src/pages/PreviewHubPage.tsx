@@ -173,7 +173,7 @@ export function PreviewCompletarPerfilPage() {
             Complete seu perfil profissional
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Esta rota existe para você visualizar a construção sem depender de login nem redirecionamentos.
+            Precisamos de algumas informações para configurar sua conta.
           </p>
         </div>
 
