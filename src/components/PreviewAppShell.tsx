@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   Users, UserPlus, CreditCard, UserCog, LogOut, Menu, X,
-  ChevronRight, User
+  ChevronRight, User, BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -16,9 +16,13 @@ const DUMMY = {
   plano: 'teste',
 };
 
-const navItems = [
+const navItemsClinical = [
   { label: 'Pacientes', icon: Users, path: '/vitrine/dashboard' },
   { label: 'Nova Paciente', icon: UserPlus, path: '/vitrine/paciente/nova' },
+  { label: 'Meu Dashboard', icon: BarChart3, path: '/vitrine/dashboard/metricas' },
+];
+
+const navItemsAdmin = [
   { label: 'Meu Plano', icon: CreditCard, path: '/vitrine/planos' },
   { label: 'Meu Perfil', icon: UserCog, path: '/vitrine/perfil' },
 ];
@@ -30,6 +34,7 @@ function usePreviewBreadcrumb() {
   if (path.startsWith('/vitrine/paciente/')) return { parent: { label: 'Pacientes', path: '/vitrine/dashboard' }, current: 'Ficha da paciente' };
   if (path === '/vitrine/planos') return { parent: null, current: 'Meu Plano' };
   if (path === '/vitrine/perfil') return { parent: null, current: 'Meu Perfil' };
+  if (path === '/vitrine/dashboard/metricas') return { parent: null, current: 'Meu Dashboard' };
   return null;
 }
 
@@ -43,34 +48,38 @@ export default function PreviewAppShell() {
 
   const isActive = (itemPath: string) => {
     if (itemPath === '/vitrine/dashboard') {
-      return location.pathname === '/vitrine/dashboard' || location.pathname.startsWith('/vitrine/paciente');
+      return location.pathname === '/vitrine/dashboard' || (location.pathname.startsWith('/vitrine/paciente') && !location.pathname.includes('/metricas'));
     }
-    return location.pathname === itemPath;
+    return location.pathname === itemPath || location.pathname.startsWith(itemPath + '/');
   };
+
+  const renderNavButton = (item: typeof navItemsClinical[0]) => (
+    <button
+      key={item.label}
+      onClick={() => navigate(item.path)}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+        isActive(item.path)
+          ? 'bg-[#E8E0FF] text-[#7E69AB]'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+      )}
+    >
+      <item.icon className="h-5 w-5 shrink-0" />
+      <span>{item.label}</span>
+      {item.path === '/vitrine/planos' && (
+        <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-accent-foreground">
+          {DUMMY.plano}
+        </span>
+      )}
+    </button>
+  );
 
   const SidebarContent = () => (
     <>
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map((item) => (
-          <button
-            key={item.label}
-            onClick={() => navigate(item.path)}
-            className={cn(
-              'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-              isActive(item.path)
-                ? 'bg-[#E8E0FF] text-[#7E69AB]'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            )}
-          >
-            <item.icon className="h-5 w-5 shrink-0" />
-            <span>{item.label}</span>
-            {item.path === '/vitrine/planos' && (
-              <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-accent-foreground">
-                {DUMMY.plano}
-              </span>
-            )}
-          </button>
-        ))}
+        {navItemsClinical.map(renderNavButton)}
+        <div className="my-2 border-t" style={{ borderColor: '#E2E8F0' }} />
+        {navItemsAdmin.map(renderNavButton)}
       </nav>
 
       <div className="border-t border-border px-3 py-3">

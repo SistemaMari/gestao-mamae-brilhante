@@ -11,6 +11,7 @@ import RecuperarSenhaPage from "./pages/RecuperarSenhaPage";
 import NovaSenhaPage from "./pages/NovaSenhaPage";
 
 import DashboardPage from "./pages/DashboardPage";
+import DashboardMetricasPage from "./pages/DashboardMetricasPage";
 import GestaoPage from "./pages/GestaoPage";
 import AdminPage from "./pages/AdminPage";
 import ConsolidarPage from "./pages/ConsolidarPage";
@@ -53,6 +54,7 @@ const App = () => (
             {/* Vitrine com App Shell */}
             <Route element={<PreviewAppShell />}>
               <Route path="/vitrine/dashboard" element={<DashboardPage />} />
+              <Route path="/vitrine/dashboard/metricas" element={<DashboardMetricasPage />} />
               <Route path="/vitrine/paciente/:id" element={<PacientePage />} />
               <Route path="/vitrine/planos" element={<PlanosPage />} />
               <Route path="/vitrine/perfil" element={<PerfilPage />} />
@@ -79,6 +81,7 @@ const App = () => (
             {/* App Shell do profissional clínico */}
             <Route element={<ProtectedRoute><AppShellClinico /></ProtectedRoute>}>
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/dashboard/metricas" element={<DashboardMetricasPage />} />
               <Route path="/paciente/nova" element={<PacientePage />} />
               <Route path="/paciente/:id" element={<PacientePage />} />
               <Route path="/planos" element={<PlanosPage />} />
