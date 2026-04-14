@@ -63,17 +63,22 @@ export default function GestaoPage() {
     if (!prof?.unidade_id) { setLoading(false); return; }
     setUnidadeId(prof.unidade_id);
 
-    // Fetch all data in parallel
-    const [unidadeRes, profsRes, convitesRes, fichasRes, laudosRes, consultasRes] = await Promise.all([
+    // First get profissionais to use their IDs in subsequent queries
+    const [unidadeRes, profsRes, convitesRes] = await Promise.all([
       supabase.from('unidades').select('nome').eq('id', prof.unidade_id).single(),
       supabase.from('profissionais').select('id, nome').eq('unidade_id', prof.unidade_id),
       supabase.from('convites').select('id').eq('unidade_id', prof.unidade_id).eq('status', 'pendente'),
-      supabase.from('pacientes').select('id, nome, status_ficha, profissional_id, data_ultima_consulta, created_at').eq('unidade_id', prof.unidade_id),
-      supabase.from('laudos').select('id, created_at, profissional_id, status').in('profissional_id', (profsRes?.data || []).map(p => p.id).length > 0 ? (profsRes?.data || []).map(p => p.id) : ['00000000-0000-0000-0000-000000000000']),
-      supabase.from('consultas').select('id, data, profissional_id, tipo, paciente_id').in('profissional_id', (profsRes?.data || []).map(p => p.id).length > 0 ? (profsRes?.data || []).map(p => p.id) : ['00000000-0000-0000-0000-000000000000']).order('data', { ascending: false }).limit(20),
     ]);
 
+    const profIds = (profsRes.data || []).map(p => p.id);
     const profissionaisMap = new Map((profsRes.data || []).map(p => [p.id, p.nome]));
+    const safeIds = profIds.length > 0 ? profIds : ['00000000-0000-0000-0000-000000000000'];
+
+    const [fichasRes, laudosRes, consultasRes] = await Promise.all([
+      supabase.from('pacientes').select('id, nome, status_ficha, profissional_id, data_ultima_consulta, created_at').eq('unidade_id', prof.unidade_id),
+      supabase.from('laudos').select('id, created_at, profissional_id, status').in('profissional_id', safeIds),
+      supabase.from('consultas').select('id, data, profissional_id, tipo, paciente_id').in('profissional_id', safeIds).order('data', { ascending: false }).limit(20),
+    ]);
 
     setUnidadeNome(unidadeRes.data?.nome || '');
     setTotalProfissionais(profsRes.data?.length || 0);
@@ -86,7 +91,7 @@ export default function GestaoPage() {
       id: f.id,
       nome: f.nome,
       status_ficha: f.status_ficha,
-      profissional_nome: profissionaisMap.get(f.profissional_id) || 'Desconhecido',
+      profissional_nome: (profissionaisMap.get(f.profissional_id) || 'Desconhecido') as string,
       data_ultima_consulta: f.data_ultima_consulta,
       created_at: f.created_at,
     }));
@@ -99,7 +104,7 @@ export default function GestaoPage() {
         id: c.id,
         tipo: 'consulta',
         descricao: `${c.tipo === 'consulta_1' ? 'Primeira consulta' : 'Retorno'} registrado`,
-        profissional_nome: profissionaisMap.get(c.profissional_id) || 'Desconhecido',
+        profissional_nome: (profissionaisMap.get(c.profissional_id) || 'Desconhecido') as string,
         data: c.data,
       });
     });
@@ -108,7 +113,7 @@ export default function GestaoPage() {
         id: l.id,
         tipo: 'laudo',
         descricao: `Laudo ${l.status === 'gerado' ? 'gerado' : 'pendente'}`,
-        profissional_nome: profissionaisMap.get(l.profissional_id) || 'Desconhecido',
+        profissional_nome: (profissionaisMap.get(l.profissional_id) || 'Desconhecido') as string,
         data: l.created_at,
       });
     });
