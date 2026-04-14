@@ -81,7 +81,7 @@ export default function AppShellClinico() {
     ? `Plano ${profissionalData.plano.charAt(0).toUpperCase() + profissionalData.plano.slice(1)} — ${profissionalData.laudos_usados}/${profissionalData.laudos_limite} laudos`
     : '';
 
-  const handleNavClick = async (item: typeof navItems[0]) => {
+  const handleNavClick = async (item: typeof navItemsClinical[0]) => {
     if (item.checkLimit && profissionalData) {
       const { data } = await supabase.rpc('pode_criar_ficha', { p_profissional_id: profissionalData.id });
       if (data !== true) {
@@ -94,34 +94,38 @@ export default function AppShellClinico() {
 
   const isActive = (itemPath: string) => {
     if (itemPath === '/dashboard') {
-      return location.pathname === '/dashboard' || location.pathname.startsWith('/paciente');
+      return location.pathname === '/dashboard' || (location.pathname.startsWith('/paciente') && !location.pathname.startsWith('/dashboard/metricas'));
     }
-    return location.pathname === itemPath;
+    return location.pathname === itemPath || location.pathname.startsWith(itemPath + '/');
   };
+
+  const renderNavButton = (item: typeof navItemsClinical[0]) => (
+    <button
+      key={item.label}
+      onClick={() => handleNavClick(item)}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+        isActive(item.path)
+          ? 'bg-[#E8E0FF] text-[#7E69AB]'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+      )}
+    >
+      <item.icon className="h-5 w-5 shrink-0" />
+      <span>{item.label}</span>
+      {item.path === '/planos' && profissionalData && (
+        <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-accent-foreground">
+          {profissionalData.plano}
+        </span>
+      )}
+    </button>
+  );
 
   const SidebarContent = () => (
     <>
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map((item) => (
-          <button
-            key={item.label}
-            onClick={() => handleNavClick(item)}
-            className={cn(
-              'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-              isActive(item.path)
-                ? 'bg-[#E8E0FF] text-[#7E69AB]'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            )}
-          >
-            <item.icon className="h-5 w-5 shrink-0" />
-            <span>{item.label}</span>
-            {item.path === '/planos' && profissionalData && (
-              <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-accent-foreground">
-                {profissionalData.plano}
-              </span>
-            )}
-          </button>
-        ))}
+        {navItemsClinical.map(renderNavButton)}
+        <div className="my-2 border-t" style={{ borderColor: '#E2E8F0' }} />
+        {navItemsAdmin.map(renderNavButton)}
       </nav>
 
       <div className="border-t border-border px-3 py-3">
