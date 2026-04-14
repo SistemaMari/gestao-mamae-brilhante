@@ -52,8 +52,8 @@ const previewCards: PreviewCardProps[] = [
   },
   {
     to: '/vitrine/dashboard',
-    title: 'Dashboard clínico',
-    description: 'Visualize a tela atual do módulo clínico dentro do shell completo.',
+    title: 'Minhas Pacientes',
+    description: 'Gerencie suas pacientes, acompanhe status e retornos.',
     icon: LayoutDashboard,
   },
   {
