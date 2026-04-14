@@ -32,14 +32,14 @@ export default function GestaoPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [unidadeNome, setUnidadeNome] = useState('');
-  const [unidadeId, setUnidadeId] = useState<string | null>(null);
+  const [_unidadeId, setUnidadeId] = useState<string | null>(null);
   const [totalProfissionais, setTotalProfissionais] = useState(0);
   const [convitesPendentes, setConvitesPendentes] = useState(0);
   const [totalFichas, setTotalFichas] = useState(0);
   const [totalLaudos, setTotalLaudos] = useState(0);
   const [atividades, setAtividades] = useState<AtividadeRecente[]>([]);
   const [fichas, setFichas] = useState<FichaResumo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
 
   // Filters
   const [filtroPeriodo, setFiltroPeriodo] = useState('todos');
