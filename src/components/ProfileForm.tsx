@@ -53,7 +53,7 @@ export default function ProfileForm({ initialData, onSubmit, isLoading, submitLa
   });
 
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [citySearch, setCitySearch] = useState('');
+  
 
   const isOutro = form.pais === 'Outro';
 
