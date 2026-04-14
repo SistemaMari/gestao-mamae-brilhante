@@ -36,23 +36,94 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 const CONSULTA_NAMES: Record<string, string> = {
   consulta_1: 'CONSULTA 1 — Hora de rastrear o DMG (glicemia plasmática de jejum)',
   retorno_1: 'RETORNO 1 — Hora de confirmar o diagnóstico e iniciar o tratamento',
+  retorno_gtt: 'RETORNO GTT 75g (24-28 semanas)',
   retorno_2: 'RETORNO 2 — Hora de ver o resultado inicial do tratamento (Perfil Glicêmico de 4 pontos) e definir próximo passo',
   retorno_3: 'RETORNO 3 — Hora de ver o resultado da insulina (Perfil Glicêmico de 6 pontos) e definir próximo passo',
-  retorno_gtt: 'RETORNO GTT 75g (24-28 semanas)',
+  ficha_a: 'FICHA A — Acompanhamento sem insulina (Perfil Glicêmico de 4 pontos × 15 dias)',
+  ficha_b: 'FICHA B — Acompanhamento com insulina (Perfil Glicêmico de 6 pontos × 15 dias)',
+  ficha_c: 'FICHA C — Acompanhamento sem insulina (Perfil Glicêmico de 4 pontos × 7 dias)',
+  ficha_d: 'FICHA D — Acompanhamento com insulina (Perfil Glicêmico de 6 pontos × 7 dias)',
   registro_parto: 'FICHA DE REGISTRO DO PARTO',
 };
 
-function getNextStepButton(statusFicha: string): string {
+/**
+ * Determines the next step button text and form type based on:
+ * - status_ficha
+ * - consultation history
+ * - insulin usage (future)
+ * - current IG (future)
+ */
+function getNextStepInfo(
+  statusFicha: string,
+  consultas: PreviewConsulta[],
+  igAtual: { semanas: number; dias: number } | null,
+): { label: string; formType: string } | null {
+  const hasRetorno1 = consultas.some(c => c.tipo === 'retorno_1');
+  const hasRetornoGtt = consultas.some(c => c.tipo === 'retorno_gtt');
+  const hasRetorno2 = consultas.some(c => c.tipo === 'retorno_2');
+  const hasRetorno3 = consultas.some(c => c.tipo === 'retorno_3');
+
   switch (statusFicha) {
     case 'aguardando_gj':
-      return '+ Retorno 1 — Resultado da Glicemia de Jejum';
+      return {
+        label: '+ RETORNO 1 — Hora de confirmar o diagnóstico e iniciar o tratamento',
+        formType: 'retorno_1',
+      };
+
     case 'aguardando_gtt':
-      return '+ Retorno GTT 75g';
-    case 'dmg_confirmado':
-      return '+ Retorno 2 — Perfil Glicêmico de 4 pontos';
+      return {
+        label: '+ RETORNO GTT 75g (24-28 semanas)',
+        formType: 'retorno_gtt',
+      };
+
+    case 'dmg_confirmado': {
+      // After Retorno 1 positive or GTT positive, next is Retorno 2
+      if (!hasRetorno2) {
+        return {
+          label: '+ RETORNO 2 — Hora de ver o resultado inicial do tratamento (Perfil Glicêmico de 4 pontos) e definir próximo passo',
+          formType: 'retorno_2',
+        };
+      }
+      // After Retorno 2 with inadequate control → Retorno 3
+      if (!hasRetorno3) {
+        // TODO: check if insulin was started — for now assume inadequate control path
+        return {
+          label: '+ RETORNO 3 — Hora de ver o resultado da insulina (Perfil Glicêmico de 6 pontos) e definir próximo passo',
+          formType: 'retorno_3',
+        };
+      }
+      // After Retorno 2/3 with adequate control → Ficha A/B/C/D based on insulin + IG
+      // For now, show ficha based on IG (insulin logic TBD)
+      const igSem = igAtual?.semanas ?? 0;
+      if (igSem <= 30) {
+        return {
+          label: '+ FICHA A — Acompanhamento sem insulina (Perfil Glicêmico de 4 pontos × 15 dias)',
+          formType: 'ficha_a',
+        };
+      }
+      return {
+        label: '+ FICHA C — Acompanhamento sem insulina (Perfil Glicêmico de 4 pontos × 7 dias)',
+        formType: 'ficha_c',
+      };
+    }
+
+    case 'dmg_afastado':
+      return null; // No next step
+
+    case 'resultado_parto':
+      return null; // No next step
+
+    case 'encaminhada_endocrino':
+      return null; // Only parto registration available (shown as secondary)
+
     default:
-      return '+ Nova consulta de retorno';
+      return null;
   }
+}
+
+/** Check if the secondary "Registro do Parto" button should show */
+function canShowRegistroParto(statusFicha: string): boolean {
+  return statusFicha === 'dmg_confirmado' || statusFicha === 'encaminhada_endocrino';
 }
 
 export default function FichaPacientePage() {
