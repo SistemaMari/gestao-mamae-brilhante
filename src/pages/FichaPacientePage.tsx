@@ -6,13 +6,16 @@ import { useProfissionalData } from '@/hooks/useProfissionalData';
 import { supabase } from '@/integrations/supabase/client';
 import {
   getPreviewPacienteById,
+  updatePreviewPaciente,
   type PreviewPaciente,
   type PreviewConsulta,
 } from '@/lib/previewPatients';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
-  AlertTriangle, Calendar, Clock, FileText, Plus, User,
+  AlertTriangle, Calendar, Clock, FileText, Pencil, Plus, User, Loader2,
 } from 'lucide-react';
 import Retorno1Form from '@/components/Retorno1Form';
 import {
@@ -41,6 +44,16 @@ export default function FichaPacientePage() {
   const [consultas, setConsultas] = useState<PreviewConsulta[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRetorno1, setShowRetorno1] = useState(false);
+
+  // Edit mode state
+  const [editing, setEditing] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editNome, setEditNome] = useState('');
+  const [editDataNascimento, setEditDataNascimento] = useState('');
+  const [editNumeroId, setEditNumeroId] = useState('');
+  const [editDmgAnterior, setEditDmgAnterior] = useState<boolean>(false);
+  const [editDataConsulta, setEditDataConsulta] = useState('');
+  const [editObservacoes, setEditObservacoes] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -98,6 +111,9 @@ export default function FichaPacientePage() {
   }, [paciente?.data_nascimento]);
 
   const primeiraConsulta = consultas.find((c) => c.tipo === 'consulta_1');
+  const _consultaAtiva = consultas.length > 0 ? consultas[consultas.length - 1] : null;
+  const consultasHistorico = consultas.length > 1 ? consultas.slice(0, -1).reverse() : [];
+
   const canShowRetorno1 = paciente?.status_ficha === 'aguardando_gj' && !!primeiraConsulta && !showRetorno1;
   const canShowRetorno1Form = showRetorno1 && paciente?.status_ficha === 'aguardando_gj' && !!primeiraConsulta;
 
@@ -141,10 +157,110 @@ export default function FichaPacientePage() {
     return { inicio, fim };
   }, [dumDate]);
 
-  // Is IG >= 24 weeks?
   const igMaior24 = igAtual ? igAtual.semanas >= 24 : false;
 
   const status = paciente ? STATUS_CONFIG[paciente.status_ficha] : null;
+
+  // Edit mode helpers
+  const startEditing = () => {
+    if (!paciente || !primeiraConsulta) return;
+    setEditNome(paciente.nome);
+    setEditDataNascimento(paciente.data_nascimento || '');
+    setEditNumeroId(paciente.numero_identificacao || '');
+    setEditDmgAnterior(!!paciente.dmg_gestacao_anterior);
+    setEditDataConsulta(primeiraConsulta.data);
+    setEditObservacoes(primeiraConsulta.observacoes || '');
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setEditing(false);
+  };
+
+  const saveEditing = async () => {
+    if (!paciente || !primeiraConsulta || !id) return;
+    setEditSaving(true);
+
+    if (isPreview) {
+      const updatedConsultas = consultas.map((c) =>
+        c.id === primeiraConsulta.id
+          ? { ...c, data: editDataConsulta, observacoes: editObservacoes.trim() || null }
+          : c
+      );
+      updatePreviewPaciente(id, {
+        nome: editNome.trim(),
+        data_nascimento: editDataNascimento,
+        numero_identificacao: editNumeroId.trim() || null,
+        dmg_gestacao_anterior: editDmgAnterior,
+        consultas: updatedConsultas,
+      });
+      const updated = getPreviewPacienteById(id);
+      if (updated) {
+        setPaciente(updated);
+        setConsultas(updated.consultas || []);
+      }
+      window.dispatchEvent(new Event('preview-pacientes-updated'));
+      toast.success('Dados atualizados com sucesso.');
+      setEditing(false);
+      setEditSaving(false);
+      return;
+    }
+
+    // Real mode — update pacientes + consultas
+    const { error: pacErr } = await supabase
+      .from('pacientes')
+      .update({
+        nome: editNome.trim(),
+        data_nascimento: editDataNascimento,
+        numero_identificacao: editNumeroId.trim() || null,
+        dmg_gestacao_anterior: editDmgAnterior,
+      })
+      .eq('id', id);
+
+    const { error: consErr } = await supabase
+      .from('consultas')
+      .update({
+        data: editDataConsulta,
+        observacoes: editObservacoes.trim() || null,
+      })
+      .eq('id', primeiraConsulta.id);
+
+    setEditSaving(false);
+
+    if (pacErr || consErr) {
+      console.error(pacErr, consErr);
+      toast.error('Erro ao atualizar dados.');
+      return;
+    }
+
+    // Refresh data
+    setPaciente((prev) =>
+      prev
+        ? {
+            ...prev,
+            nome: editNome.trim(),
+            data_nascimento: editDataNascimento,
+            numero_identificacao: editNumeroId.trim() || null,
+            dmg_gestacao_anterior: editDmgAnterior,
+          }
+        : prev
+    );
+    setConsultas((prev) =>
+      prev.map((c) =>
+        c.id === primeiraConsulta.id
+          ? { ...c, data: editDataConsulta, observacoes: editObservacoes.trim() || null }
+          : c
+      )
+    );
+
+    toast.success('Dados atualizados com sucesso.');
+    setEditing(false);
+  };
+
+  const editIdade = useMemo(() => {
+    if (!editDataNascimento) return null;
+    return differenceInYears(new Date(), new Date(editDataNascimento));
+  }, [editDataNascimento]);
 
   if (loading) {
     return (
@@ -171,8 +287,8 @@ export default function FichaPacientePage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      {/* DMG anterior banner — fixed at top, not closeable */}
-      {paciente.dmg_gestacao_anterior && (
+      {/* DMG anterior banner */}
+      {(editing ? editDmgAnterior : paciente.dmg_gestacao_anterior) && (
         <div className="flex items-start gap-3 rounded-xl border-2 border-orange-400 bg-orange-50 p-4">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-orange-600" />
           <p className="text-sm font-semibold text-orange-800">
@@ -185,73 +301,188 @@ export default function FichaPacientePage() {
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="font-heading text-xl font-bold text-foreground">{paciente.nome}</h1>
-            {idade !== null && (
-              <span className="text-sm text-muted-foreground">{idade} anos</span>
+            {editing ? (
+              <Input
+                value={editNome}
+                onChange={(e) => setEditNome(e.target.value)}
+                className="text-xl font-bold"
+                placeholder="Nome completo"
+              />
+            ) : (
+              <>
+                <h1 className="font-heading text-xl font-bold text-foreground">{paciente.nome}</h1>
+                {idade !== null && (
+                  <span className="text-sm text-muted-foreground">{idade} anos</span>
+                )}
+              </>
             )}
           </div>
-          {status && (
-            <Badge className={`${status.color} text-white border-0 shrink-0`}>
-              {status.label}
-            </Badge>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <User className="h-3.5 w-3.5 shrink-0" />
-            <span>
-              <span className="font-medium text-foreground">Nascimento:</span>{' '}
-              {paciente.data_nascimento ? format(new Date(paciente.data_nascimento), 'dd/MM/yyyy') : '—'}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <FileText className="h-3.5 w-3.5 shrink-0" />
-            <span>
-              <span className="font-medium text-foreground">Identificação:</span>{' '}
-              {paciente.numero_identificacao
-                ? `${(paciente as any).tipo_identificacao?.toUpperCase() || ''}: ${paciente.numero_identificacao}`
-                : '—'}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5 shrink-0" />
-            <span>
-              <span className="font-medium text-foreground">IG na consulta 1:</span>{' '}
-              {igNaConsulta1
-                ? `${igNaConsulta1.semanas}s ${igNaConsulta1.dias}d`
-                : '—'}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5 shrink-0" />
-            <span>
-              <span className="font-medium text-foreground">IG hoje:</span>{' '}
-              {igAtual ? `${igAtual.semanas} sem + ${igAtual.dias} dias` : '—'}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5 shrink-0" />
-            <span>
-              <span className="font-medium text-foreground">Data da consulta 1:</span>{' '}
-              {primeiraConsulta ? format(new Date(primeiraConsulta.data), 'dd/MM/yyyy') : '—'}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5 shrink-0" />
-            <span>
-              <span className="font-medium text-foreground">DUM:</span>{' '}
-              {paciente.dum ? format(new Date(paciente.dum), 'dd/MM/yyyy') : '—'}
-            </span>
+          <div className="flex items-center gap-2">
+            {status && (
+              <Badge className={`${status.color} text-white border-0 shrink-0`}>
+                {status.label}
+              </Badge>
+            )}
+            {!editing && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={startEditing}
+                className="border-[#9b87f5] text-[#9b87f5] hover:bg-[#E8E0FF] gap-1.5"
+              >
+                <Pencil className="h-4 w-4" />
+                Editar
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Observações da consulta 1 */}
-        {primeiraConsulta?.observacoes && (
-          <div className="rounded-lg border border-border bg-muted/30 p-3">
-            <p className="text-xs font-medium text-foreground mb-1">Observações clínicas:</p>
-            <p className="text-sm text-muted-foreground italic">{primeiraConsulta.observacoes}</p>
+        {editing ? (
+          /* Edit mode fields */
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-foreground">Data de nascimento</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={editDataNascimento}
+                    onChange={(e) => setEditDataNascimento(e.target.value)}
+                  />
+                  {editIdade !== null && (
+                    <span className="whitespace-nowrap rounded-md bg-muted px-2 py-1 text-xs font-medium text-foreground">
+                      {editIdade} anos
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-foreground">Número de identificação</label>
+                <Input
+                  value={editNumeroId}
+                  onChange={(e) => setEditNumeroId(e.target.value)}
+                  placeholder="Opcional"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-foreground">Data da consulta 1</label>
+                <Input
+                  type="date"
+                  value={editDataConsulta}
+                  onChange={(e) => setEditDataConsulta(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-foreground">DMG em gestação anterior</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditDmgAnterior(true)}
+                    className={`flex-1 rounded-lg border-2 px-3 py-2 text-sm font-medium transition-colors ${
+                      editDmgAnterior
+                        ? 'border-[#9b87f5] bg-[#9b87f5]/10 text-[#9b87f5]'
+                        : 'border-border bg-card text-muted-foreground hover:border-[#9b87f5]/60'
+                    }`}
+                  >
+                    Sim
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditDmgAnterior(false)}
+                    className={`flex-1 rounded-lg border-2 px-3 py-2 text-sm font-medium transition-colors ${
+                      !editDmgAnterior
+                        ? 'border-[#9b87f5] bg-[#9b87f5]/10 text-[#9b87f5]'
+                        : 'border-border bg-card text-muted-foreground hover:border-[#9b87f5]/60'
+                    }`}
+                  >
+                    Não
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-foreground">Observações clínicas</label>
+              <Textarea
+                value={editObservacoes}
+                onChange={(e) => setEditObservacoes(e.target.value)}
+                placeholder="Opcional"
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-1">
+              <Button variant="outline" size="sm" onClick={cancelEditing} disabled={editSaving}>
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={saveEditing}
+                disabled={editSaving || !editNome.trim()}
+                className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
+              >
+                {editSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar alterações
+              </Button>
+            </div>
           </div>
+        ) : (
+          /* Read-only mode */
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <User className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                  <span className="font-medium text-foreground">Nascimento:</span>{' '}
+                  {paciente.data_nascimento ? format(new Date(paciente.data_nascimento), 'dd/MM/yyyy') : '—'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <FileText className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                  <span className="font-medium text-foreground">Identificação:</span>{' '}
+                  {paciente.numero_identificacao
+                    ? `${(paciente as any).tipo_identificacao?.toUpperCase() || ''}: ${paciente.numero_identificacao}`
+                    : '—'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                  <span className="font-medium text-foreground">IG na consulta 1:</span>{' '}
+                  {igNaConsulta1
+                    ? `${igNaConsulta1.semanas}s ${igNaConsulta1.dias}d`
+                    : '—'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                  <span className="font-medium text-foreground">IG hoje:</span>{' '}
+                  {igAtual ? `${igAtual.semanas} sem + ${igAtual.dias} dias` : '—'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                  <span className="font-medium text-foreground">Data da consulta 1:</span>{' '}
+                  {primeiraConsulta ? format(new Date(primeiraConsulta.data), 'dd/MM/yyyy') : '—'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                  <span className="font-medium text-foreground">DUM:</span>{' '}
+                  {paciente.dum ? format(new Date(paciente.dum), 'dd/MM/yyyy') : '—'}
+                </span>
+              </div>
+            </div>
+
+            {primeiraConsulta?.observacoes && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <p className="text-xs font-medium text-foreground mb-1">Observações clínicas:</p>
+                <p className="text-sm text-muted-foreground italic">{primeiraConsulta.observacoes}</p>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -264,7 +495,6 @@ export default function FichaPacientePage() {
               Pedido de exame — Consulta 1
             </h2>
 
-            {/* Parte 1 — Orientação do exame */}
             <div className="rounded-lg bg-white/70 p-3">
               <p className="text-sm font-semibold text-emerald-900">Orientação do exame</p>
               <p className="mt-1 text-xs text-emerald-800">
@@ -272,7 +502,6 @@ export default function FichaPacientePage() {
               </p>
             </div>
 
-            {/* Parte 2 — Janela GTT */}
             {janelaGTT && (
               <div className="rounded-lg bg-white/70 p-3">
                 <p className="text-sm font-semibold text-emerald-900">Janela para GTT 75g</p>
@@ -292,7 +521,6 @@ export default function FichaPacientePage() {
             )}
           </div>
 
-          {/* Parte 3 — Notas técnicas — card cinza separado */}
           <div className="rounded-xl border border-border bg-[#F1F5F9] p-5">
             <p className="text-sm font-semibold text-foreground mb-2">Notas técnicas</p>
             <ul className="list-disc pl-4 text-xs text-muted-foreground space-y-1.5">
@@ -304,18 +532,16 @@ export default function FichaPacientePage() {
         </>
       )}
 
-      {/* Histórico de consultas */}
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-        <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-          <Clock className="h-4 w-4" />
-          Histórico de consultas
-        </h2>
+      {/* Histórico de consultas — only show if there are previous consultations */}
+      {consultasHistorico.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Histórico de consultas
+          </h2>
 
-        {consultas.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhuma consulta registrada.</p>
-        ) : (
           <Accordion type="multiple" className="space-y-2">
-            {consultas.map((c) => (
+            {consultasHistorico.map((c) => (
               <AccordionItem key={c.id} value={c.id} className="rounded-lg border border-border px-3 py-0">
                 <AccordionTrigger className="py-3 hover:no-underline">
                   <div className="flex w-full items-center justify-between pr-2">
@@ -347,45 +573,45 @@ export default function FichaPacientePage() {
               </AccordionItem>
             ))}
           </Accordion>
-        )}
+        </div>
+      )}
 
-        {/* Retorno 1 form */}
-        {canShowRetorno1Form && primeiraConsulta && paciente && (
-          <div className="mt-4">
-            <Retorno1Form
-              paciente={paciente}
-              primeiraConsulta={primeiraConsulta}
-              isPreview={isPreview}
-              onSaved={reloadPaciente}
-              onCancel={() => setShowRetorno1(false)}
-            />
-          </div>
-        )}
+      {/* Retorno 1 form */}
+      {canShowRetorno1Form && primeiraConsulta && paciente && (
+        <div>
+          <Retorno1Form
+            paciente={paciente}
+            primeiraConsulta={primeiraConsulta}
+            isPreview={isPreview}
+            onSaved={reloadPaciente}
+            onCancel={() => setShowRetorno1(false)}
+          />
+        </div>
+      )}
 
-        {/* Botão nova consulta de retorno */}
-        {canShowRetorno1 && (
-          <Button
-            variant="outline"
-            className="mt-4 w-full"
-            onClick={() => setShowRetorno1(true)}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            + Nova consulta de retorno
-          </Button>
-        )}
+      {/* Botão nova consulta de retorno */}
+      {canShowRetorno1 && (
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => setShowRetorno1(true)}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          + Nova consulta de retorno
+        </Button>
+      )}
 
-        {/* Botão para status que não são aguardando_gj (futuro) */}
-        {paciente && paciente.status_ficha !== 'aguardando_gj' && (
-          <Button
-            variant="outline"
-            className="mt-4 w-full"
-            onClick={() => toast('Próximo retorno ainda não implementado.')}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            + Nova consulta de retorno
-          </Button>
-        )}
-      </div>
+      {/* Botão para status que não são aguardando_gj (futuro) */}
+      {paciente && paciente.status_ficha !== 'aguardando_gj' && (
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => toast('Próximo retorno ainda não implementado.')}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          + Nova consulta de retorno
+        </Button>
+      )}
     </div>
   );
 }
