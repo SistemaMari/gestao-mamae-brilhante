@@ -32,6 +32,29 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   encaminhada_endocrino: { label: 'Associar endocrino', color: 'bg-red-500' },
 };
 
+// P6: Full names for consultation types
+const CONSULTA_NAMES: Record<string, string> = {
+  consulta_1: 'CONSULTA 1 — Hora de rastrear o DMG (glicemia plasmática de jejum)',
+  retorno_1: 'RETORNO 1 — Hora de confirmar o diagnóstico e iniciar o tratamento',
+  retorno_2: 'RETORNO 2 — Hora de ver o resultado inicial do tratamento (Perfil Glicêmico de 4 pontos) e definir próximo passo',
+  retorno_3: 'RETORNO 3 — Hora de ver o resultado da insulina (Perfil Glicêmico de 6 pontos) e definir próximo passo',
+  retorno_gtt: 'RETORNO GTT 75g (24-28 semanas)',
+  registro_parto: 'FICHA DE REGISTRO DO PARTO',
+};
+
+function getNextStepButton(statusFicha: string): string {
+  switch (statusFicha) {
+    case 'aguardando_gj':
+      return '+ Retorno 1 — Resultado da Glicemia de Jejum';
+    case 'aguardando_gtt':
+      return '+ Retorno GTT 75g';
+    case 'dmg_confirmado':
+      return '+ Retorno 2 — Perfil Glicêmico de 4 pontos';
+    default:
+      return '+ Nova consulta de retorno';
+  }
+}
+
 export default function FichaPacientePage() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
@@ -44,6 +67,8 @@ export default function FichaPacientePage() {
   const [consultas, setConsultas] = useState<PreviewConsulta[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRetorno1, setShowRetorno1] = useState(false);
+  // P3: Track whether retorno1 result is being displayed
+  const [retorno1Completed, setRetorno1Completed] = useState(false);
 
   // Edit mode state
   const [editing, setEditing] = useState(false);
@@ -111,12 +136,25 @@ export default function FichaPacientePage() {
   }, [paciente?.data_nascimento]);
 
   const primeiraConsulta = consultas.find((c) => c.tipo === 'consulta_1');
-  const _consultaAtiva = consultas.length > 0 ? consultas[consultas.length - 1] : null;
-  const consultasHistorico = consultas.length > 1 ? consultas.slice(0, -1).reverse() : [];
+  const ultimaConsulta = consultas.length > 0 ? consultas[consultas.length - 1] : null;
 
-  const canShowRetorno1 = paciente?.status_ficha === 'aguardando_gj' && !!primeiraConsulta && !showRetorno1;
-  const canShowRetorno1Form = showRetorno1 && paciente?.status_ficha === 'aguardando_gj' && !!primeiraConsulta;
+  // P5/P6: History shows ALL previous consultations (everything except the active/current one)
+  // When retorno1 is completed and showing result, history = all consultations except last
+  const consultasHistorico = useMemo(() => {
+    if (retorno1Completed && consultas.length > 1) {
+      // Show all but the last (which is the retorno_1 being displayed as result card)
+      return consultas.slice(0, -1).reverse();
+    }
+    if (consultas.length > 1) {
+      return consultas.slice(0, -1).reverse();
+    }
+    return [];
+  }, [consultas, retorno1Completed]);
 
+  const canShowRetorno1 = paciente?.status_ficha === 'aguardando_gj' && !!primeiraConsulta && !showRetorno1 && !retorno1Completed;
+  const canShowRetorno1Form = (showRetorno1 || retorno1Completed) && !!primeiraConsulta;
+
+  // P3: Reload patient data without hiding the retorno form
   const reloadPaciente = () => {
     if (!id) return;
     if (isPreview) {
@@ -126,6 +164,8 @@ export default function FichaPacientePage() {
         setConsultas(p.consultas || []);
       }
     }
+    // Mark retorno1 as completed (result card stays visible)
+    setRetorno1Completed(true);
     setShowRetorno1(false);
   };
 
@@ -206,7 +246,6 @@ export default function FichaPacientePage() {
       return;
     }
 
-    // Real mode — update pacientes + consultas
     const { error: pacErr } = await supabase
       .from('pacientes')
       .update({
@@ -233,7 +272,6 @@ export default function FichaPacientePage() {
       return;
     }
 
-    // Refresh data
     setPaciente((prev) =>
       prev
         ? {
@@ -284,6 +322,9 @@ export default function FichaPacientePage() {
       </div>
     );
   }
+
+  // Check if the retorno_1 is the most recent consultation (for edit button)
+  const retorno1IsLast = ultimaConsulta?.tipo === 'retorno_1' && consultas.length <= 2;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -338,7 +379,6 @@ export default function FichaPacientePage() {
         </div>
 
         {editing ? (
-          /* Edit mode fields */
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
@@ -425,7 +465,6 @@ export default function FichaPacientePage() {
             </div>
           </div>
         ) : (
-          /* Read-only mode */
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
               <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -486,8 +525,8 @@ export default function FichaPacientePage() {
         )}
       </div>
 
-      {/* Confirmation card — green */}
-      {paciente.status_ficha === 'aguardando_gj' && (
+      {/* Confirmation card — green — only when status is still aguardando_gj and no retorno form active */}
+      {paciente.status_ficha === 'aguardando_gj' && !showRetorno1 && !retorno1Completed && (
         <>
           <div className="rounded-xl border border-emerald-200 bg-[#DCFCE7] p-5 space-y-4">
             <h2 className="text-sm font-bold text-emerald-800 flex items-center gap-2">
@@ -532,7 +571,7 @@ export default function FichaPacientePage() {
         </>
       )}
 
-      {/* Histórico de consultas — only show if there are previous consultations */}
+      {/* Histórico de consultas — P5/P6: detailed expansion with proper names */}
       {consultasHistorico.length > 0 && (
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
@@ -545,25 +584,60 @@ export default function FichaPacientePage() {
               <AccordionItem key={c.id} value={c.id} className="rounded-lg border border-border px-3 py-0">
                 <AccordionTrigger className="py-3 hover:no-underline">
                   <div className="flex w-full items-center justify-between pr-2">
-                    <span className="text-sm font-medium text-foreground">
-                      {c.tipo === 'consulta_1' ? 'Consulta 1' : `Retorno ${c.numero_sequencial}`}
+                    <span className="text-xs font-medium text-foreground leading-tight text-left">
+                      {CONSULTA_NAMES[c.tipo] || c.tipo}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground shrink-0 ml-2">
                       {format(new Date(c.data), 'dd/MM/yyyy')}
                     </span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pb-3">
-                  {c.ig_semanas != null && (
-                    <p className="text-xs text-muted-foreground mb-1">
-                      IG: {c.ig_semanas}s {c.ig_dias || 0}d
+                <AccordionContent className="pb-3 space-y-2">
+                  {/* P5: Show detailed data for consulta_1 */}
+                  {c.tipo === 'consulta_1' && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
+                        <div>
+                          <span className="font-medium text-foreground">Data:</span>{' '}
+                          {format(new Date(c.data), 'dd/MM/yyyy')}
+                        </div>
+                        {igNaConsulta1 && (
+                          <div>
+                            <span className="font-medium text-foreground">IG na consulta:</span>{' '}
+                            {igNaConsulta1.semanas}s {igNaConsulta1.dias}d
+                          </div>
+                        )}
+                        <div>
+                          <span className="font-medium text-foreground">Exame solicitado:</span>{' '}
+                          Glicemia plasmática de jejum
+                        </div>
+                        {janelaGTT && (
+                          <div>
+                            <span className="font-medium text-foreground">GTT 75g entre:</span>{' '}
+                            {format(janelaGTT.inicio, 'dd/MM/yyyy')} e {format(janelaGTT.fim, 'dd/MM/yyyy')}
+                          </div>
+                        )}
+                        <div>
+                          <span className="font-medium text-foreground">DMG anterior:</span>{' '}
+                          {paciente.dmg_gestacao_anterior ? 'Sim' : 'Não'}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* For retorno types show IG and status */}
+                  {c.tipo !== 'consulta_1' && c.ig_semanas != null && (
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">IG:</span> {c.ig_semanas}s {c.ig_dias || 0}d
                     </p>
                   )}
+
                   {c.status_gerado && STATUS_CONFIG[c.status_gerado] && (
-                    <Badge className={`${STATUS_CONFIG[c.status_gerado].color} text-white border-0 text-[10px] mb-2`}>
+                    <Badge className={`${STATUS_CONFIG[c.status_gerado].color} text-white border-0 text-[10px]`}>
                       {STATUS_CONFIG[c.status_gerado].label}
                     </Badge>
                   )}
+
                   {c.observacoes ? (
                     <p className="text-xs text-muted-foreground italic">{c.observacoes}</p>
                   ) : (
@@ -576,7 +650,7 @@ export default function FichaPacientePage() {
         </div>
       )}
 
-      {/* Retorno 1 form */}
+      {/* P3: Retorno 1 form / result card — stays mounted after saving */}
       {canShowRetorno1Form && primeiraConsulta && paciente && (
         <div>
           <Retorno1Form
@@ -585,11 +659,12 @@ export default function FichaPacientePage() {
             isPreview={isPreview}
             onSaved={reloadPaciente}
             onCancel={() => setShowRetorno1(false)}
+            isLastConsulta={retorno1IsLast}
           />
         </div>
       )}
 
-      {/* Botão nova consulta de retorno */}
+      {/* P6: Button with next step name */}
       {canShowRetorno1 && (
         <Button
           variant="outline"
@@ -597,19 +672,31 @@ export default function FichaPacientePage() {
           onClick={() => setShowRetorno1(true)}
         >
           <Plus className="mr-2 h-4 w-4" />
-          + Nova consulta de retorno
+          {getNextStepButton(paciente.status_ficha)}
         </Button>
       )}
 
-      {/* Botão para status que não são aguardando_gj (futuro) */}
-      {paciente && paciente.status_ficha !== 'aguardando_gj' && (
+      {/* Button for statuses beyond aguardando_gj (future steps) — only if not showing retorno1 result */}
+      {paciente && paciente.status_ficha !== 'aguardando_gj' && !retorno1Completed && (
         <Button
           variant="outline"
           className="w-full"
           onClick={() => toast('Próximo retorno ainda não implementado.')}
         >
           <Plus className="mr-2 h-4 w-4" />
-          + Nova consulta de retorno
+          {getNextStepButton(paciente.status_ficha)}
+        </Button>
+      )}
+
+      {/* P3: After retorno1 completed and popup closed, show next step button below result */}
+      {retorno1Completed && paciente.status_ficha !== 'aguardando_gj' && (
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => toast('Próximo retorno ainda não implementado.')}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          {getNextStepButton(paciente.status_ficha)}
         </Button>
       )}
     </div>
