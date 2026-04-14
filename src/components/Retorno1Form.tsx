@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfissionalData } from '@/hooks/useProfissionalData';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -29,7 +30,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Info, Loader2, AlertTriangle, CheckCircle2, XCircle, Printer } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Info, Loader2, AlertTriangle, CheckCircle2, XCircle, Printer, Pencil } from 'lucide-react';
 import { differenceInDays, addDays, format } from 'date-fns';
 
 function todayISO() {
@@ -94,6 +103,7 @@ interface Retorno1FormProps {
   isPreview: boolean;
   onSaved: () => void;
   onCancel: () => void;
+  isLastConsulta?: boolean;
 }
 
 export default function Retorno1Form({
@@ -102,6 +112,7 @@ export default function Retorno1Form({
   isPreview,
   onSaved,
   onCancel,
+  isLastConsulta = true,
 }: Retorno1FormProps) {
   const { user } = useAuth();
   const { profissionalData } = useProfissionalData();
@@ -109,6 +120,8 @@ export default function Retorno1Form({
   const [valorGJ, setValorGJ] = useState('');
   const [tipoExame, setTipoExame] = useState('');
   const [dataExame, setDataExame] = useState(todayISO());
+  const [dataConsultaRetorno, setDataConsultaRetorno] = useState(todayISO());
+  const [observacoes, setObservacoes] = useState('');
   const [igSemanas, setIgSemanas] = useState('');
   const [igDias, setIgDias] = useState('');
   const [saving, setSaving] = useState(false);
@@ -118,46 +131,49 @@ export default function Retorno1Form({
   const [resultado, setResultado] = useState<DiagnosticoResult | null>(null);
   const [showPopup, setShowPopup] = useState(false);
 
+  // Edit mode state
+  const [editingResult, setEditingResult] = useState(false);
+  const [showEditConfirm, setShowEditConfirm] = useState(false);
+
   const isCapilar = tipoExame === 'capilar';
 
-  // Calculate current IG at exam date based on consulta 1
+  // Calculate IG at exam date based on DUM
   const igCalculada = useMemo(() => {
-    if (!primeiraConsulta || primeiraConsulta.ig_semanas == null) return null;
-    const diasC1 = primeiraConsulta.ig_semanas * 7 + (primeiraConsulta.ig_dias || 0);
-    const elapsed = differenceInDays(new Date(dataExame), new Date(primeiraConsulta.data));
-    const totalDias = diasC1 + elapsed;
-    if (totalDias < 0) return null;
-    return { semanas: Math.floor(totalDias / 7), dias: totalDias % 7 };
-  }, [primeiraConsulta, dataExame]);
+    if (!paciente.dum || !dataExame) return null;
+    const dias = differenceInDays(new Date(dataExame), new Date(paciente.dum));
+    if (dias < 0) return null;
+    return { semanas: Math.floor(dias / 7), dias: dias % 7 };
+  }, [paciente.dum, dataExame]);
 
-  // DUM from consulta 1
-  const dumCalculada = useMemo(() => {
-    if (!primeiraConsulta || primeiraConsulta.ig_semanas == null) return null;
-    const totalDias = primeiraConsulta.ig_semanas * 7 + (primeiraConsulta.ig_dias || 0);
-    return addDays(new Date(primeiraConsulta.data), -totalDias);
-  }, [primeiraConsulta]);
+  // P1: Auto-fill IG fields when dataExame changes
+  useEffect(() => {
+    if (igCalculada && !editingResult) {
+      setIgSemanas(String(igCalculada.semanas));
+      setIgDias(String(igCalculada.dias));
+    }
+  }, [igCalculada, editingResult]);
 
-  // GTT window calc for negative result
+  // DUM-based GTT window calc for negative result
   const janelaGTT = useMemo(() => {
-    if (!dumCalculada) return null;
-    const inicio = addDays(dumCalculada, 24 * 7);
-    const fim = addDays(dumCalculada, 28 * 7);
+    if (!paciente.dum) return null;
+    const dumDate = new Date(paciente.dum);
+    const inicio = addDays(dumDate, 24 * 7);
+    const fim = addDays(dumDate, 28 * 7);
     return { inicio, fim };
-  }, [dumCalculada]);
+  }, [paciente.dum]);
 
   const igHoje = useMemo(() => {
-    if (!primeiraConsulta || primeiraConsulta.ig_semanas == null) return null;
-    const diasC1 = primeiraConsulta.ig_semanas * 7 + (primeiraConsulta.ig_dias || 0);
-    const elapsed = differenceInDays(new Date(), new Date(primeiraConsulta.data));
-    const totalDias = diasC1 + elapsed;
-    return { semanas: Math.floor(totalDias / 7), dias: totalDias % 7 };
-  }, [primeiraConsulta]);
+    if (!paciente.dum) return null;
+    const dias = differenceInDays(new Date(), new Date(paciente.dum));
+    if (dias < 0) return null;
+    return { semanas: Math.floor(dias / 7), dias: dias % 7 };
+  }, [paciente.dum]);
 
   const igMaior24 = igHoje ? igHoje.semanas >= 24 : false;
 
   const valorNum = parseInt(valorGJ, 10);
   const valorValido = !isNaN(valorNum) && valorNum >= 1 && valorNum <= 400;
-  const isValid = valorValido && tipoExame && dataExame;
+  const isValid = valorValido && tipoExame && dataExame && dataConsultaRetorno;
 
   const igFinal = useMemo(() => {
     const s = parseInt(igSemanas, 10);
@@ -175,30 +191,30 @@ export default function Retorno1Form({
 
     setSaving(true);
 
-    // Determine diagnosis
     const isDiagApplicable = tipoExame === 'plasmatica';
     const diag = isDiagApplicable ? calcularDiagnostico(valorNum) : null;
     const newStatus = isDiagApplicable && diag ? diag.statusFicha : paciente.status_ficha;
 
     if (isPreview) {
-      // Preview mode: update localStorage
       const current = getPreviewPacienteById(paciente.id);
       if (current) {
         const newConsulta: PreviewConsulta = {
           id: crypto.randomUUID(),
           tipo: 'retorno_1',
           numero_sequencial: (current.consultas?.length || 1) + 1,
-          data: dataExame,
+          data: dataConsultaRetorno,
           ig_semanas: igFinal?.semanas ?? null,
           ig_dias: igFinal?.dias ?? null,
-          observacoes: isDiagApplicable && diag
-            ? `GJ: ${valorNum} mg/dL (plasmática). ${diag.label}.`
-            : `GJ: ${valorNum} mg/dL (capilar). Método não válido para diagnóstico. Aguardando glicemia plasmática.`,
+          observacoes: observacoes.trim()
+            ? `GJ: ${valorNum} mg/dL (${tipoExame}). ${isDiagApplicable && diag ? diag.label : 'Método não válido para diagnóstico.'}${observacoes.trim() ? ' | ' + observacoes.trim() : ''}`
+            : isDiagApplicable && diag
+              ? `GJ: ${valorNum} mg/dL (plasmática). ${diag.label}.`
+              : `GJ: ${valorNum} mg/dL (capilar). Método não válido para diagnóstico.`,
           status_gerado: newStatus,
         };
         updatePreviewPaciente(paciente.id, {
           status_ficha: newStatus,
-          data_ultima_consulta: dataExame,
+          data_ultima_consulta: dataConsultaRetorno,
           consultas: [...(current.consultas || []), newConsulta],
         });
         window.dispatchEvent(new Event('preview-pacientes-updated'));
@@ -230,12 +246,14 @@ export default function Retorno1Form({
         profissional_id: profissionalData.id,
         tipo: 'retorno_1',
         numero_sequencial: 2,
-        data: dataExame,
+        data: dataConsultaRetorno,
         ig_semanas: igFinal?.semanas ?? null,
         ig_dias: igFinal?.dias ?? null,
-        observacoes: isDiagApplicable && diag
-          ? `GJ: ${valorNum} mg/dL (plasmática). ${diag.label}.`
-          : `GJ: ${valorNum} mg/dL (capilar). Método não válido para diagnóstico.`,
+        observacoes: observacoes.trim()
+          ? `GJ: ${valorNum} mg/dL (${tipoExame}). ${isDiagApplicable && diag ? diag.label : 'Método não válido.'}${observacoes.trim() ? ' | ' + observacoes.trim() : ''}`
+          : isDiagApplicable && diag
+            ? `GJ: ${valorNum} mg/dL (plasmática). ${diag.label}.`
+            : `GJ: ${valorNum} mg/dL (capilar). Método não válido para diagnóstico.`,
         status_gerado: newStatus,
         cenario_clinico: isDiagApplicable && diag?.cenario ? String(diag.cenario) : null,
       } as any)
@@ -262,7 +280,7 @@ export default function Retorno1Form({
 
     await supabase.from('pacientes').update({
       status_ficha: newStatus,
-      data_ultima_consulta: dataExame,
+      data_ultima_consulta: dataConsultaRetorno,
     }).eq('id', paciente.id);
 
     setSaving(false);
@@ -276,9 +294,23 @@ export default function Retorno1Form({
     }
   };
 
+  // P3: popup close keeps result visible, only refreshes parent data
   const handlePopupClose = () => {
     setShowPopup(false);
+    // Refresh parent data in background but DON'T unmount this component
     onSaved();
+  };
+
+  // P2: Edit result
+  const handleEditClick = () => {
+    setShowEditConfirm(true);
+  };
+
+  const handleConfirmEdit = () => {
+    setShowEditConfirm(false);
+    setEditingResult(true);
+    // Reset form to current values (resultado already has the info)
+    setResultado(null);
   };
 
   const fieldError = (valid: boolean) =>
@@ -295,16 +327,31 @@ export default function Retorno1Form({
       <div className="space-y-4">
         {/* Result card */}
         <div className={`rounded-xl border ${resultado.borderColor} ${resultado.bgColor} p-5 space-y-4`}>
-          <div className="flex items-start gap-3">
-            {resultado.tipo === 'negativo' ? (
-              <CheckCircle2 className={`h-6 w-6 shrink-0 ${resultado.iconColor}`} />
-            ) : (
-              <AlertTriangle className={`h-6 w-6 shrink-0 ${resultado.iconColor}`} />
-            )}
-            <div>
-              <h2 className={`text-base font-bold ${resultado.cor}`}>{resultado.label}</h2>
-              <p className={`mt-1 text-sm ${resultado.cor}`}>{resultado.texto}</p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              {resultado.tipo === 'negativo' ? (
+                <CheckCircle2 className={`h-6 w-6 shrink-0 ${resultado.iconColor}`} />
+              ) : (
+                <AlertTriangle className={`h-6 w-6 shrink-0 ${resultado.iconColor}`} />
+              )}
+              <div>
+                <h2 className={`text-base font-bold ${resultado.cor}`}>{resultado.label}</h2>
+                <p className={`mt-1 text-sm ${resultado.cor}`}>{resultado.texto}</p>
+              </div>
             </div>
+
+            {/* P2: Edit button — only if this is the most recent consultation */}
+            {isLastConsulta && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleEditClick}
+                className="shrink-0 text-muted-foreground hover:text-foreground gap-1"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                <span className="text-xs">Editar</span>
+              </Button>
+            )}
           </div>
 
           {/* Conduta */}
@@ -335,15 +382,19 @@ export default function Retorno1Form({
             )}
           </div>
 
-          {/* Placeholder Blocos 2 e 3 */}
-          <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4">
-            <p className="text-xs text-muted-foreground italic">
-              Justificativa científica e conduta personalizada serão geradas em breve.
+          {/* P4: Placeholder Blocos 2 e 3 — Laudo Completo */}
+          <div className="rounded-lg border border-dashed border-[#E2E8F0] bg-[#F8FAFC] p-4 space-y-2">
+            <p className="text-sm font-bold text-foreground">Laudo Completo</p>
+            <p className="text-xs italic text-[#94A3B8]">
+              Bloco 2 — Justificativa Científica: será gerada em breve.
+            </p>
+            <p className="text-xs italic text-[#94A3B8]">
+              Bloco 3 — Conduta Orientativa Personalizada: será gerada em breve.
             </p>
           </div>
         </div>
 
-        {/* Notas técnicas */}
+        {/* C3: Notas técnicas */}
         <div className="rounded-xl border border-border bg-[#F1F5F9] p-5">
           <p className="text-sm font-semibold text-foreground mb-2">Notas técnicas</p>
           <ul className="list-disc pl-4 text-xs text-muted-foreground space-y-1.5">
@@ -354,13 +405,13 @@ export default function Retorno1Form({
           </ul>
         </div>
 
-        {/* Ctrl+P instruction */}
+        {/* C3: Ctrl+P instruction */}
         <div className="flex items-center gap-2 text-xs text-[#94A3B8]">
           <Printer className="h-3.5 w-3.5" />
           <span>Para salvar ou imprimir este laudo em PDF: pressione Ctrl+P (Windows) ou Cmd+P (Mac) e escolha "Salvar como PDF".</span>
         </div>
 
-        {/* Impact pop-up */}
+        {/* C4: Impact pop-up */}
         <AlertDialog open={showPopup}>
           <AlertDialogContent className={`border-2 ${resultado.tipo === 'negativo' ? 'border-[#9b87f5]' : resultado.tipo === 'positivo' ? 'border-orange-400' : 'border-red-400'}`}>
             <AlertDialogHeader>
@@ -393,6 +444,29 @@ export default function Retorno1Form({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* P2: Edit confirmation dialog */}
+        <Dialog open={showEditConfirm} onOpenChange={setShowEditConfirm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar resultado</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja alterar o resultado? O diagnóstico será recalculado.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setShowEditConfirm(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleConfirmEdit}
+                className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
+              >
+                Confirmar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -400,7 +474,7 @@ export default function Retorno1Form({
   return (
     <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
       <h2 className="font-heading text-lg font-bold text-foreground">
-        Retorno 1 — Resultado da Glicemia de Jejum
+        RETORNO 1 — Resultado da Glicemia de Jejum
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Insira o resultado da glicemia de jejum para diagnóstico automático.
@@ -457,7 +531,7 @@ export default function Retorno1Form({
 
         {/* Data do exame */}
         <div className="space-y-2">
-          <FieldLabel htmlFor="data-exame" required tooltip="Data em que o exame foi coletado.">
+          <FieldLabel htmlFor="data-exame" required tooltip="Data em que o exame foi coletado no laboratório.">
             Data do exame
           </FieldLabel>
           <Input
@@ -470,16 +544,11 @@ export default function Retorno1Form({
           {errorMsg(!!dataExame)}
         </div>
 
-        {/* IG na data do exame */}
+        {/* P1: IG na data do exame — auto-filled */}
         <div className="space-y-2">
-          <FieldLabel tooltip="Se a idade gestacional mudou desde a Consulta 1, atualize aqui. Caso contrário, deixe em branco — o sistema usa a IG calculada automaticamente.">
+          <FieldLabel tooltip="Idade gestacional na data em que o exame foi coletado. Preenchida automaticamente com base na DUM. Edite manualmente se necessário.">
             IG na data do exame
           </FieldLabel>
-          {igCalculada && (
-            <p className="text-xs text-muted-foreground">
-              IG calculada: {igCalculada.semanas}s {igCalculada.dias}d
-            </p>
-          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Semanas</Label>
@@ -489,7 +558,7 @@ export default function Retorno1Form({
                 max="42"
                 value={igSemanas}
                 onChange={(e) => setIgSemanas(e.target.value)}
-                placeholder={igCalculada ? String(igCalculada.semanas) : '—'}
+                placeholder="—"
               />
             </div>
             <div className="space-y-1">
@@ -500,10 +569,38 @@ export default function Retorno1Form({
                 max="6"
                 value={igDias}
                 onChange={(e) => setIgDias(e.target.value)}
-                placeholder={igCalculada ? String(igCalculada.dias) : '0'}
+                placeholder="0"
               />
             </div>
           </div>
+        </div>
+
+        {/* C1: Data da consulta de retorno */}
+        <div className="space-y-2">
+          <FieldLabel htmlFor="data-consulta-retorno" required tooltip="Data do retorno da paciente. Preenchida automaticamente com a data de hoje. Edite se necessário.">
+            Data da consulta de retorno
+          </FieldLabel>
+          <Input
+            id="data-consulta-retorno"
+            type="date"
+            value={dataConsultaRetorno}
+            onChange={(e) => setDataConsultaRetorno(e.target.value)}
+            className={fieldError(!!dataConsultaRetorno)}
+          />
+          {errorMsg(!!dataConsultaRetorno)}
+        </div>
+
+        {/* C2: Observações */}
+        <div className="space-y-2">
+          <FieldLabel tooltip="Anotações adicionais sobre este retorno.">
+            Observações
+          </FieldLabel>
+          <Textarea
+            value={observacoes}
+            onChange={(e) => setObservacoes(e.target.value)}
+            placeholder="Anotações opcionais sobre este retorno"
+            rows={3}
+          />
         </div>
 
         {/* Buttons */}
