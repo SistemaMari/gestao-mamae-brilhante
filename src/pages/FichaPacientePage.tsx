@@ -686,7 +686,17 @@ export default function FichaPacientePage() {
                   {c.tipo === 'retorno_1' && (
                     <Retorno1ResultCard consulta={c} janelaGTT={janelaGTT} igHoje={igAtual} />
                   )}
-                  {!['consulta_1', 'retorno_1'].includes(c.tipo) && (
+                  {(c.tipo === 'ficha_a' || c.tipo === 'ficha_c') && (
+                    <FichaACResultCard
+                      percentual={0}
+                      adequado={c.status_gerado === 'dmg_confirmado'}
+                      totalPreenchidos={0}
+                      dentroMeta={0}
+                      retornoDias={(c.ig_semanas ?? 0) > 30 ? 7 : 15}
+                      fichaType={c.tipo}
+                    />
+                  )}
+                  {!['consulta_1', 'retorno_1', 'ficha_a', 'ficha_c'].includes(c.tipo) && (
                     <div className="space-y-2">
                       {c.ig_semanas != null && (
                         <p className="text-xs text-muted-foreground">
