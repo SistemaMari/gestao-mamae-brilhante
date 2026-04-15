@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Info, Loader2, AlertTriangle, CheckCircle2, XCircle, Printer } from 'lucide-react';
-import { differenceInDays, format } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);

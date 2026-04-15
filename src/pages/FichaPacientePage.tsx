@@ -966,7 +966,7 @@ export default function FichaPacientePage() {
         })()}
 
         {/* Botão secundário — Registro do Parto */}
-        {canShowRegistroParto(paciente.status_ficha) && !showRetorno1 && !showFichaAC && !showFichaBD && (
+        {canShowRegistroParto(paciente.status_ficha) && !showRetorno1 && !showFichaAC && !showFichaBD && !showGtt && (
           <Button
             variant="outline"
             className="w-full mt-2 border-[#9b87f5] text-[#9b87f5] hover:bg-[#E8E0FF] hover:text-[#7E69AB]"
