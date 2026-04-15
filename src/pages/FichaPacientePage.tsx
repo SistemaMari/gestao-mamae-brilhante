@@ -177,10 +177,10 @@ export default function FichaPacientePage() {
   const [retorno1Completed, setRetorno1Completed] = useState(false);
   const [showFichaAC, setShowFichaAC] = useState(false);
   const [fichaACCompleted, setFichaACCompleted] = useState(false);
-  const [fichaACResult, setFichaACResult] = useState<PreviewConsulta | null>(null);
+  const [_fichaACResult, setFichaACResult] = useState<PreviewConsulta | null>(null);
   const [showFichaBD, setShowFichaBD] = useState(false);
   const [fichaBDCompleted, setFichaBDCompleted] = useState(false);
-  const [fichaBDResult, setFichaBDResult] = useState<PreviewConsulta | null>(null);
+  const [_fichaBDResult, setFichaBDResult] = useState<PreviewConsulta | null>(null);
 
   // Edit mode state
   const [editing, setEditing] = useState(false);
