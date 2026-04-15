@@ -275,6 +275,15 @@ export default function FichaACForm({
         ig_dias: igD,
         observacoes: observacoes.trim() || null,
         status_gerado: newStatus,
+        percentual_meta: percentual,
+        total_preenchidos: totalPreenchidos,
+        dentro_meta: dentroMeta,
+        peso_kg: pesoNum > 0 ? pesoNum : null,
+        dose_total: isInadequado ? doseTotal : null,
+        dose_manha: isInadequado ? doseManha : null,
+        dose_noite: isInadequado ? doseNoite : null,
+        retorno_dias: retornoDias,
+        data_proximo_retorno_formatted: dataProximoRetorno,
       };
 
       const updatedConsultas = [...consultas, newConsulta];

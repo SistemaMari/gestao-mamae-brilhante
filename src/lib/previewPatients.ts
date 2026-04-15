@@ -7,6 +7,16 @@ export interface PreviewConsulta {
   ig_dias: number | null;
   observacoes: string | null;
   status_gerado: string | null;
+  // Ficha A/C profile data (optional)
+  percentual_meta?: number | null;
+  total_preenchidos?: number | null;
+  dentro_meta?: number | null;
+  peso_kg?: number | null;
+  dose_total?: number | null;
+  dose_manha?: number | null;
+  dose_noite?: number | null;
+  retorno_dias?: number | null;
+  data_proximo_retorno_formatted?: string | null;
 }
 
 export interface PreviewPaciente {
