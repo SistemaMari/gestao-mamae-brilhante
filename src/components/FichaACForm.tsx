@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useProfissionalData } from '@/hooks/useProfissionalData';
 import {
   updatePreviewPaciente,
-  getPreviewPacienteById,
+  type PreviewPaciente,
   type PreviewPaciente,
   type PreviewConsulta,
 } from '@/lib/previewPatients';
