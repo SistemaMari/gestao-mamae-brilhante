@@ -775,6 +775,24 @@ export default function FichaPacientePage() {
           />
         </div>
       )}
+
+      {/* Standalone Ficha A/C result — shown after form closes */}
+      {fichaACCompleted && fichaACResult && !showFichaAC && (
+        <FichaACResultCard
+          percentual={fichaACResult.percentual_meta ?? 0}
+          adequado={(fichaACResult.percentual_meta ?? 0) >= 70}
+          totalPreenchidos={fichaACResult.total_preenchidos ?? 0}
+          dentroMeta={fichaACResult.dentro_meta ?? 0}
+          doseTotal={fichaACResult.dose_total}
+          doseManha={fichaACResult.dose_manha}
+          doseNoite={fichaACResult.dose_noite}
+          peso={fichaACResult.peso_kg}
+          retornoDias={fichaACResult.retorno_dias ?? 15}
+          dataProximoRetorno={fichaACResult.data_proximo_retorno_formatted}
+          fichaType={fichaACResult.tipo}
+        />
+      )}
+
       {/* Next step button — hidden in print */}
       <div className="print:hidden">
         {(() => {
