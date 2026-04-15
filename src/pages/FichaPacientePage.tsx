@@ -149,6 +149,7 @@ export default function FichaPacientePage() {
   const [retorno1Completed, setRetorno1Completed] = useState(false);
   const [showFichaAC, setShowFichaAC] = useState(false);
   const [fichaACCompleted, setFichaACCompleted] = useState(false);
+  const [fichaACResult, setFichaACResult] = useState<PreviewConsulta | null>(null);
 
   // Edit mode state
   const [editing, setEditing] = useState(false);
@@ -692,11 +693,16 @@ export default function FichaPacientePage() {
                   )}
                   {(c.tipo === 'ficha_a' || c.tipo === 'ficha_c') && (
                     <FichaACResultCard
-                      percentual={0}
-                      adequado={c.status_gerado === 'dmg_confirmado'}
-                      totalPreenchidos={0}
-                      dentroMeta={0}
-                      retornoDias={(c.ig_semanas ?? 0) > 30 ? 7 : 15}
+                      percentual={c.percentual_meta ?? 0}
+                      adequado={(c.percentual_meta ?? 0) >= 70}
+                      totalPreenchidos={c.total_preenchidos ?? 0}
+                      dentroMeta={c.dentro_meta ?? 0}
+                      doseTotal={c.dose_total}
+                      doseManha={c.dose_manha}
+                      doseNoite={c.dose_noite}
+                      peso={c.peso_kg}
+                      retornoDias={c.retorno_dias ?? ((c.ig_semanas ?? 0) > 30 ? 7 : 15)}
+                      dataProximoRetorno={c.data_proximo_retorno_formatted}
                       fichaType={c.tipo}
                     />
                   )}
@@ -747,7 +753,6 @@ export default function FichaPacientePage() {
             consultas={consultas}
             isPreview={isPreview}
             onSaved={() => {
-              setFichaACCompleted(true);
               setShowFichaAC(false);
               // Reload data
               if (isPreview && id) {
@@ -755,13 +760,39 @@ export default function FichaPacientePage() {
                 if (p) {
                   setPaciente(p);
                   setConsultas(p.consultas || []);
+                  // Find the last ficha_a/ficha_c consultation for standalone result
+                  const lastFicha = [...(p.consultas || [])].reverse().find(c => ['ficha_a', 'ficha_c'].includes(c.tipo));
+                  if (lastFicha) {
+                    setFichaACResult(lastFicha);
+                    setFichaACCompleted(true);
+                  }
                 }
+              } else {
+                setFichaACCompleted(true);
               }
             }}
             onCancel={() => setShowFichaAC(false)}
           />
         </div>
       )}
+
+      {/* Standalone Ficha A/C result — shown after form closes */}
+      {fichaACCompleted && fichaACResult && !showFichaAC && (
+        <FichaACResultCard
+          percentual={fichaACResult.percentual_meta ?? 0}
+          adequado={(fichaACResult.percentual_meta ?? 0) >= 70}
+          totalPreenchidos={fichaACResult.total_preenchidos ?? 0}
+          dentroMeta={fichaACResult.dentro_meta ?? 0}
+          doseTotal={fichaACResult.dose_total}
+          doseManha={fichaACResult.dose_manha}
+          doseNoite={fichaACResult.dose_noite}
+          peso={fichaACResult.peso_kg}
+          retornoDias={fichaACResult.retorno_dias ?? 15}
+          dataProximoRetorno={fichaACResult.data_proximo_retorno_formatted}
+          fichaType={fichaACResult.tipo}
+        />
+      )}
+
       {/* Next step button — hidden in print */}
       <div className="print:hidden">
         {(() => {
