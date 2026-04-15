@@ -652,13 +652,18 @@ export default function FichaPacientePage() {
 
       {/* Histórico de consultas */}
       {consultasHistorico.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm print:shadow-none">
           <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Histórico de consultas
           </h2>
 
-          <Accordion type="multiple" className="space-y-2">
+          <Accordion
+            type="multiple"
+            defaultValue={[consultasHistorico[0]?.id].filter(Boolean)}
+            key={`hist-${consultas.length}`}
+            className="space-y-2"
+          >
             {consultasHistorico.map((c) => (
               <AccordionItem key={c.id} value={c.id} className="rounded-lg border border-border px-3 py-0">
                 <AccordionTrigger className="py-3 hover:no-underline">
@@ -671,54 +676,31 @@ export default function FichaPacientePage() {
                     </span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pb-3 space-y-2">
+                <AccordionContent className="pb-3">
                   {c.tipo === 'consulta_1' && (
-                    <>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
-                        <div>
-                          <span className="font-medium text-foreground">Data:</span>{' '}
-                          {format(new Date(c.data), 'dd/MM/yyyy')}
-                        </div>
-                        {igNaConsulta1 && (
-                          <div>
-                            <span className="font-medium text-foreground">IG na consulta:</span>{' '}
-                            {igNaConsulta1.semanas}s {igNaConsulta1.dias}d
-                          </div>
-                        )}
-                        <div>
-                          <span className="font-medium text-foreground">Exame solicitado:</span>{' '}
-                          Glicemia plasmática de jejum
-                        </div>
-                        {janelaGTT && (
-                          <div>
-                            <span className="font-medium text-foreground">GTT 75g entre:</span>{' '}
-                            {format(janelaGTT.inicio, 'dd/MM/yyyy')} e {format(janelaGTT.fim, 'dd/MM/yyyy')}
-                          </div>
-                        )}
-                        <div>
-                          <span className="font-medium text-foreground">DMG anterior:</span>{' '}
-                          {paciente.dmg_gestacao_anterior ? 'Sim' : 'Não'}
-                        </div>
-                      </div>
-                    </>
+                    <Consulta1ResultCard janelaGTT={janelaGTT} igMaior24={igMaior24} />
                   )}
-
-                  {c.tipo !== 'consulta_1' && c.ig_semanas != null && (
-                    <p className="text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">IG:</span> {c.ig_semanas}s {c.ig_dias || 0}d
-                    </p>
+                  {c.tipo === 'retorno_1' && (
+                    <Retorno1ResultCard consulta={c} janelaGTT={janelaGTT} igHoje={igAtual} />
                   )}
-
-                  {c.status_gerado && STATUS_CONFIG[c.status_gerado] && (
-                    <Badge className={`${STATUS_CONFIG[c.status_gerado].color} text-white border-0 text-[10px]`}>
-                      {STATUS_CONFIG[c.status_gerado].label}
-                    </Badge>
-                  )}
-
-                  {c.observacoes ? (
-                    <p className="text-xs text-muted-foreground italic">{c.observacoes}</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Sem observações.</p>
+                  {!['consulta_1', 'retorno_1'].includes(c.tipo) && (
+                    <div className="space-y-2">
+                      {c.ig_semanas != null && (
+                        <p className="text-xs text-muted-foreground">
+                          <span className="font-medium text-foreground">IG:</span> {c.ig_semanas}s {c.ig_dias || 0}d
+                        </p>
+                      )}
+                      {c.status_gerado && STATUS_CONFIG[c.status_gerado] && (
+                        <Badge className={`${STATUS_CONFIG[c.status_gerado].color} text-white border-0 text-[10px]`}>
+                          {STATUS_CONFIG[c.status_gerado].label}
+                        </Badge>
+                      )}
+                      {c.observacoes ? (
+                        <p className="text-xs text-muted-foreground italic">{c.observacoes}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Sem observações.</p>
+                      )}
+                    </div>
                   )}
                 </AccordionContent>
               </AccordionItem>
@@ -727,9 +709,9 @@ export default function FichaPacientePage() {
         </div>
       )}
 
-      {/* Retorno 1 form / result card — stays mounted after saving */}
+      {/* Retorno 1 form — only while actively filling (unmounts after save + popup close) */}
       {canShowRetorno1Form && primeiraConsulta && paciente && (
-        <div>
+        <div className="print:hidden">
           <Retorno1Form
             paciente={paciente}
             primeiraConsulta={primeiraConsulta}
