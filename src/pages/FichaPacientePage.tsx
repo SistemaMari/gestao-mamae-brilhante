@@ -23,6 +23,9 @@ import Retorno1ResultCard from '@/components/Retorno1ResultCard';
 import FichaACForm from '@/components/FichaACForm';
 import FichaACResultCard from '@/components/FichaACResultCard';
 import FichaACReadOnlyGrid from '@/components/FichaACReadOnlyGrid';
+import FichaBDForm from '@/components/FichaBDForm';
+import FichaBDResultCard from '@/components/FichaBDResultCard';
+import FichaBDReadOnlyGrid from '@/components/FichaBDReadOnlyGrid';
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
@@ -83,44 +86,31 @@ function getNextStepInfo(
 
     case 'dmg_confirmado': {
       const igSem = igAtual?.semanas ?? 0;
-      // Check if any ficha_a/ficha_c already exists
       const hasFichaAC = consultas.some(c => ['ficha_a', 'ficha_c'].includes(c.tipo));
-      // Check if any ficha_b/ficha_d already exists
       const hasFichaBD = consultas.some(c => ['ficha_b', 'ficha_d'].includes(c.tipo));
-      // Check last ficha result to determine if insulin was started
-      const lastFicha = [...consultas].reverse().find(c => ['ficha_a', 'ficha_c', 'ficha_b', 'ficha_d'].includes(c.tipo));
-      const lastDecisao = lastFicha?.decisao;
+      // Insulin is started if ANY previous ficha A/C had decisao = controle_inadequado
+      const hasInsulin = consultas.some(c =>
+        ['ficha_a', 'ficha_c'].includes(c.tipo) && c.decisao === 'controle_inadequado'
+      );
 
       if (!hasFichaAC && !hasFichaBD) {
         // First time: Retorno 2 = Ficha A/C (perfil 4 pontos)
-        if (igSem <= 30) {
-          return {
-            label: '+ RETORNO 2 — Hora de ver o resultado inicial do tratamento (Perfil Glicêmico de 4 pontos) e definir próximo passo',
-            formType: 'ficha_a',
-          };
-        }
         return {
           label: '+ RETORNO 2 — Hora de ver o resultado inicial do tratamento (Perfil Glicêmico de 4 pontos) e definir próximo passo',
-          formType: 'ficha_c',
+          formType: igSem <= 30 ? 'ficha_a' : 'ficha_c',
         };
       }
 
-      // If last result was inadequado (insulin started), next should be 6 points
-      if (lastDecisao === 'controle_inadequado') {
+      // If insulin was started, next should be 6 points (B/D)
+      if (hasInsulin) {
         if (!hasFichaBD) {
           // First 6-point profile: RETORNO 3
-          if (igSem <= 30) {
-            return {
-              label: '+ RETORNO 3 — Hora de ver o resultado da insulina (Perfil Glicêmico de 6 pontos) e definir próximo passo',
-              formType: 'ficha_b',
-            };
-          }
           return {
-            label: '+ FICHA D — Acompanhamento com insulina, após a 30ª semana (Perfil Glicêmico de 6 pontos × 7 dias)',
-            formType: 'ficha_d',
+            label: '+ RETORNO 3 — Hora de ver o resultado da insulina (Perfil Glicêmico de 6 pontos) e definir próximo passo',
+            formType: igSem <= 30 ? 'ficha_b' : 'ficha_d',
           };
         }
-        // Subsequent 6-point profiles
+        // Subsequent 6-point profiles (loop B/D)
         if (igSem <= 30) {
           return {
             label: '+ FICHA B — Acompanhamento com insulina, até a 30ª semana (Perfil Glicêmico de 6 pontos × 15 dias)',
@@ -133,7 +123,7 @@ function getNextStepInfo(
         };
       }
 
-      // Adequate control: loop Ficha A/C (4 pontos)
+      // Adequate control without insulin: loop Ficha A/C (4 pontos)
       if (igSem <= 30) {
         return {
           label: '+ FICHA A — Acompanhamento sem insulina, até a 30ª semana (Perfil Glicêmico de 4 pontos × 15 dias)',
@@ -181,6 +171,9 @@ export default function FichaPacientePage() {
   const [showFichaAC, setShowFichaAC] = useState(false);
   const [fichaACCompleted, setFichaACCompleted] = useState(false);
   const [fichaACResult, setFichaACResult] = useState<PreviewConsulta | null>(null);
+  const [showFichaBD, setShowFichaBD] = useState(false);
+  const [fichaBDCompleted, setFichaBDCompleted] = useState(false);
+  const [fichaBDResult, setFichaBDResult] = useState<PreviewConsulta | null>(null);
 
   // Edit mode state
   const [editing, setEditing] = useState(false);
@@ -704,13 +697,20 @@ export default function FichaPacientePage() {
             className="space-y-2"
           >
             {consultasHistorico.map((c) => {
-              // Determine display name for ficha_a/ficha_c based on whether it's the first one
+              // Determine display name based on type and history
               let displayName = CONSULTA_NAMES[c.tipo] || c.tipo;
               if (c.tipo === 'ficha_a' || c.tipo === 'ficha_c') {
                 const allFichasAC = consultas.filter(cx => ['ficha_a', 'ficha_c'].includes(cx.tipo));
                 const isFirstFichaAC = allFichasAC.length > 0 && allFichasAC[0].id === c.id;
                 if (isFirstFichaAC) {
                   displayName = CONSULTA_NAMES['retorno_2'];
+                }
+              }
+              if (c.tipo === 'ficha_b' || c.tipo === 'ficha_d') {
+                const allFichasBD = consultas.filter(cx => ['ficha_b', 'ficha_d'].includes(cx.tipo));
+                const isFirstFichaBD = allFichasBD.length > 0 && allFichasBD[0].id === c.id;
+                if (isFirstFichaBD) {
+                  displayName = CONSULTA_NAMES['retorno_3'];
                 }
               }
 
@@ -753,7 +753,23 @@ export default function FichaPacientePage() {
                       />
                     </>
                   )}
-                  {!['consulta_1', 'retorno_1', 'ficha_a', 'ficha_c'].includes(c.tipo) && (
+                  {(c.tipo === 'ficha_b' || c.tipo === 'ficha_d') && (
+                    <>
+                      {c.grid_valores && c.grid_valores.length > 0 && (
+                        <FichaBDReadOnlyGrid gridValores={c.grid_valores} />
+                      )}
+                      <FichaBDResultCard
+                        percentual={c.percentual_meta ?? 0}
+                        adequado={(c.percentual_meta ?? 0) >= 70}
+                        totalPreenchidos={c.total_preenchidos ?? 0}
+                        dentroMeta={c.dentro_meta ?? 0}
+                        retornoDias={c.retorno_dias ?? ((c.ig_semanas ?? 0) > 30 ? 7 : 15)}
+                        dataProximoRetorno={c.data_proximo_retorno_formatted}
+                        fichaType={c.tipo}
+                      />
+                    </>
+                  )}
+                  {!['consulta_1', 'retorno_1', 'ficha_a', 'ficha_c', 'ficha_b', 'ficha_d'].includes(c.tipo) && (
                     <div className="space-y-2">
                       {c.ig_semanas != null && (
                         <p className="text-xs text-muted-foreground">
@@ -823,6 +839,34 @@ export default function FichaPacientePage() {
           />
         </div>
       )}
+      {/* Ficha B/D form */}
+      {showFichaBD && paciente && (
+        <div className="print:hidden">
+          <FichaBDForm
+            paciente={paciente}
+            consultas={consultas}
+            isPreview={isPreview}
+            onSaved={() => {
+              setShowFichaBD(false);
+              if (isPreview && id) {
+                const p = getPreviewPacienteById(id);
+                if (p) {
+                  setPaciente(p);
+                  setConsultas(p.consultas || []);
+                  const lastFicha = [...(p.consultas || [])].reverse().find(c => ['ficha_b', 'ficha_d'].includes(c.tipo));
+                  if (lastFicha) {
+                    setFichaBDResult(lastFicha);
+                    setFichaBDCompleted(true);
+                  }
+                }
+              } else {
+                setFichaBDCompleted(true);
+              }
+            }}
+            onCancel={() => setShowFichaBD(false)}
+          />
+        </div>
+      )}
 
       {/* Standalone Ficha A/C result — shown after form closes */}
       {fichaACCompleted && fichaACResult && !showFichaAC && (
@@ -846,10 +890,28 @@ export default function FichaPacientePage() {
         </>
       )}
 
+      {/* Standalone Ficha B/D result — shown after form closes */}
+      {fichaBDCompleted && fichaBDResult && !showFichaBD && (
+        <>
+          {fichaBDResult.grid_valores && fichaBDResult.grid_valores.length > 0 && (
+            <FichaBDReadOnlyGrid gridValores={fichaBDResult.grid_valores} />
+          )}
+          <FichaBDResultCard
+            percentual={fichaBDResult.percentual_meta ?? 0}
+            adequado={(fichaBDResult.percentual_meta ?? 0) >= 70}
+            totalPreenchidos={fichaBDResult.total_preenchidos ?? 0}
+            dentroMeta={fichaBDResult.dentro_meta ?? 0}
+            retornoDias={fichaBDResult.retorno_dias ?? 15}
+            dataProximoRetorno={fichaBDResult.data_proximo_retorno_formatted}
+            fichaType={fichaBDResult.tipo}
+          />
+        </>
+      )}
+
       {/* Next step button — hidden in print */}
       <div className="print:hidden">
         {(() => {
-          if (showRetorno1 || showFichaAC) return null;
+          if (showRetorno1 || showFichaAC || showFichaBD) return null;
           if (paciente.status_ficha === 'dmg_afastado' || paciente.status_ficha === 'resultado_parto') return null;
 
           const nextStep = getNextStepInfo(paciente.status_ficha, consultas, igAtual);
@@ -862,6 +924,9 @@ export default function FichaPacientePage() {
           const isFichaACButton = nextStep.formType === 'ficha_a' || nextStep.formType === 'ficha_c';
           if (isFichaACButton && fichaACCompleted) return null;
 
+          const isFichaBDButton = nextStep.formType === 'ficha_b' || nextStep.formType === 'ficha_d';
+          if (isFichaBDButton && fichaBDCompleted) return null;
+
           return (
             <Button
               variant="outline"
@@ -871,6 +936,8 @@ export default function FichaPacientePage() {
                   setShowRetorno1(true);
                 } else if (isFichaACButton) {
                   setShowFichaAC(true);
+                } else if (isFichaBDButton) {
+                  setShowFichaBD(true);
                 } else {
                   toast('Próximo retorno ainda não implementado.');
                 }
@@ -883,7 +950,7 @@ export default function FichaPacientePage() {
         })()}
 
         {/* Botão secundário — Registro do Parto */}
-        {canShowRegistroParto(paciente.status_ficha) && !showRetorno1 && !showFichaAC && (
+        {canShowRegistroParto(paciente.status_ficha) && !showRetorno1 && !showFichaAC && !showFichaBD && (
           <button
             type="button"
             className="w-full text-center text-xs font-medium text-muted-foreground hover:text-foreground transition-colors py-2 mt-1"
