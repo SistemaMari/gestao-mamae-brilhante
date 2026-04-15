@@ -200,25 +200,54 @@ export default function Retorno1Form({
     if (isPreview) {
       const current = getPreviewPacienteById(paciente.id);
       if (current) {
-        const newConsulta: PreviewConsulta = {
-          id: crypto.randomUUID(),
-          tipo: 'retorno_1',
-          numero_sequencial: (current.consultas?.length || 1) + 1,
-          data: dataConsultaRetorno,
-          ig_semanas: igFinal?.semanas ?? null,
-          ig_dias: igFinal?.dias ?? null,
-          observacoes: observacoes.trim()
-            ? `GJ: ${valorNum} mg/dL (${tipoExame}). ${isDiagApplicable && diag ? diag.label : 'Método não válido para diagnóstico.'}${observacoes.trim() ? ' | ' + observacoes.trim() : ''}`
-            : isDiagApplicable && diag
-              ? `GJ: ${valorNum} mg/dL (plasmática). ${diag.label}.`
-              : `GJ: ${valorNum} mg/dL (capilar). Método não válido para diagnóstico.`,
-          status_gerado: newStatus,
-        };
-        updatePreviewPaciente(paciente.id, {
-          status_ficha: newStatus,
-          data_ultima_consulta: dataConsultaRetorno,
-          consultas: [...(current.consultas || []), newConsulta],
-        });
+        const buildObs = () => observacoes.trim()
+          ? `GJ: ${valorNum} mg/dL (${tipoExame}). ${isDiagApplicable && diag ? diag.label : 'Método não válido para diagnóstico.'}${observacoes.trim() ? ' | ' + observacoes.trim() : ''}`
+          : isDiagApplicable && diag
+            ? `GJ: ${valorNum} mg/dL (plasmática). ${diag.label}.`
+            : `GJ: ${valorNum} mg/dL (capilar). Método não válido para diagnóstico.`;
+
+        if (editingConsulta) {
+          // Update existing consultation
+          const updatedConsultas = (current.consultas || []).map(c =>
+            c.id === editingConsulta.id
+              ? {
+                  ...c,
+                  data: dataConsultaRetorno,
+                  ig_semanas: igFinal?.semanas ?? null,
+                  ig_dias: igFinal?.dias ?? null,
+                  observacoes: buildObs(),
+                  status_gerado: newStatus,
+                  retorno1_valor_gj: valorNum,
+                  retorno1_tipo_exame: tipoExame,
+                  retorno1_data_exame: dataExame,
+                }
+              : c
+          );
+          updatePreviewPaciente(paciente.id, {
+            status_ficha: newStatus,
+            data_ultima_consulta: dataConsultaRetorno,
+            consultas: updatedConsultas,
+          });
+        } else {
+          const newConsulta: PreviewConsulta = {
+            id: crypto.randomUUID(),
+            tipo: 'retorno_1',
+            numero_sequencial: (current.consultas?.length || 1) + 1,
+            data: dataConsultaRetorno,
+            ig_semanas: igFinal?.semanas ?? null,
+            ig_dias: igFinal?.dias ?? null,
+            observacoes: buildObs(),
+            status_gerado: newStatus,
+            retorno1_valor_gj: valorNum,
+            retorno1_tipo_exame: tipoExame,
+            retorno1_data_exame: dataExame,
+          };
+          updatePreviewPaciente(paciente.id, {
+            status_ficha: newStatus,
+            data_ultima_consulta: dataConsultaRetorno,
+            consultas: [...(current.consultas || []), newConsulta],
+          });
+        }
         window.dispatchEvent(new Event('preview-pacientes-updated'));
       }
 
