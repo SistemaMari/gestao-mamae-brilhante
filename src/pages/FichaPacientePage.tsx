@@ -20,6 +20,8 @@ import {
 import Retorno1Form from '@/components/Retorno1Form';
 import Consulta1ResultCard from '@/components/Consulta1ResultCard';
 import Retorno1ResultCard from '@/components/Retorno1ResultCard';
+import FichaACForm from '@/components/FichaACForm';
+import FichaACResultCard from '@/components/FichaACResultCard';
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
@@ -62,8 +64,8 @@ function getNextStepInfo(
 ): { label: string; formType: string } | null {
   const _hasRetorno1 = consultas.some(c => c.tipo === 'retorno_1');
   const _hasRetornoGtt = consultas.some(c => c.tipo === 'retorno_gtt');
-  const hasRetorno2 = consultas.some(c => c.tipo === 'retorno_2');
-  const hasRetorno3 = consultas.some(c => c.tipo === 'retorno_3');
+  const _hasRetorno2 = consultas.some(c => c.tipo === 'retorno_2');
+  const _hasRetorno3 = consultas.some(c => c.tipo === 'retorno_3');
 
   switch (statusFicha) {
     case 'aguardando_gj':
@@ -79,24 +81,28 @@ function getNextStepInfo(
       };
 
     case 'dmg_confirmado': {
-      // After Retorno 1 positive or GTT positive, next is Retorno 2
-      if (!hasRetorno2) {
-        return {
-          label: '+ RETORNO 2 — Hora de ver o resultado inicial do tratamento (Perfil Glicêmico de 4 pontos) e definir próximo passo',
-          formType: 'retorno_2',
-        };
-      }
-      // After Retorno 2 with inadequate control → Retorno 3
-      if (!hasRetorno3) {
-        // TODO: check if insulin was started — for now assume inadequate control path
-        return {
-          label: '+ RETORNO 3 — Hora de ver o resultado da insulina (Perfil Glicêmico de 6 pontos) e definir próximo passo',
-          formType: 'retorno_3',
-        };
-      }
-      // After Retorno 2/3 with adequate control → Ficha A/B/C/D based on insulin + IG
-      // For now, show ficha based on IG (insulin logic TBD)
       const igSem = igAtual?.semanas ?? 0;
+      // Check if any ficha_a/ficha_c already exists
+      const hasFichaAC = consultas.some(c => ['ficha_a', 'ficha_c'].includes(c.tipo));
+      // Check last ficha result to determine if insulin was started
+      const _lastFicha = [...consultas].reverse().find(c => ['ficha_a', 'ficha_c', 'ficha_b', 'ficha_d'].includes(c.tipo));
+
+      if (!hasFichaAC) {
+        // First time: Retorno 2 = Ficha A (perfil 4 pontos)
+        if (igSem <= 30) {
+          return {
+            label: '+ RETORNO 2 — Perfil Glicêmico de 4 pontos (Ficha A)',
+            formType: 'ficha_a',
+          };
+        }
+        return {
+          label: '+ RETORNO 2 — Perfil Glicêmico de 4 pontos (Ficha C)',
+          formType: 'ficha_c',
+        };
+      }
+
+      // Subsequent returns: loop Ficha A/C (4 pontos, sem insulina)
+      // TODO: if last ficha was inadequado, next should be Ficha B/D (6 pontos, com insulina — Prompt 11)
       if (igSem <= 30) {
         return {
           label: '+ FICHA A — Acompanhamento sem insulina (Perfil Glicêmico de 4 pontos × 15 dias)',
@@ -140,8 +146,9 @@ export default function FichaPacientePage() {
   const [consultas, setConsultas] = useState<PreviewConsulta[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRetorno1, setShowRetorno1] = useState(false);
-  // P3: Track whether retorno1 result is being displayed
   const [retorno1Completed, setRetorno1Completed] = useState(false);
+  const [showFichaAC, setShowFichaAC] = useState(false);
+  const [fichaACCompleted, setFichaACCompleted] = useState(false);
 
   // Edit mode state
   const [editing, setEditing] = useState(false);
@@ -683,7 +690,17 @@ export default function FichaPacientePage() {
                   {c.tipo === 'retorno_1' && (
                     <Retorno1ResultCard consulta={c} janelaGTT={janelaGTT} igHoje={igAtual} />
                   )}
-                  {!['consulta_1', 'retorno_1'].includes(c.tipo) && (
+                  {(c.tipo === 'ficha_a' || c.tipo === 'ficha_c') && (
+                    <FichaACResultCard
+                      percentual={0}
+                      adequado={c.status_gerado === 'dmg_confirmado'}
+                      totalPreenchidos={0}
+                      dentroMeta={0}
+                      retornoDias={(c.ig_semanas ?? 0) > 30 ? 7 : 15}
+                      fichaType={c.tipo}
+                    />
+                  )}
+                  {!['consulta_1', 'retorno_1', 'ficha_a', 'ficha_c'].includes(c.tipo) && (
                     <div className="space-y-2">
                       {c.ig_semanas != null && (
                         <p className="text-xs text-muted-foreground">
@@ -722,11 +739,33 @@ export default function FichaPacientePage() {
           />
         </div>
       )}
-
+      {/* Ficha A/C form */}
+      {showFichaAC && paciente && (
+        <div className="print:hidden">
+          <FichaACForm
+            paciente={paciente}
+            consultas={consultas}
+            isPreview={isPreview}
+            onSaved={() => {
+              setFichaACCompleted(true);
+              setShowFichaAC(false);
+              // Reload data
+              if (isPreview && id) {
+                const p = getPreviewPacienteById(id);
+                if (p) {
+                  setPaciente(p);
+                  setConsultas(p.consultas || []);
+                }
+              }
+            }}
+            onCancel={() => setShowFichaAC(false)}
+          />
+        </div>
+      )}
       {/* Next step button — hidden in print */}
       <div className="print:hidden">
         {(() => {
-          if (showRetorno1) return null;
+          if (showRetorno1 || showFichaAC) return null;
           if (paciente.status_ficha === 'dmg_afastado' || paciente.status_ficha === 'resultado_parto') return null;
 
           const nextStep = getNextStepInfo(paciente.status_ficha, consultas, igAtual);
@@ -736,6 +775,9 @@ export default function FichaPacientePage() {
           if (isRetorno1Button && retorno1Completed) return null;
           if (isRetorno1Button && canShowRetorno1Form) return null;
 
+          const isFichaACButton = nextStep.formType === 'ficha_a' || nextStep.formType === 'ficha_c';
+          if (isFichaACButton && fichaACCompleted) return null;
+
           return (
             <Button
               variant="outline"
@@ -743,6 +785,8 @@ export default function FichaPacientePage() {
               onClick={() => {
                 if (isRetorno1Button) {
                   setShowRetorno1(true);
+                } else if (isFichaACButton) {
+                  setShowFichaAC(true);
                 } else {
                   toast('Próximo retorno ainda não implementado.');
                 }
