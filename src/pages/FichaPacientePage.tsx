@@ -81,24 +81,28 @@ function getNextStepInfo(
       };
 
     case 'dmg_confirmado': {
-      // After Retorno 1 positive or GTT positive, next is Retorno 2
-      if (!hasRetorno2) {
-        return {
-          label: '+ RETORNO 2 — Hora de ver o resultado inicial do tratamento (Perfil Glicêmico de 4 pontos) e definir próximo passo',
-          formType: 'retorno_2',
-        };
-      }
-      // After Retorno 2 with inadequate control → Retorno 3
-      if (!hasRetorno3) {
-        // TODO: check if insulin was started — for now assume inadequate control path
-        return {
-          label: '+ RETORNO 3 — Hora de ver o resultado da insulina (Perfil Glicêmico de 6 pontos) e definir próximo passo',
-          formType: 'retorno_3',
-        };
-      }
-      // After Retorno 2/3 with adequate control → Ficha A/B/C/D based on insulin + IG
-      // For now, show ficha based on IG (insulin logic TBD)
       const igSem = igAtual?.semanas ?? 0;
+      // Check if any ficha_a/ficha_c already exists
+      const hasFichaAC = consultas.some(c => ['ficha_a', 'ficha_c'].includes(c.tipo));
+      // Check last ficha result to determine if insulin was started
+      const lastFicha = [...consultas].reverse().find(c => ['ficha_a', 'ficha_c', 'ficha_b', 'ficha_d'].includes(c.tipo));
+
+      if (!hasFichaAC) {
+        // First time: Retorno 2 = Ficha A (perfil 4 pontos)
+        if (igSem <= 30) {
+          return {
+            label: '+ RETORNO 2 — Perfil Glicêmico de 4 pontos (Ficha A)',
+            formType: 'ficha_a',
+          };
+        }
+        return {
+          label: '+ RETORNO 2 — Perfil Glicêmico de 4 pontos (Ficha C)',
+          formType: 'ficha_c',
+        };
+      }
+
+      // Subsequent returns: loop Ficha A/C (4 pontos, sem insulina)
+      // TODO: if last ficha was inadequado, next should be Ficha B/D (6 pontos, com insulina — Prompt 11)
       if (igSem <= 30) {
         return {
           label: '+ FICHA A — Acompanhamento sem insulina (Perfil Glicêmico de 4 pontos × 15 dias)',
