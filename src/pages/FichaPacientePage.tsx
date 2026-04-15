@@ -22,6 +22,7 @@ import Consulta1ResultCard from '@/components/Consulta1ResultCard';
 import Retorno1ResultCard from '@/components/Retorno1ResultCard';
 import FichaACForm from '@/components/FichaACForm';
 import FichaACResultCard from '@/components/FichaACResultCard';
+import FichaACReadOnlyGrid from '@/components/FichaACReadOnlyGrid';
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
@@ -43,11 +44,11 @@ const CONSULTA_NAMES: Record<string, string> = {
   retorno_gtt: 'RETORNO GTT 75g (24-28 semanas)',
   retorno_2: 'RETORNO 2 — Hora de ver o resultado inicial do tratamento (Perfil Glicêmico de 4 pontos) e definir próximo passo',
   retorno_3: 'RETORNO 3 — Hora de ver o resultado da insulina (Perfil Glicêmico de 6 pontos) e definir próximo passo',
-  ficha_a: 'FICHA A — Acompanhamento sem insulina (Perfil Glicêmico de 4 pontos × 15 dias)',
-  ficha_b: 'FICHA B — Acompanhamento com insulina (Perfil Glicêmico de 6 pontos × 15 dias)',
-  ficha_c: 'FICHA C — Acompanhamento sem insulina (Perfil Glicêmico de 4 pontos × 7 dias)',
-  ficha_d: 'FICHA D — Acompanhamento com insulina (Perfil Glicêmico de 6 pontos × 7 dias)',
-  registro_parto: 'FICHA DE REGISTRO DO PARTO',
+  ficha_a: 'FICHA A — Acompanhamento sem insulina, até a 30ª semana (Perfil Glicêmico de 4 pontos × 15 dias)',
+  ficha_b: 'FICHA B — Acompanhamento com insulina, até a 30ª semana (Perfil Glicêmico de 6 pontos × 15 dias)',
+  ficha_c: 'FICHA C — Acompanhamento sem insulina, após a 30ª semana (Perfil Glicêmico de 4 pontos × 7 dias)',
+  ficha_d: 'FICHA D — Acompanhamento com insulina, após a 30ª semana (Perfil Glicêmico de 6 pontos × 7 dias)',
+  registro_parto: 'Registro do parto',
 };
 
 /**
@@ -84,33 +85,63 @@ function getNextStepInfo(
       const igSem = igAtual?.semanas ?? 0;
       // Check if any ficha_a/ficha_c already exists
       const hasFichaAC = consultas.some(c => ['ficha_a', 'ficha_c'].includes(c.tipo));
+      // Check if any ficha_b/ficha_d already exists
+      const hasFichaBD = consultas.some(c => ['ficha_b', 'ficha_d'].includes(c.tipo));
       // Check last ficha result to determine if insulin was started
-      const _lastFicha = [...consultas].reverse().find(c => ['ficha_a', 'ficha_c', 'ficha_b', 'ficha_d'].includes(c.tipo));
+      const lastFicha = [...consultas].reverse().find(c => ['ficha_a', 'ficha_c', 'ficha_b', 'ficha_d'].includes(c.tipo));
+      const lastDecisao = lastFicha?.decisao;
 
-      if (!hasFichaAC) {
-        // First time: Retorno 2 = Ficha A (perfil 4 pontos)
+      if (!hasFichaAC && !hasFichaBD) {
+        // First time: Retorno 2 = Ficha A/C (perfil 4 pontos)
         if (igSem <= 30) {
           return {
-            label: '+ RETORNO 2 — Perfil Glicêmico de 4 pontos (Ficha A)',
+            label: '+ RETORNO 2 — Hora de ver o resultado inicial do tratamento (Perfil Glicêmico de 4 pontos) e definir próximo passo',
             formType: 'ficha_a',
           };
         }
         return {
-          label: '+ RETORNO 2 — Perfil Glicêmico de 4 pontos (Ficha C)',
+          label: '+ RETORNO 2 — Hora de ver o resultado inicial do tratamento (Perfil Glicêmico de 4 pontos) e definir próximo passo',
           formType: 'ficha_c',
         };
       }
 
-      // Subsequent returns: loop Ficha A/C (4 pontos, sem insulina)
-      // TODO: if last ficha was inadequado, next should be Ficha B/D (6 pontos, com insulina — Prompt 11)
+      // If last result was inadequado (insulin started), next should be 6 points
+      if (lastDecisao === 'controle_inadequado') {
+        if (!hasFichaBD) {
+          // First 6-point profile: RETORNO 3
+          if (igSem <= 30) {
+            return {
+              label: '+ RETORNO 3 — Hora de ver o resultado da insulina (Perfil Glicêmico de 6 pontos) e definir próximo passo',
+              formType: 'ficha_b',
+            };
+          }
+          return {
+            label: '+ FICHA D — Acompanhamento com insulina, após a 30ª semana (Perfil Glicêmico de 6 pontos × 7 dias)',
+            formType: 'ficha_d',
+          };
+        }
+        // Subsequent 6-point profiles
+        if (igSem <= 30) {
+          return {
+            label: '+ FICHA B — Acompanhamento com insulina, até a 30ª semana (Perfil Glicêmico de 6 pontos × 15 dias)',
+            formType: 'ficha_b',
+          };
+        }
+        return {
+          label: '+ FICHA D — Acompanhamento com insulina, após a 30ª semana (Perfil Glicêmico de 6 pontos × 7 dias)',
+          formType: 'ficha_d',
+        };
+      }
+
+      // Adequate control: loop Ficha A/C (4 pontos)
       if (igSem <= 30) {
         return {
-          label: '+ FICHA A — Acompanhamento sem insulina (Perfil Glicêmico de 4 pontos × 15 dias)',
+          label: '+ FICHA A — Acompanhamento sem insulina, até a 30ª semana (Perfil Glicêmico de 4 pontos × 15 dias)',
           formType: 'ficha_a',
         };
       }
       return {
-        label: '+ FICHA C — Acompanhamento sem insulina (Perfil Glicêmico de 4 pontos × 7 dias)',
+        label: '+ FICHA C — Acompanhamento sem insulina, após a 30ª semana (Perfil Glicêmico de 4 pontos × 7 dias)',
         formType: 'ficha_c',
       };
     }
@@ -672,12 +703,23 @@ export default function FichaPacientePage() {
             key={`hist-${consultas.length}`}
             className="space-y-2"
           >
-            {consultasHistorico.map((c) => (
+            {consultasHistorico.map((c) => {
+              // Determine display name for ficha_a/ficha_c based on whether it's the first one
+              let displayName = CONSULTA_NAMES[c.tipo] || c.tipo;
+              if (c.tipo === 'ficha_a' || c.tipo === 'ficha_c') {
+                const allFichasAC = consultas.filter(cx => ['ficha_a', 'ficha_c'].includes(cx.tipo));
+                const isFirstFichaAC = allFichasAC.length > 0 && allFichasAC[0].id === c.id;
+                if (isFirstFichaAC) {
+                  displayName = CONSULTA_NAMES['retorno_2'];
+                }
+              }
+
+              return (
               <AccordionItem key={c.id} value={c.id} className="rounded-lg border border-border px-3 py-0">
                 <AccordionTrigger className="py-3 hover:no-underline">
                   <div className="flex w-full items-center justify-between pr-2">
                     <span className="text-xs font-medium text-foreground leading-tight text-left">
-                      {CONSULTA_NAMES[c.tipo] || c.tipo}
+                      {displayName}
                     </span>
                     <span className="text-xs text-muted-foreground shrink-0 ml-2">
                       {format(new Date(c.data), 'dd/MM/yyyy')}
@@ -692,19 +734,24 @@ export default function FichaPacientePage() {
                     <Retorno1ResultCard consulta={c} janelaGTT={janelaGTT} igHoje={igAtual} />
                   )}
                   {(c.tipo === 'ficha_a' || c.tipo === 'ficha_c') && (
-                    <FichaACResultCard
-                      percentual={c.percentual_meta ?? 0}
-                      adequado={(c.percentual_meta ?? 0) >= 70}
-                      totalPreenchidos={c.total_preenchidos ?? 0}
-                      dentroMeta={c.dentro_meta ?? 0}
-                      doseTotal={c.dose_total}
-                      doseManha={c.dose_manha}
-                      doseNoite={c.dose_noite}
-                      peso={c.peso_kg}
-                      retornoDias={c.retorno_dias ?? ((c.ig_semanas ?? 0) > 30 ? 7 : 15)}
-                      dataProximoRetorno={c.data_proximo_retorno_formatted}
-                      fichaType={c.tipo}
-                    />
+                    <>
+                      {c.grid_valores && c.grid_valores.length > 0 && (
+                        <FichaACReadOnlyGrid gridValores={c.grid_valores} />
+                      )}
+                      <FichaACResultCard
+                        percentual={c.percentual_meta ?? 0}
+                        adequado={(c.percentual_meta ?? 0) >= 70}
+                        totalPreenchidos={c.total_preenchidos ?? 0}
+                        dentroMeta={c.dentro_meta ?? 0}
+                        doseTotal={c.dose_total}
+                        doseManha={c.dose_manha}
+                        doseNoite={c.dose_noite}
+                        peso={c.peso_kg}
+                        retornoDias={c.retorno_dias ?? ((c.ig_semanas ?? 0) > 30 ? 7 : 15)}
+                        dataProximoRetorno={c.data_proximo_retorno_formatted}
+                        fichaType={c.tipo}
+                      />
+                    </>
                   )}
                   {!['consulta_1', 'retorno_1', 'ficha_a', 'ficha_c'].includes(c.tipo) && (
                     <div className="space-y-2">
@@ -727,7 +774,8 @@ export default function FichaPacientePage() {
                   )}
                 </AccordionContent>
               </AccordionItem>
-            ))}
+              );
+            })}
           </Accordion>
         </div>
       )}
@@ -778,19 +826,24 @@ export default function FichaPacientePage() {
 
       {/* Standalone Ficha A/C result — shown after form closes */}
       {fichaACCompleted && fichaACResult && !showFichaAC && (
-        <FichaACResultCard
-          percentual={fichaACResult.percentual_meta ?? 0}
-          adequado={(fichaACResult.percentual_meta ?? 0) >= 70}
-          totalPreenchidos={fichaACResult.total_preenchidos ?? 0}
-          dentroMeta={fichaACResult.dentro_meta ?? 0}
-          doseTotal={fichaACResult.dose_total}
-          doseManha={fichaACResult.dose_manha}
-          doseNoite={fichaACResult.dose_noite}
-          peso={fichaACResult.peso_kg}
-          retornoDias={fichaACResult.retorno_dias ?? 15}
-          dataProximoRetorno={fichaACResult.data_proximo_retorno_formatted}
-          fichaType={fichaACResult.tipo}
-        />
+        <>
+          {fichaACResult.grid_valores && fichaACResult.grid_valores.length > 0 && (
+            <FichaACReadOnlyGrid gridValores={fichaACResult.grid_valores} />
+          )}
+          <FichaACResultCard
+            percentual={fichaACResult.percentual_meta ?? 0}
+            adequado={(fichaACResult.percentual_meta ?? 0) >= 70}
+            totalPreenchidos={fichaACResult.total_preenchidos ?? 0}
+            dentroMeta={fichaACResult.dentro_meta ?? 0}
+            doseTotal={fichaACResult.dose_total}
+            doseManha={fichaACResult.dose_manha}
+            doseNoite={fichaACResult.dose_noite}
+            peso={fichaACResult.peso_kg}
+            retornoDias={fichaACResult.retorno_dias ?? 15}
+            dataProximoRetorno={fichaACResult.data_proximo_retorno_formatted}
+            fichaType={fichaACResult.tipo}
+          />
+        </>
       )}
 
       {/* Next step button — hidden in print */}
@@ -830,13 +883,13 @@ export default function FichaPacientePage() {
         })()}
 
         {/* Botão secundário — Registro do Parto */}
-        {canShowRegistroParto(paciente.status_ficha) && (
+        {canShowRegistroParto(paciente.status_ficha) && !showRetorno1 && !showFichaAC && (
           <button
             type="button"
-            className="w-full text-center text-sm font-medium text-[#7C3AED] hover:text-[#6D28D9] transition-colors py-2"
+            className="w-full text-center text-xs font-medium text-muted-foreground hover:text-foreground transition-colors py-2 mt-1"
             onClick={() => toast('Registro do parto ainda não implementado.')}
           >
-            + FICHA DE REGISTRO DO PARTO
+            + Registrar parto
           </button>
         )}
       </div>
