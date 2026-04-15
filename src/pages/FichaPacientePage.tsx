@@ -766,7 +766,23 @@ export default function FichaPacientePage() {
                       />
                     </>
                   )}
-                  {!['consulta_1', 'retorno_1', 'ficha_a', 'ficha_c'].includes(c.tipo) && (
+                  {(c.tipo === 'ficha_b' || c.tipo === 'ficha_d') && (
+                    <>
+                      {c.grid_valores && c.grid_valores.length > 0 && (
+                        <FichaBDReadOnlyGrid gridValores={c.grid_valores} />
+                      )}
+                      <FichaBDResultCard
+                        percentual={c.percentual_meta ?? 0}
+                        adequado={(c.percentual_meta ?? 0) >= 70}
+                        totalPreenchidos={c.total_preenchidos ?? 0}
+                        dentroMeta={c.dentro_meta ?? 0}
+                        retornoDias={c.retorno_dias ?? ((c.ig_semanas ?? 0) > 30 ? 7 : 15)}
+                        dataProximoRetorno={c.data_proximo_retorno_formatted}
+                        fichaType={c.tipo}
+                      />
+                    </>
+                  )}
+                  {!['consulta_1', 'retorno_1', 'ficha_a', 'ficha_c', 'ficha_b', 'ficha_d'].includes(c.tipo) && (
                     <div className="space-y-2">
                       {c.ig_semanas != null && (
                         <p className="text-xs text-muted-foreground">
