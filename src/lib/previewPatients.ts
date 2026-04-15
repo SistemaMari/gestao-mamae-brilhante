@@ -28,6 +28,10 @@ export interface PreviewConsulta {
   gtt_recurso_limitado?: boolean | null;
   gtt_data_exame?: string | null;
   cenario_clinico?: string | null;
+  // Retorno 1 data (optional — for editing)
+  retorno1_valor_gj?: number | null;
+  retorno1_tipo_exame?: string | null;
+  retorno1_data_exame?: string | null;
 }
 
 export interface PreviewPaciente {
