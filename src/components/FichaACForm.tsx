@@ -6,7 +6,6 @@ import { useProfissionalData } from '@/hooks/useProfissionalData';
 import {
   updatePreviewPaciente,
   type PreviewPaciente,
-  type PreviewPaciente,
   type PreviewConsulta,
 } from '@/lib/previewPatients';
 import { Button } from '@/components/ui/button';
