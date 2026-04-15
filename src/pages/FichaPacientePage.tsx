@@ -184,6 +184,9 @@ export default function FichaPacientePage() {
   const [showFichaAC, setShowFichaAC] = useState(false);
   const [fichaACCompleted, setFichaACCompleted] = useState(false);
   const [fichaACResult, setFichaACResult] = useState<PreviewConsulta | null>(null);
+  const [showFichaBD, setShowFichaBD] = useState(false);
+  const [fichaBDCompleted, setFichaBDCompleted] = useState(false);
+  const [fichaBDResult, setFichaBDResult] = useState<PreviewConsulta | null>(null);
 
   // Edit mode state
   const [editing, setEditing] = useState(false);
