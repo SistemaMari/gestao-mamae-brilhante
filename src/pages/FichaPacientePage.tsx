@@ -929,6 +929,9 @@ export default function FichaPacientePage() {
           if (isRetorno1Button && retorno1Completed) return null;
           if (isRetorno1Button && canShowRetorno1Form) return null;
 
+          const isGttButton = nextStep.formType === 'retorno_gtt';
+          if (isGttButton && gttCompleted) return null;
+
           const isFichaACButton = nextStep.formType === 'ficha_a' || nextStep.formType === 'ficha_c';
           if (isFichaACButton && fichaACCompleted && paciente.status_ficha === 'encaminhada_endocrino') return null;
 
@@ -941,6 +944,8 @@ export default function FichaPacientePage() {
               onClick={() => {
                 if (isRetorno1Button) {
                   setShowRetorno1(true);
+                } else if (isGttButton) {
+                  setShowGtt(true);
                 } else if (isFichaACButton) {
                   setFichaACCompleted(false);
                   setFichaACResult(null);
