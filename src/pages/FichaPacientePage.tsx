@@ -438,7 +438,7 @@ export default function FichaPacientePage() {
                 variant="outline"
                 size="sm"
                 onClick={startEditing}
-                className="border-[#9b87f5] text-[#9b87f5] hover:bg-[#E8E0FF] gap-1.5"
+                className="border-[#9b87f5] text-[#9b87f5] hover:bg-[#E8E0FF] gap-1.5 print:hidden"
               >
                 <Pencil className="h-4 w-4" />
                 Editar
