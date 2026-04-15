@@ -717,13 +717,25 @@ export default function FichaPacientePage() {
               return (
               <AccordionItem key={c.id} value={c.id} className="rounded-lg border border-border px-3 py-0">
                 <AccordionTrigger className="py-3 hover:no-underline">
-                  <div className="flex w-full items-center justify-between pr-2">
-                    <span className="text-xs font-medium text-foreground leading-tight text-left">
-                      {displayName}
-                    </span>
-                    <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                      {format(new Date(c.data), 'dd/MM/yyyy')}
-                    </span>
+                  <div className="flex w-full flex-col pr-2 gap-1">
+                    <div className="flex w-full items-center justify-between">
+                      <span className="text-xs font-medium text-foreground leading-tight text-left">
+                        {displayName}
+                      </span>
+                      <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                        {format(new Date(c.data), 'dd/MM/yyyy')}
+                      </span>
+                    </div>
+                    {c.ig_semanas != null && (
+                      <span className="inline-flex self-start rounded-md bg-[#E8E0FF] px-2 py-0.5 text-[10px] font-medium text-[#7C3AED]">
+                        IG: {c.ig_semanas} semanas e {c.ig_dias || 0} dias
+                      </span>
+                    )}
+                    {(c.data_inicio && c.data_fim) && (
+                      <span className="text-[10px] text-[#64748B] self-start">
+                        Período do perfil: {format(new Date(c.data_inicio), 'dd/MM/yyyy')} a {format(new Date(c.data_fim), 'dd/MM/yyyy')}
+                      </span>
+                    )}
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pb-3">
@@ -922,21 +934,24 @@ export default function FichaPacientePage() {
           if (isRetorno1Button && canShowRetorno1Form) return null;
 
           const isFichaACButton = nextStep.formType === 'ficha_a' || nextStep.formType === 'ficha_c';
-          if (isFichaACButton && fichaACCompleted) return null;
+          if (isFichaACButton && fichaACCompleted && paciente.status_ficha === 'encaminhada_endocrino') return null;
 
           const isFichaBDButton = nextStep.formType === 'ficha_b' || nextStep.formType === 'ficha_d';
-          if (isFichaBDButton && fichaBDCompleted) return null;
+          if (isFichaBDButton && fichaBDCompleted && paciente.status_ficha === 'encaminhada_endocrino') return null;
 
           return (
             <Button
-              variant="outline"
-              className="w-full text-left"
+              className="w-full text-left bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
               onClick={() => {
                 if (isRetorno1Button) {
                   setShowRetorno1(true);
                 } else if (isFichaACButton) {
+                  setFichaACCompleted(false);
+                  setFichaACResult(null);
                   setShowFichaAC(true);
                 } else if (isFichaBDButton) {
+                  setFichaBDCompleted(false);
+                  setFichaBDResult(null);
                   setShowFichaBD(true);
                 } else {
                   toast('Próximo retorno ainda não implementado.');
@@ -951,13 +966,14 @@ export default function FichaPacientePage() {
 
         {/* Botão secundário — Registro do Parto */}
         {canShowRegistroParto(paciente.status_ficha) && !showRetorno1 && !showFichaAC && !showFichaBD && (
-          <button
-            type="button"
-            className="w-full text-center text-xs font-medium text-muted-foreground hover:text-foreground transition-colors py-2 mt-1"
+          <Button
+            variant="outline"
+            className="w-full mt-2 border-[#9b87f5] text-[#9b87f5] hover:bg-[#E8E0FF] hover:text-[#7E69AB]"
             onClick={() => toast('Registro do parto ainda não implementado.')}
           >
+            <FileText className="mr-2 h-4 w-4 shrink-0" />
             + Registrar parto
-          </button>
+          </Button>
         )}
       </div>
     </div>
