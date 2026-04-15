@@ -717,13 +717,25 @@ export default function FichaPacientePage() {
               return (
               <AccordionItem key={c.id} value={c.id} className="rounded-lg border border-border px-3 py-0">
                 <AccordionTrigger className="py-3 hover:no-underline">
-                  <div className="flex w-full items-center justify-between pr-2">
-                    <span className="text-xs font-medium text-foreground leading-tight text-left">
-                      {displayName}
-                    </span>
-                    <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                      {format(new Date(c.data), 'dd/MM/yyyy')}
-                    </span>
+                  <div className="flex w-full flex-col pr-2 gap-1">
+                    <div className="flex w-full items-center justify-between">
+                      <span className="text-xs font-medium text-foreground leading-tight text-left">
+                        {displayName}
+                      </span>
+                      <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                        {format(new Date(c.data), 'dd/MM/yyyy')}
+                      </span>
+                    </div>
+                    {c.ig_semanas != null && (
+                      <span className="inline-flex self-start rounded-md bg-[#E8E0FF] px-2 py-0.5 text-[10px] font-medium text-[#7C3AED]">
+                        IG: {c.ig_semanas} semanas e {c.ig_dias || 0} dias
+                      </span>
+                    )}
+                    {(c.data_inicio && c.data_fim) && (
+                      <span className="text-[10px] text-[#64748B] self-start">
+                        Período do perfil: {format(new Date(c.data_inicio), 'dd/MM/yyyy')} a {format(new Date(c.data_fim), 'dd/MM/yyyy')}
+                      </span>
+                    )}
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pb-3">
