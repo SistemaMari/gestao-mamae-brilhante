@@ -891,13 +891,35 @@ export default function FichaPacientePage() {
           />
         </div>
       )}
+      {/* GTT form */}
+      {showGtt && paciente && (
+        <div className="print:hidden">
+          <GttForm
+            paciente={paciente}
+            consultas={consultas}
+            isPreview={isPreview}
+            onSaved={() => {
+              setShowGtt(false);
+              setGttCompleted(true);
+              if (isPreview && id) {
+                const p = getPreviewPacienteById(id);
+                if (p) {
+                  setPaciente(p);
+                  setConsultas(p.consultas || []);
+                }
+              }
+            }}
+            onCancel={() => setShowGtt(false)}
+          />
+        </div>
+      )}
 
       {/* Standalone results removed — results appear only inside history accordion */}
 
       {/* Next step button — hidden in print */}
       <div className="print:hidden">
         {(() => {
-          if (showRetorno1 || showFichaAC || showFichaBD) return null;
+          if (showRetorno1 || showFichaAC || showFichaBD || showGtt) return null;
           if (paciente.status_ficha === 'dmg_afastado' || paciente.status_ficha === 'resultado_parto') return null;
 
           const nextStep = getNextStepInfo(paciente.status_ficha, consultas, igAtual);
