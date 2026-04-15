@@ -20,6 +20,8 @@ import {
 import Retorno1Form from '@/components/Retorno1Form';
 import Consulta1ResultCard from '@/components/Consulta1ResultCard';
 import Retorno1ResultCard from '@/components/Retorno1ResultCard';
+import GttForm from '@/components/GttForm';
+import GttResultCard from '@/components/GttResultCard';
 import FichaACForm from '@/components/FichaACForm';
 import FichaACResultCard from '@/components/FichaACResultCard';
 import FichaACReadOnlyGrid from '@/components/FichaACReadOnlyGrid';
@@ -181,6 +183,8 @@ export default function FichaPacientePage() {
   const [showFichaBD, setShowFichaBD] = useState(false);
   const [fichaBDCompleted, setFichaBDCompleted] = useState(false);
   const [_fichaBDResult, setFichaBDResult] = useState<PreviewConsulta | null>(null);
+  const [showGtt, setShowGtt] = useState(false);
+  const [gttCompleted, setGttCompleted] = useState(false);
 
   // Edit mode state
   const [editing, setEditing] = useState(false);
@@ -786,7 +790,10 @@ export default function FichaPacientePage() {
                       />
                     </>
                   )}
-                  {!['consulta_1', 'retorno_1', 'ficha_a', 'ficha_c', 'ficha_b', 'ficha_d'].includes(c.tipo) && (
+                  {c.tipo === 'retorno_gtt' && (
+                    <GttResultCard consulta={c} igHoje={igAtual} />
+                  )}
+                  {!['consulta_1', 'retorno_1', 'retorno_gtt', 'ficha_a', 'ficha_c', 'ficha_b', 'ficha_d'].includes(c.tipo) && (
                     <div className="space-y-2">
                       {c.ig_semanas != null && (
                         <p className="text-xs text-muted-foreground">
@@ -884,13 +891,35 @@ export default function FichaPacientePage() {
           />
         </div>
       )}
+      {/* GTT form */}
+      {showGtt && paciente && (
+        <div className="print:hidden">
+          <GttForm
+            paciente={paciente}
+            consultas={consultas}
+            isPreview={isPreview}
+            onSaved={() => {
+              setShowGtt(false);
+              setGttCompleted(true);
+              if (isPreview && id) {
+                const p = getPreviewPacienteById(id);
+                if (p) {
+                  setPaciente(p);
+                  setConsultas(p.consultas || []);
+                }
+              }
+            }}
+            onCancel={() => setShowGtt(false)}
+          />
+        </div>
+      )}
 
       {/* Standalone results removed — results appear only inside history accordion */}
 
       {/* Next step button — hidden in print */}
       <div className="print:hidden">
         {(() => {
-          if (showRetorno1 || showFichaAC || showFichaBD) return null;
+          if (showRetorno1 || showFichaAC || showFichaBD || showGtt) return null;
           if (paciente.status_ficha === 'dmg_afastado' || paciente.status_ficha === 'resultado_parto') return null;
 
           const nextStep = getNextStepInfo(paciente.status_ficha, consultas, igAtual);
@@ -899,6 +928,9 @@ export default function FichaPacientePage() {
           const isRetorno1Button = nextStep.formType === 'retorno_1';
           if (isRetorno1Button && retorno1Completed) return null;
           if (isRetorno1Button && canShowRetorno1Form) return null;
+
+          const isGttButton = nextStep.formType === 'retorno_gtt';
+          if (isGttButton && gttCompleted) return null;
 
           const isFichaACButton = nextStep.formType === 'ficha_a' || nextStep.formType === 'ficha_c';
           if (isFichaACButton && fichaACCompleted && paciente.status_ficha === 'encaminhada_endocrino') return null;
@@ -912,6 +944,8 @@ export default function FichaPacientePage() {
               onClick={() => {
                 if (isRetorno1Button) {
                   setShowRetorno1(true);
+                } else if (isGttButton) {
+                  setShowGtt(true);
                 } else if (isFichaACButton) {
                   setFichaACCompleted(false);
                   setFichaACResult(null);
@@ -932,7 +966,7 @@ export default function FichaPacientePage() {
         })()}
 
         {/* Botão secundário — Registro do Parto */}
-        {canShowRegistroParto(paciente.status_ficha) && !showRetorno1 && !showFichaAC && !showFichaBD && (
+        {canShowRegistroParto(paciente.status_ficha) && !showRetorno1 && !showFichaAC && !showFichaBD && !showGtt && (
           <Button
             variant="outline"
             className="w-full mt-2 border-[#9b87f5] text-[#9b87f5] hover:bg-[#E8E0FF] hover:text-[#7E69AB]"

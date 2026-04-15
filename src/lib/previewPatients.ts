@@ -21,6 +21,13 @@ export interface PreviewConsulta {
   decisao?: string | null;
   data_inicio?: string | null;
   data_fim?: string | null;
+  // GTT 75g data (optional)
+  gtt_jejum?: number | null;
+  gtt_1h?: number | null;
+  gtt_2h?: number | null;
+  gtt_recurso_limitado?: boolean | null;
+  gtt_data_exame?: string | null;
+  cenario_clinico?: string | null;
 }
 
 export interface PreviewPaciente {
@@ -44,7 +51,7 @@ export interface PreviewPaciente {
   consultas: PreviewConsulta[];
 }
 
-const STORAGE_KEY = 'dramari_preview_pacientes_v4';
+const STORAGE_KEY = 'dramari_preview_pacientes_v5';
 
 function canUseStorage() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
