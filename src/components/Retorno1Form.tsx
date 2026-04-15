@@ -104,6 +104,7 @@ interface Retorno1FormProps {
   onSaved: () => void;
   onCancel: () => void;
   isLastConsulta?: boolean;
+  editingConsulta?: PreviewConsulta | null;
 }
 
 export default function Retorno1Form({
@@ -113,17 +114,18 @@ export default function Retorno1Form({
   onSaved,
   onCancel,
   isLastConsulta = true,
+  editingConsulta,
 }: Retorno1FormProps) {
   const { user } = useAuth();
   const { profissionalData } = useProfissionalData();
 
-  const [valorGJ, setValorGJ] = useState('');
-  const [tipoExame, setTipoExame] = useState('');
-  const [dataExame, setDataExame] = useState(todayISO());
-  const [dataConsultaRetorno, setDataConsultaRetorno] = useState(todayISO());
+  const [valorGJ, setValorGJ] = useState(editingConsulta?.retorno1_valor_gj != null ? String(editingConsulta.retorno1_valor_gj) : '');
+  const [tipoExame, setTipoExame] = useState(editingConsulta?.retorno1_tipo_exame ?? '');
+  const [dataExame, setDataExame] = useState(editingConsulta?.retorno1_data_exame ?? todayISO());
+  const [dataConsultaRetorno, setDataConsultaRetorno] = useState(editingConsulta?.data ?? todayISO());
   const [observacoes, setObservacoes] = useState('');
-  const [igSemanas, setIgSemanas] = useState('');
-  const [igDias, setIgDias] = useState('');
+  const [igSemanas, setIgSemanas] = useState(editingConsulta?.ig_semanas != null ? String(editingConsulta.ig_semanas) : '');
+  const [igDias, setIgDias] = useState(editingConsulta?.ig_dias != null ? String(editingConsulta.ig_dias) : '');
   const [saving, setSaving] = useState(false);
   const [touched, setTouched] = useState(false);
 
@@ -147,11 +149,11 @@ export default function Retorno1Form({
 
   // P1: Auto-fill IG fields when dataExame changes
   useEffect(() => {
-    if (igCalculada && !editingResult) {
+    if (igCalculada && !editingResult && !editingConsulta) {
       setIgSemanas(String(igCalculada.semanas));
       setIgDias(String(igCalculada.dias));
     }
-  }, [igCalculada, editingResult]);
+  }, [igCalculada, editingResult, editingConsulta]);
 
   // DUM-based GTT window calc for negative result
   const janelaGTT = useMemo(() => {
