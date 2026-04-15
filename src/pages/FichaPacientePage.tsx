@@ -20,6 +20,8 @@ import {
 import Retorno1Form from '@/components/Retorno1Form';
 import Consulta1ResultCard from '@/components/Consulta1ResultCard';
 import Retorno1ResultCard from '@/components/Retorno1ResultCard';
+import FichaACForm from '@/components/FichaACForm';
+import FichaACResultCard from '@/components/FichaACResultCard';
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
@@ -140,8 +142,9 @@ export default function FichaPacientePage() {
   const [consultas, setConsultas] = useState<PreviewConsulta[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRetorno1, setShowRetorno1] = useState(false);
-  // P3: Track whether retorno1 result is being displayed
   const [retorno1Completed, setRetorno1Completed] = useState(false);
+  const [showFichaAC, setShowFichaAC] = useState(false);
+  const [fichaACCompleted, setFichaACCompleted] = useState(false);
 
   // Edit mode state
   const [editing, setEditing] = useState(false);
