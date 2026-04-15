@@ -18,6 +18,8 @@ import {
   AlertTriangle, Calendar, Clock, FileText, Pencil, Plus, User, Loader2,
 } from 'lucide-react';
 import Retorno1Form from '@/components/Retorno1Form';
+import Consulta1ResultCard from '@/components/Consulta1ResultCard';
+import Retorno1ResultCard from '@/components/Retorno1ResultCard';
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
@@ -209,21 +211,17 @@ export default function FichaPacientePage() {
   const primeiraConsulta = consultas.find((c) => c.tipo === 'consulta_1');
   const ultimaConsulta = consultas.length > 0 ? consultas[consultas.length - 1] : null;
 
-  // P5/P6: History shows ALL previous consultations (everything except the active/current one)
-  // When retorno1 is completed and showing result, history = all consultations except last
+  // History: show all consultations when 2+ exist, most recent first
   const consultasHistorico = useMemo(() => {
-    if (retorno1Completed && consultas.length > 1) {
-      // Show all but the last (which is the retorno_1 being displayed as result card)
-      return consultas.slice(0, -1).reverse();
-    }
-    if (consultas.length > 1) {
-      return consultas.slice(0, -1).reverse();
+    if (consultas.length >= 2) {
+      return [...consultas].reverse();
     }
     return [];
-  }, [consultas, retorno1Completed]);
+  }, [consultas]);
 
   const _canShowRetorno1 = paciente?.status_ficha === 'aguardando_gj' && !!primeiraConsulta && !showRetorno1 && !retorno1Completed;
-  const canShowRetorno1Form = (showRetorno1 || retorno1Completed) && !!primeiraConsulta;
+  // Only show form while actively filling — not after completion
+  const canShowRetorno1Form = showRetorno1 && !!primeiraConsulta;
 
   // P3: Reload patient data without hiding the retorno form
   const reloadPaciente = () => {
