@@ -725,7 +725,29 @@ export default function FichaPacientePage() {
           />
         </div>
       )}
-
+      {/* Ficha A/C form */}
+      {showFichaAC && paciente && (
+        <div className="print:hidden">
+          <FichaACForm
+            paciente={paciente}
+            consultas={consultas}
+            isPreview={isPreview}
+            onSaved={() => {
+              setFichaACCompleted(true);
+              setShowFichaAC(false);
+              // Reload data
+              if (isPreview && id) {
+                const p = getPreviewPacienteById(id);
+                if (p) {
+                  setPaciente(p);
+                  setConsultas(p.consultas || []);
+                }
+              }
+            }}
+            onCancel={() => setShowFichaAC(false)}
+          />
+        </div>
+      )}
       {/* Next step button — hidden in print */}
       <div className="print:hidden">
         {(() => {
