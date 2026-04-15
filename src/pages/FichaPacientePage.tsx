@@ -86,44 +86,31 @@ function getNextStepInfo(
 
     case 'dmg_confirmado': {
       const igSem = igAtual?.semanas ?? 0;
-      // Check if any ficha_a/ficha_c already exists
       const hasFichaAC = consultas.some(c => ['ficha_a', 'ficha_c'].includes(c.tipo));
-      // Check if any ficha_b/ficha_d already exists
       const hasFichaBD = consultas.some(c => ['ficha_b', 'ficha_d'].includes(c.tipo));
-      // Check last ficha result to determine if insulin was started
-      const lastFicha = [...consultas].reverse().find(c => ['ficha_a', 'ficha_c', 'ficha_b', 'ficha_d'].includes(c.tipo));
-      const lastDecisao = lastFicha?.decisao;
+      // Insulin is started if ANY previous ficha A/C had decisao = controle_inadequado
+      const hasInsulin = consultas.some(c =>
+        ['ficha_a', 'ficha_c'].includes(c.tipo) && c.decisao === 'controle_inadequado'
+      );
 
       if (!hasFichaAC && !hasFichaBD) {
         // First time: Retorno 2 = Ficha A/C (perfil 4 pontos)
-        if (igSem <= 30) {
-          return {
-            label: '+ RETORNO 2 — Hora de ver o resultado inicial do tratamento (Perfil Glicêmico de 4 pontos) e definir próximo passo',
-            formType: 'ficha_a',
-          };
-        }
         return {
           label: '+ RETORNO 2 — Hora de ver o resultado inicial do tratamento (Perfil Glicêmico de 4 pontos) e definir próximo passo',
-          formType: 'ficha_c',
+          formType: igSem <= 30 ? 'ficha_a' : 'ficha_c',
         };
       }
 
-      // If last result was inadequado (insulin started), next should be 6 points
-      if (lastDecisao === 'controle_inadequado') {
+      // If insulin was started, next should be 6 points (B/D)
+      if (hasInsulin) {
         if (!hasFichaBD) {
           // First 6-point profile: RETORNO 3
-          if (igSem <= 30) {
-            return {
-              label: '+ RETORNO 3 — Hora de ver o resultado da insulina (Perfil Glicêmico de 6 pontos) e definir próximo passo',
-              formType: 'ficha_b',
-            };
-          }
           return {
-            label: '+ FICHA D — Acompanhamento com insulina, após a 30ª semana (Perfil Glicêmico de 6 pontos × 7 dias)',
-            formType: 'ficha_d',
+            label: '+ RETORNO 3 — Hora de ver o resultado da insulina (Perfil Glicêmico de 6 pontos) e definir próximo passo',
+            formType: igSem <= 30 ? 'ficha_b' : 'ficha_d',
           };
         }
-        // Subsequent 6-point profiles
+        // Subsequent 6-point profiles (loop B/D)
         if (igSem <= 30) {
           return {
             label: '+ FICHA B — Acompanhamento com insulina, até a 30ª semana (Perfil Glicêmico de 6 pontos × 15 dias)',
@@ -136,7 +123,7 @@ function getNextStepInfo(
         };
       }
 
-      // Adequate control: loop Ficha A/C (4 pontos)
+      // Adequate control without insulin: loop Ficha A/C (4 pontos)
       if (igSem <= 30) {
         return {
           label: '+ FICHA A — Acompanhamento sem insulina, até a 30ª semana (Perfil Glicêmico de 4 pontos × 15 dias)',
