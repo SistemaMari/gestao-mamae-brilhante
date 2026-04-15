@@ -751,7 +751,7 @@ export default function FichaPacientePage() {
       {/* Next step button — hidden in print */}
       <div className="print:hidden">
         {(() => {
-          if (showRetorno1) return null;
+          if (showRetorno1 || showFichaAC) return null;
           if (paciente.status_ficha === 'dmg_afastado' || paciente.status_ficha === 'resultado_parto') return null;
 
           const nextStep = getNextStepInfo(paciente.status_ficha, consultas, igAtual);
@@ -761,6 +761,9 @@ export default function FichaPacientePage() {
           if (isRetorno1Button && retorno1Completed) return null;
           if (isRetorno1Button && canShowRetorno1Form) return null;
 
+          const isFichaACButton = nextStep.formType === 'ficha_a' || nextStep.formType === 'ficha_c';
+          if (isFichaACButton && fichaACCompleted) return null;
+
           return (
             <Button
               variant="outline"
@@ -768,6 +771,8 @@ export default function FichaPacientePage() {
               onClick={() => {
                 if (isRetorno1Button) {
                   setShowRetorno1(true);
+                } else if (isFichaACButton) {
+                  setShowFichaAC(true);
                 } else {
                   toast('Próximo retorno ainda não implementado.');
                 }
