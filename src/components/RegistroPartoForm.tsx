@@ -70,12 +70,9 @@ export default function RegistroPartoForm({
   // ── Estado dos campos ──
   const [viaParto, setViaParto] = useState<ViaParto>('');
   const [motivoCesarea, setMotivoCesarea] = useState('');
-  const [igPartoSemanas, setIgPartoSemanas] = useState<string>(
-    igAtual ? String(igAtual.semanas) : ''
-  );
-  const [igPartoDias, setIgPartoDias] = useState<string>(
-    igAtual ? String(igAtual.dias) : ''
-  );
+  const [igPartoSemanas, setIgPartoSemanas] = useState<string>('');
+  const [igPartoDias, setIgPartoDias] = useState<string>('');
+  const [igOrigem, setIgOrigem] = useState<IgOrigem>('auto');
   const [dataParto, setDataParto] = useState<string>(
     format(new Date(), 'yyyy-MM-dd')
   );
@@ -94,6 +91,16 @@ export default function RegistroPartoForm({
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // ── Auto-cálculo da IG no parto a partir da DUM e da data do parto ──
+  useEffect(() => {
+    if (igOrigem === 'manual') return;
+    if (!paciente.dum || !dataParto) return;
+    const dias = differenceInDays(new Date(dataParto), new Date(paciente.dum));
+    if (dias < 0) return;
+    setIgPartoSemanas(String(Math.floor(dias / 7)));
+    setIgPartoDias(String(dias % 7));
+  }, [dataParto, paciente.dum, igOrigem]);
 
   // ── Auto-cálculo Intergrowth-21st (PIG/AIG/GIG) ──
   useEffect(() => {
