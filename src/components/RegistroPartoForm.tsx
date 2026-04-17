@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { classificarRN } from '@/lib/intergrowth';
+
 import { differenceInDays, format } from 'date-fns';
 import { toast } from 'sonner';
 import { FileText, Info, Loader2, Baby } from 'lucide-react';
@@ -32,6 +34,8 @@ type Props = {
 type ViaParto = '' | 'vaginal' | 'cesarea';
 type ClassRN = '' | 'AIG' | 'GIG' | 'PIG';
 type SimNao = '' | 'sim' | 'nao';
+type SexoRNState = '' | 'M' | 'F';
+type ClassificacaoOrigem = 'auto' | 'manual' | 'fora-cobertura' | 'pendente';
 
 /** Tooltip helper — ícone ⓘ ao lado do label */
 function HelpIcon({ text }: { text: string }) {
