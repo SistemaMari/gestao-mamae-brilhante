@@ -702,8 +702,20 @@ export default function FichaPacientePage() {
       })()}
 
       {/* Standalone green card — only when 1 consultation (aguardando_gj), no retorno form */}
-      {consultas.length === 1 && paciente.status_ficha === 'aguardando_gj' && !showRetorno1 && (
-        <Consulta1ResultCard janelaGTT={janelaGTT} igMaior24={igMaior24} />
+      {consultas.length === 1 && paciente.status_ficha === 'aguardando_gj' && !showRetorno1 && primeiraConsulta && (
+        <LaudoCompleto
+          paciente={{ nome: paciente.nome }}
+          igSemanas={igNaConsulta1?.semanas ?? 0}
+          igDias={igNaConsulta1?.dias ?? 0}
+          dataLaudo={new Date(primeiraConsulta.data)}
+          cenario={mapearCenario({ tipo: 'consulta_1', status_gerado: paciente.status_ficha })}
+          bloco2={null}
+          bloco3={null}
+          statusIA="pendente"
+          proximaFichaTexto={janelaGTT ? `GTT 75g entre ${format(janelaGTT.inicio, 'dd/MM/yyyy')} e ${format(janelaGTT.fim, 'dd/MM/yyyy')}.` : null}
+        >
+          <Consulta1ResultCard janelaGTT={janelaGTT} igMaior24={igMaior24} />
+        </LaudoCompleto>
       )}
 
       {/* Histórico de consultas */}
