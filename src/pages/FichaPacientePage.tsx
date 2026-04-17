@@ -29,6 +29,8 @@ import FichaBDForm from '@/components/FichaBDForm';
 import FichaBDResultCard from '@/components/FichaBDResultCard';
 import FichaBDReadOnlyGrid from '@/components/FichaBDReadOnlyGrid';
 import EncerramentoPartoCard from '@/components/EncerramentoPartoCard';
+import RegistroPartoForm from '@/components/RegistroPartoForm';
+import RegistroPartoReadOnlyCard from '@/components/RegistroPartoReadOnlyCard';
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
@@ -45,6 +47,10 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 
 // Dynamic display name based on chronological index
 function getDisplayName(c: PreviewConsulta, index: number, allConsultas: PreviewConsulta[]): string {
+  // Registro do parto NÃO é numerado como RETORNO N — é evento final
+  if (c.tipo === 'registro_parto') {
+    return 'REGISTRO DO PARTO';
+  }
   const prefix = index === 0 ? 'CONSULTA 1' : `RETORNO ${index}`;
 
   switch (c.tipo) {
@@ -186,6 +192,7 @@ export default function FichaPacientePage() {
   const [_fichaBDResult, setFichaBDResult] = useState<PreviewConsulta | null>(null);
   const [showGtt, setShowGtt] = useState(false);
   const [gttCompleted, setGttCompleted] = useState(false);
+  const [showRegistroParto, setShowRegistroParto] = useState(false);
 
   // Editing state for last consultation — tracks which consultation is being edited inline
   const [editingConsultaId, setEditingConsultaId] = useState<string | null>(null);
