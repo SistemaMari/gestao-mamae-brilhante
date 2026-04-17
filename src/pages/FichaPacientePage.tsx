@@ -1084,22 +1084,7 @@ export default function FichaPacientePage() {
       )}
 
       {/* Standalone results removed — results appear only inside history accordion */}
-
-      {/* Card permanente de encerramento por parto realizado */}
-      {paciente.status_ficha === 'resultado_parto' && !showRegistroParto && (
-        <LaudoCompleto
-          paciente={{ nome: paciente.nome }}
-          igSemanas={igAtual?.semanas ?? 0}
-          igDias={igAtual?.dias ?? 0}
-          dataLaudo={new Date()}
-          cenario={5}
-          bloco2={null}
-          bloco3={null}
-          statusIA="pendente"
-        >
-          <EncerramentoPartoCard />
-        </LaudoCompleto>
-      )}
+      {/* Cenário 5 (encerramento) renderizado somente dentro da ficha expansível do histórico */}
 
       {/* Next step button — hidden in print */}
       <div className="print:hidden">
