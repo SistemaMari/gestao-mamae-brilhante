@@ -109,6 +109,7 @@ export default function DashboardPage() {
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [loadingPacientes, setLoadingPacientes] = useState(true);
   const [search, setSearch] = useState('');
+  const [showEncerradas, setShowEncerradas] = useState(true);
   const [showBlockingModal, setShowBlockingModal] = useState(false);
   const [page, setPage] = useState(1);
 
@@ -156,11 +157,17 @@ export default function DashboardPage() {
     setLoadingPacientes(false);
   };
 
+  const ENCERRADAS_STATUS = ['resultado_parto', 'dmg_afastado', 'encaminhada_endocrino'];
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return pacientes;
+    let list = pacientes;
+    if (!showEncerradas) {
+      list = list.filter((p) => !ENCERRADAS_STATUS.includes(p.status_ficha));
+    }
+    if (!search.trim()) return list;
     const q = search.toLowerCase();
-    return pacientes.filter((p) => p.nome.toLowerCase().includes(q));
-  }, [pacientes, search]);
+    return list.filter((p) => p.nome.toLowerCase().includes(q));
+  }, [pacientes, search, showEncerradas]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
