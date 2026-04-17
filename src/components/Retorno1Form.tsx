@@ -38,7 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Info, Loader2, AlertTriangle, CheckCircle2, XCircle, Printer, Pencil } from 'lucide-react';
+import { Info, Loader2, AlertTriangle, CheckCircle2, XCircle, Printer, Pencil, FileText } from 'lucide-react';
 import { differenceInDays, addDays, format } from 'date-fns';
 
 function todayISO() {
@@ -528,13 +528,16 @@ export default function Retorno1Form({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-      <h2 className="font-heading text-lg font-bold text-foreground">
-        RETORNO 1 — Resultado da Glicemia de Jejum
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Insira o resultado da glicemia de jejum para diagnóstico automático.
-      </p>
+    <div className="space-y-5">
+      <div className="rounded-xl border border-[#9b87f5] bg-[#F1F0FB] p-4 space-y-1">
+        <h2 className="text-base font-bold text-[#5B21B6] flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          RETORNO 1 — Resultado da Glicemia de Jejum
+        </h2>
+        <p className="text-xs text-[#6D28D9]">
+          Insira o resultado da glicemia de jejum para diagnóstico automático.
+        </p>
+      </div>
 
       {/* Capilar alert */}
       {isCapilar && (
