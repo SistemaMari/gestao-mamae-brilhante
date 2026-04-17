@@ -1087,7 +1087,18 @@ export default function FichaPacientePage() {
 
       {/* Card permanente de encerramento por parto realizado */}
       {paciente.status_ficha === 'resultado_parto' && !showRegistroParto && (
-        <EncerramentoPartoCard />
+        <LaudoCompleto
+          paciente={{ nome: paciente.nome }}
+          igSemanas={igAtual?.semanas ?? 0}
+          igDias={igAtual?.dias ?? 0}
+          dataLaudo={new Date()}
+          cenario={5}
+          bloco2={null}
+          bloco3={null}
+          statusIA="pendente"
+        >
+          <EncerramentoPartoCard />
+        </LaudoCompleto>
       )}
 
       {/* Next step button — hidden in print */}
