@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Info, Loader2 } from 'lucide-react';
+import { Info, Loader2, FileText } from 'lucide-react';
 import { differenceInYears } from 'date-fns';
 
 function todayISO() {
