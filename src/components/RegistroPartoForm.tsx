@@ -539,36 +539,12 @@ export default function RegistroPartoForm({
           <Select value={intercorrMat} onValueChange={(v) => setIntercorrMat(v as SimNao)}>
             <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="nao">Não</SelectItem>
               <SelectItem value="sim">Sim</SelectItem>
+              <SelectItem value="nao">Não</SelectItem>
             </SelectContent>
-          </Select>
-        </div>
-        {intercorrMat === 'sim' && (
-          <div className="space-y-1 animate-fade-in">
-            <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
-              Descrição das intercorrências maternas <span className="text-destructive">*</span>
-            </label>
-            <Textarea
-              rows={3}
-              value={descIntercorrMat}
-              onChange={(e) => setDescIntercorrMat(e.target.value)}
-              placeholder="Descreva as intercorrências maternas"
-            />
-          </div>
-        )}
-
-        {/* Intercorrências neonatais */}
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
-            Intercorrências neonatais <span className="text-destructive">*</span>
-            <HelpIcon text="Houve intercorrências com o recém-nascido? Ex: hipoglicemia neonatal, internação em UTI neonatal, tocotrauma, síndrome do desconforto respiratório." />
-          </label>
-          <Select value={intercorrNeo} onValueChange={(v) => setIntercorrNeo(v as SimNao)}>
-            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="nao">Não</SelectItem>
+...
               <SelectItem value="sim">Sim</SelectItem>
+              <SelectItem value="nao">Não</SelectItem>
             </SelectContent>
           </Select>
         </div>
