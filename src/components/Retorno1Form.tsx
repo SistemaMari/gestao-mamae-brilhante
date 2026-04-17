@@ -38,7 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Info, Loader2, AlertTriangle, CheckCircle2, XCircle, Printer, Pencil } from 'lucide-react';
+import { Info, Loader2, AlertTriangle, CheckCircle2, XCircle, Printer, Pencil, FileText } from 'lucide-react';
 import { differenceInDays, addDays, format } from 'date-fns';
 
 function todayISO() {
