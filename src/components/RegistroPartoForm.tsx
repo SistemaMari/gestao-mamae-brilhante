@@ -36,6 +36,7 @@ type ClassRN = '' | 'AIG' | 'GIG' | 'PIG';
 type SimNao = '' | 'sim' | 'nao';
 type SexoRNState = '' | 'M' | 'F';
 type ClassificacaoOrigem = 'auto' | 'manual' | 'fora-cobertura' | 'pendente';
+type IgOrigem = 'auto' | 'manual';
 
 /** Tooltip helper — ícone ⓘ ao lado do label */
 function HelpIcon({ text }: { text: string }) {
