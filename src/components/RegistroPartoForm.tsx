@@ -155,6 +155,8 @@ export default function RegistroPartoForm({
     if (!pesoRn || Number.isNaN(peso) || peso < 300 || peso > 6000)
       e.pesoRn = 'Peso: 300 a 6.000 g.';
 
+    if (!sexoRn) e.sexoRn = 'Selecione o sexo do RN.';
+
     if (!classRn) e.classRn = 'Selecione a classificação.';
 
     const a1 = Number(apgar1);
@@ -177,7 +179,7 @@ export default function RegistroPartoForm({
     return e;
   }, [
     viaParto, motivoCesarea, igPartoSemanas, igPartoDias, dataParto,
-    pesoRn, classRn, apgar1, apgar5, intercorrMat, descIntercorrMat,
+    pesoRn, sexoRn, classRn, apgar1, apgar5, intercorrMat, descIntercorrMat,
     intercorrNeo, descIntercorrNeo, aleitamento,
   ]);
 
@@ -198,6 +200,7 @@ export default function RegistroPartoForm({
       ig_dias: Number(igPartoDias),
       data_parto: dataParto,
       peso_rn_g: Number(pesoRn),
+      sexo_rn: sexoRn as 'M' | 'F',
       classificacao_rn: classRn,
       apgar_1min: Number(apgar1),
       apgar_5min: Number(apgar5),
