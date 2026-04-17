@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { classificarRN } from '@/lib/intergrowth';
+
 import { differenceInDays, format } from 'date-fns';
 import { toast } from 'sonner';
 import { FileText, Info, Loader2, Baby } from 'lucide-react';
@@ -32,6 +34,8 @@ type Props = {
 type ViaParto = '' | 'vaginal' | 'cesarea';
 type ClassRN = '' | 'AIG' | 'GIG' | 'PIG';
 type SimNao = '' | 'sim' | 'nao';
+type SexoRNState = '' | 'M' | 'F';
+type ClassificacaoOrigem = 'auto' | 'manual' | 'fora-cobertura' | 'pendente';
 
 /** Tooltip helper — ícone ⓘ ao lado do label */
 function HelpIcon({ text }: { text: string }) {
@@ -75,7 +79,9 @@ export default function RegistroPartoForm({
     format(new Date(), 'yyyy-MM-dd')
   );
   const [pesoRn, setPesoRn] = useState('');
+  const [sexoRn, setSexoRn] = useState<SexoRNState>('');
   const [classRn, setClassRn] = useState<ClassRN>('');
+  const [classOrigem, setClassOrigem] = useState<ClassificacaoOrigem>('pendente');
   const [apgar1, setApgar1] = useState('');
   const [apgar5, setApgar5] = useState('');
   const [intercorrMat, setIntercorrMat] = useState<SimNao>('');
@@ -87,6 +93,47 @@ export default function RegistroPartoForm({
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // ── Auto-cálculo Intergrowth-21st (PIG/AIG/GIG) ──
+  useEffect(() => {
+    const sem = Number(igPartoSemanas);
+    const dd = Number(igPartoDias);
+    const peso = Number(pesoRn);
+
+    const igOk =
+      igPartoSemanas !== '' &&
+      igPartoDias !== '' &&
+      !Number.isNaN(sem) &&
+      !Number.isNaN(dd) &&
+      sem >= 0 && dd >= 0 && dd <= 6;
+    const pesoOk = pesoRn !== '' && !Number.isNaN(peso) && peso > 0;
+    const sexoOk = sexoRn === 'M' || sexoRn === 'F';
+
+    if (!igOk || !pesoOk || !sexoOk) {
+      // Faltam dados — não mexe na classificação manual já digitada
+      if (classOrigem === 'auto') {
+        setClassRn('');
+        setClassOrigem('pendente');
+      } else if (classOrigem !== 'manual') {
+        setClassOrigem('pendente');
+      }
+      return;
+    }
+
+    const resultado = classificarRN(sem, dd, peso, sexoRn);
+    if (resultado === null) {
+      // IG fora da cobertura → não auto-preenche, libera modo manual
+      if (classOrigem === 'auto') setClassRn('');
+      setClassOrigem('fora-cobertura');
+      return;
+    }
+
+    // Só auto-preenche se ainda não houve override manual
+    if (classOrigem !== 'manual') {
+      setClassRn(resultado);
+      setClassOrigem('auto');
+    }
+  }, [igPartoSemanas, igPartoDias, pesoRn, sexoRn]);
 
   // ── Validação ──
   const errors = useMemo(() => {
@@ -107,6 +154,8 @@ export default function RegistroPartoForm({
     const peso = Number(pesoRn);
     if (!pesoRn || Number.isNaN(peso) || peso < 300 || peso > 6000)
       e.pesoRn = 'Peso: 300 a 6.000 g.';
+
+    if (!sexoRn) e.sexoRn = 'Selecione o sexo do RN.';
 
     if (!classRn) e.classRn = 'Selecione a classificação.';
 
@@ -130,7 +179,7 @@ export default function RegistroPartoForm({
     return e;
   }, [
     viaParto, motivoCesarea, igPartoSemanas, igPartoDias, dataParto,
-    pesoRn, classRn, apgar1, apgar5, intercorrMat, descIntercorrMat,
+    pesoRn, sexoRn, classRn, apgar1, apgar5, intercorrMat, descIntercorrMat,
     intercorrNeo, descIntercorrNeo, aleitamento,
   ]);
 
@@ -151,6 +200,7 @@ export default function RegistroPartoForm({
       ig_dias: Number(igPartoDias),
       data_parto: dataParto,
       peso_rn_g: Number(pesoRn),
+      sexo_rn: sexoRn as 'M' | 'F',
       classificacao_rn: classRn,
       apgar_1min: Number(apgar1),
       apgar_5min: Number(apgar5),
@@ -330,8 +380,20 @@ export default function RegistroPartoForm({
           </div>
         )}
 
-        {/* IG no parto + Data do parto lado a lado */}
+        {/* Data do parto + IG no parto lado a lado */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+              Data do parto <span className="text-destructive">*</span>
+              <HelpIcon text="Data em que o parto ocorreu. Default: hoje. Editável." />
+            </label>
+            <Input
+              type="date"
+              value={dataParto}
+              onChange={(e) => setDataParto(e.target.value)}
+            />
+          </div>
+
           <div className="space-y-1">
             <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
               IG no parto <span className="text-destructive">*</span>
@@ -356,21 +418,9 @@ export default function RegistroPartoForm({
               <span className="text-xs text-muted-foreground">dias</span>
             </div>
           </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
-              Data do parto <span className="text-destructive">*</span>
-              <HelpIcon text="Data em que o parto ocorreu. Default: hoje. Editável." />
-            </label>
-            <Input
-              type="date"
-              value={dataParto}
-              onChange={(e) => setDataParto(e.target.value)}
-            />
-          </div>
         </div>
 
-        {/* Peso + classificação */}
+        {/* Peso do RN + Sexo do RN lado a lado */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
@@ -386,10 +436,33 @@ export default function RegistroPartoForm({
           </div>
           <div className="space-y-1">
             <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
-              Classificação do RN <span className="text-destructive">*</span>
-              <HelpIcon text="Classificação conforme peso e idade gestacional: AIG (adequado), GIG (grande), PIG (pequeno)." />
+              Sexo do RN <span className="text-destructive">*</span>
+              <HelpIcon text="Sexo do recém-nascido. Necessário para o cálculo automático da classificação (PIG/AIG/GIG)." />
             </label>
-            <Select value={classRn} onValueChange={(v) => setClassRn(v as ClassRN)}>
+            <Select value={sexoRn} onValueChange={(v) => setSexoRn(v as SexoRNState)}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="M">Masculino</SelectItem>
+                <SelectItem value="F">Feminino</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Classificação do RN (auto-calculada) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+              Classificação do RN <span className="text-destructive">*</span>
+              <HelpIcon text="Classificação conforme curva Intergrowth-21st (referência adotada pelo Ministério da Saúde). Calculada automaticamente a partir de peso, IG e sexo do RN. Editável." />
+            </label>
+            <Select
+              value={classRn}
+              onValueChange={(v) => {
+                setClassRn(v as ClassRN);
+                setClassOrigem('manual');
+              }}
+            >
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="AIG">AIG — adequado</SelectItem>
@@ -397,7 +470,23 @@ export default function RegistroPartoForm({
                 <SelectItem value="PIG">PIG — pequeno</SelectItem>
               </SelectContent>
             </Select>
+            {classOrigem === 'auto' && (
+              <p className="text-[12px] text-[#94A3B8]">
+                Calculado automaticamente (Intergrowth-21st / Ministério da Saúde). Edite se necessário.
+              </p>
+            )}
+            {classOrigem === 'manual' && (
+              <p className="text-[12px] text-[#94A3B8]">
+                Classificação ajustada manualmente.
+              </p>
+            )}
+            {classOrigem === 'fora-cobertura' && (
+              <p className="text-[12px] text-[#94A3B8]">
+                IG fora da cobertura da curva Intergrowth-21st. Preencha manualmente.
+              </p>
+            )}
           </div>
+          <div />
         </div>
 
         {/* Apgar 1' + 5' lado a lado */}

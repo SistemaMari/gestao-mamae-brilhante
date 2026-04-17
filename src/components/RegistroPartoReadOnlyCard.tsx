@@ -8,6 +8,7 @@ type DadosParto = {
   ig_dias?: number;
   data_parto?: string;
   peso_rn_g?: number;
+  sexo_rn?: 'M' | 'F';
   classificacao_rn?: 'AIG' | 'GIG' | 'PIG';
   apgar_1min?: number;
   apgar_5min?: number;
@@ -89,6 +90,16 @@ export default function RegistroPartoReadOnlyCard({
         <Row label="Via de parto" value={via} />
         <Row label="IG no parto" value={ig} />
         <Row label="Peso do RN" value={peso} />
+        <Row
+          label="Sexo do RN"
+          value={
+            dados.sexo_rn === 'M'
+              ? 'Masculino'
+              : dados.sexo_rn === 'F'
+              ? 'Feminino'
+              : '—'
+          }
+        />
         <Row label="Apgar" value={apgar} />
         <Row
           label="Intercorrências maternas"
