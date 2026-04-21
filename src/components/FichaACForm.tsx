@@ -777,23 +777,11 @@ export default function FichaACForm({
               </p>
               {savedResult?.adequado ? (
                 <p className="text-sm">
-                  Manter dieta e atividade física. Próximo retorno em {retornoDias} dias com perfil glicêmico de 4 pontos.
+                  Orientações no laudo completo abaixo.
                 </p>
               ) : (
-                <div className="space-y-2">
-                  <p className="text-sm">
-                    Associar insulina NPH subcutânea. Próximo retorno em {retornoDias} dias com perfil glicêmico de 6 pontos (inclui pré-prandiais).
-                  </p>
-                  {savedResult?.doseTotal && (
-                    <p className="text-sm font-medium text-amber-800">
-                      Dose inicial: {savedResult.doseTotal} UI/dia — {savedResult.doseManha} UI manhã + {savedResult.doseNoite} UI às 22h
-                    </p>
-                  )}
-                </div>
-              )}
-              {dataProximoRetorno && (
-                <p className="text-xs text-muted-foreground">
-                  Próximo retorno sugerido: {dataProximoRetorno} ({retornoDias} dias)
+                <p className="text-sm">
+                  Conduta: iniciar insulina. Dose e orientações no laudo completo abaixo.
                 </p>
               )}
             </AlertDialogDescription>
@@ -803,7 +791,7 @@ export default function FichaACForm({
               onClick={handleCloseImpact}
               className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
             >
-              Fechar e ver resultado
+              Fechar e ver laudo completo
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
