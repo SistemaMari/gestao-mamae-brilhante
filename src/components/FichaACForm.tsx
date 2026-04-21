@@ -161,9 +161,6 @@ export default function FichaACForm({
   const [savedResult, setSavedResult] = useState<{
     percentual: number;
     adequado: boolean;
-    doseTotal: number | null;
-    doseManha: number | null;
-    doseNoite: number | null;
   } | null>(null);
 
   // Cell value change
