@@ -5,6 +5,7 @@ import Bloco3Conduta from './Bloco3Conduta';
 import GradeGlicemicaCompacta, { type GradeGlicemicaProps } from './GradeGlicemicaCompacta';
 import NotasTecnicasCard from './NotasTecnicasCard';
 import InstrucaoCtrlP from './InstrucaoCtrlP';
+import JanelaGttCard from './JanelaGttCard';
 import { type Cenario } from '@/lib/laudoMapping';
 
 export interface LaudoCompletoProps {
