@@ -455,7 +455,9 @@ export default function Retorno1Form({
                 ) : (
                   <span className={`flex items-center justify-center gap-2 ${resultado.tipo === 'positivo' ? 'text-orange-600' : 'text-red-600'}`}>
                     <XCircle className="h-5 w-5" />
-                    Diagnóstico confirmado
+                    {resultado.tipo === 'positivo'
+                      ? 'POSITIVO — Diabete Mellitus Gestacional confirmado.'
+                      : 'POSITIVO — Overt Diabetes (diabete prévio) confirmado.'}
                   </span>
                 )}
               </AlertDialogTitle>
@@ -484,7 +486,7 @@ export default function Retorno1Form({
                     </>
                   ) : (
                     <p className="text-center font-medium">
-                      Diagnóstico confirmado. Não repetir o exame. É hora de tratar. Comece agora.
+                      Não repetir o exame. É hora de tratar. Comece agora.
                     </p>
                   )}
                 </div>
@@ -495,7 +497,7 @@ export default function Retorno1Form({
                 onClick={handlePopupClose}
                 className={resultado.tipo === 'negativo' ? 'bg-[#9b87f5] hover:bg-[#7E69AB] text-white' : resultado.tipo === 'positivo' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}
               >
-                {resultado.tipo === 'negativo' ? 'Entendi' : 'Entendi, vou iniciar o tratamento'}
+                {resultado.tipo === 'negativo' ? 'Entendi' : 'Entendi, ver laudo completo'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
