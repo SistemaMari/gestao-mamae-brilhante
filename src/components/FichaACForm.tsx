@@ -273,10 +273,10 @@ export default function FichaACForm({
         percentual_meta: percentual,
         total_preenchidos: totalPreenchidos,
         dentro_meta: dentroMeta,
-        peso_kg: pesoNum > 0 ? pesoNum : null,
-        dose_total: isInadequado ? doseTotal : null,
-        dose_manha: isInadequado ? doseManha : null,
-        dose_noite: isInadequado ? doseNoite : null,
+        peso_kg: editingConsulta?.peso_kg ?? null,
+        dose_total: editingConsulta?.dose_total ?? null,
+        dose_manha: editingConsulta?.dose_manha ?? null,
+        dose_noite: editingConsulta?.dose_noite ?? null,
         retorno_dias: retornoDias,
         data_proximo_retorno_formatted: dataProximoRetorno,
         grid_valores: grid,
@@ -304,9 +304,6 @@ export default function FichaACForm({
       setSavedResult({
         percentual: percentual!,
         adequado: isAdequado,
-        doseTotal: isInadequado ? doseTotal : null,
-        doseManha: isInadequado ? doseManha : null,
-        doseNoite: isInadequado ? doseNoite : null,
       });
 
       setSaving(false);
