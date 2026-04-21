@@ -148,14 +148,7 @@ export default function FichaACForm({
   const isAdequado = percentual !== null && percentual >= 70;
   const isInadequado = percentual !== null && percentual < 70;
 
-  // Weight becomes required when < 70%
-  const pesoRequired = isInadequado;
-  const pesoNum = parseFloat(peso) || 0;
-
-  // Insulin dose calculation
-  const doseTotal = pesoNum > 0 ? Math.round(0.5 * pesoNum * 10) / 10 : null;
-  const doseManha = doseTotal ? Math.round((doseTotal * 2 / 3) * 10) / 10 : null;
-  const doseNoite = doseTotal ? Math.round((doseTotal * 1 / 3) * 10) / 10 : null;
+  // Insulin dose calculation moved to laudo (FichaACResultCard) — captured AFTER doctor sees Bloco 1.
 
   // Next return interval
   const retornoDias = igSemNum > 30 ? 7 : 15;
