@@ -14,7 +14,7 @@ const POINT_LABELS: Record<Point, string> = {
 };
 
 const POINT_METAS: Record<Point, number> = {
-  jejum: 90,
+  jejum: 95,
   pos_cafe: 140,
   pos_almoco: 140,
   pos_jantar: 140,

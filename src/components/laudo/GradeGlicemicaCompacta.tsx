@@ -14,15 +14,16 @@ export interface GradeGlicemicaProps {
 const PONTOS_4 = ['Jejum', 'Pós-café', 'Pós-almoço', 'Pós-jantar'];
 const PONTOS_6 = ['Jejum', 'Pós-café', 'Pré-almoço', 'Pós-almoço', 'Pré-jantar', 'Pós-jantar'];
 
-// Alvos (mg/dL): jejum/pré ≤95; pós ≤140 (1h) — usaremos pós ≤140 simplificado
+// Alvos (mg/dL): jejum < 95; pré-prandial 70–100; pós-prandial ≤ 140 (1h)
 function dentroMeta(valor: number, indicePonto: number, pontos: 4 | 6): boolean {
-  // Para 4 pontos: idx 0 = jejum (≤95); demais = pós (≤140)
-  // Para 6 pontos: idx 0 = jejum, 2 = pré-almoço, 4 = pré-jantar (todos ≤95); demais pós (≤140)
+  // 4 pontos: idx 0 = jejum (< 95); demais = pós (≤ 140)
+  // 6 pontos: idx 0 = jejum (< 95); idx 2 e 4 = pré-prandial (70–100); demais = pós (≤ 140)
   if (pontos === 4) {
-    return indicePonto === 0 ? valor <= 95 : valor <= 140;
+    return indicePonto === 0 ? valor < 95 : valor <= 140;
   }
-  const eJejumOuPre = indicePonto === 0 || indicePonto === 2 || indicePonto === 4;
-  return eJejumOuPre ? valor <= 95 : valor <= 140;
+  if (indicePonto === 0) return valor < 95;
+  if (indicePonto === 2 || indicePonto === 4) return valor >= 70 && valor <= 100;
+  return valor <= 140;
 }
 
 export default function GradeGlicemicaCompacta({ pontos, valores, percentual, diasPreenchidos }: GradeGlicemicaProps) {
