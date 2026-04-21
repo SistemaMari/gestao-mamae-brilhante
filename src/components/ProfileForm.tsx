@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { countries, especialidades, idiomas, identificadores } from '@/data/locationData';
+import { useCidadesIBGE } from '@/hooks/useCidadesIBGE';
 
 export interface ProfileFormData {
   nome: string;
