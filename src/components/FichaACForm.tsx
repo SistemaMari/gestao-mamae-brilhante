@@ -41,7 +41,7 @@ const POINT_METAS: Record<Point, number> = {
 };
 
 const POINT_TOOLTIPS: Record<Point, string> = {
-  jejum: 'Coleta antes de qualquer refeição, após pelo menos 8 horas sem comer. Meta: < 90 mg/dL. Usar glicômetro capilar para acompanhamento — diferente do diagnóstico, onde é obrigatório plasma venoso.',
+  jejum: 'Coleta antes de qualquer refeição, após pelo menos 8 horas sem comer. Meta: < 95 mg/dL. Usar glicômetro capilar para acompanhamento — diferente do diagnóstico, onde é obrigatório plasma venoso.',
   pos_cafe: 'Coleta exatamente 1 hora após o início da refeição. Meta: < 140 mg/dL.',
   pos_almoco: 'Coleta exatamente 1 hora após o início da refeição. Meta: < 140 mg/dL.',
   pos_jantar: 'Coleta exatamente 1 hora após o início da refeição. Meta: < 140 mg/dL.',
