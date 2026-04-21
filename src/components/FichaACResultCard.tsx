@@ -16,7 +16,6 @@ interface FichaACResultCardProps {
 
 export default function FichaACResultCard({
   percentual, adequado, totalPreenchidos, dentroMeta,
-  doseTotal, doseManha, doseNoite, peso,
 }: FichaACResultCardProps) {
   const bgColor = adequado ? '#DCFCE7' : '#FEF3C7';
   const borderColor = adequado ? '#86EFAC' : '#FCD34D';
@@ -42,18 +41,12 @@ export default function FichaACResultCard({
         <p className="mt-1 text-xs" style={{ color: textColor }}>
           {dentroMeta} de {totalPreenchidos} valores dentro da meta ({percentual.toFixed(1)}%).
         </p>
+        <p className="mt-2 text-xs italic" style={{ color: textColor }}>
+          {adequado
+            ? 'Orientações no laudo completo abaixo.'
+            : 'Conduta: iniciar insulina. Dose e orientações no laudo completo abaixo.'}
+        </p>
       </div>
-
-      {!adequado && doseTotal && peso && (
-        <div className="rounded-lg bg-white/70 p-3">
-          <p className="text-sm font-semibold" style={{ color: titleColor }}>
-            Dose inicial de insulina NPH
-          </p>
-          <p className="mt-1 text-xs font-semibold" style={{ color: titleColor }}>
-            {doseTotal} UI/dia (0,5 UI/kg/dia × {peso} kg), distribuída em 2-3 tomadas: {doseManha} UI pela manhã (ao acordar) e {doseNoite} UI às 22h.
-          </p>
-        </div>
-      )}
     </div>
   );
 }

@@ -447,11 +447,13 @@ export default function GttForm({
               <AlertDialogTitle className="text-center text-lg">
                 <span className={`flex items-center justify-center gap-2 ${resultado.tipo === 'positivo' ? 'text-orange-600' : 'text-red-600'}`}>
                   <XCircle className="h-5 w-5" />
-                  Diagnóstico confirmado
+                  {resultado.tipo === 'positivo'
+                    ? 'POSITIVO — Diabete Mellitus Gestacional confirmado pelo GTT.'
+                    : 'POSITIVO — Overt Diabetes (diabete prévio) confirmado.'}
                 </span>
               </AlertDialogTitle>
               <AlertDialogDescription className="text-center text-base font-medium text-foreground">
-                Diagnóstico confirmado. Não repetir o exame. É hora de tratar. Comece agora.
+                Não repetir o exame. É hora de tratar. Comece agora.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="sm:justify-center">
@@ -459,7 +461,7 @@ export default function GttForm({
                 onClick={handlePopupClose}
                 className={resultado.tipo === 'positivo' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}
               >
-                Entendi, vou iniciar o tratamento
+                Entendi, ver laudo completo
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

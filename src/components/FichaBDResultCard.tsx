@@ -27,6 +27,9 @@ export default function FichaBDResultCard({
           <p className="mt-1 text-xs" style={{ color: '#15803D' }}>
             {dentroMeta} de {totalPreenchidos} valores dentro da meta ({percentual.toFixed(1)}%).
           </p>
+          <p className="mt-2 text-xs italic" style={{ color: '#15803D' }}>
+            Manter dose atual. Detalhes no laudo completo abaixo.
+          </p>
         </div>
 
         {(hypoCount ?? 0) > 0 && (
@@ -44,13 +47,16 @@ export default function FichaBDResultCard({
   return (
     <div className="rounded-xl border-2 p-5 space-y-4" style={{ backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }}>
       <h2 className="text-base font-bold" style={{ color: '#991B1B' }}>
-        Acompanhamento da MARI encerrado para esta paciente
+        ENCERRAMENTO DA DRA. MARI — Controle inadequado com insulina
       </h2>
 
       <div className="rounded-lg bg-white/70 p-3">
         <p className="text-sm font-semibold" style={{ color: '#991B1B' }}>Resultado</p>
         <p className="mt-1 text-xs" style={{ color: '#B91C1C' }}>
           {dentroMeta} de {totalPreenchidos} valores dentro da meta ({percentual.toFixed(1)}%).
+        </p>
+        <p className="mt-2 text-xs italic" style={{ color: '#B91C1C' }}>
+          Encaminhar para GO de alto risco + endocrinologista. Detalhes no laudo completo abaixo.
         </p>
       </div>
     </div>

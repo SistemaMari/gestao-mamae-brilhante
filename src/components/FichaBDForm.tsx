@@ -657,20 +657,18 @@ export default function FichaBDForm({
               </p>
               {savedResult?.adequado ? (
                 <p className="text-sm">
-                  Manter dose atual de insulina. Próximo retorno em {retornoDias} dias com perfil glicêmico de 6 pontos.
+                  Manter dose atual. Detalhes no laudo completo abaixo.
                 </p>
               ) : (
-                <div className="space-y-2">
-                  <p className="text-sm">
-                    A dose de insulina precisa ser ajustada. O(a) obstetra conduz esse ajuste — sozinho ou em associação com endocrinologista — mantendo sempre as metas glicêmicas obstétricas.
-                  </p>
-                </div>
+                <p className="text-sm">
+                  Encaminhar para GO de alto risco + endocrinologista. Detalhes no laudo completo abaixo.
+                </p>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="justify-center">
             <AlertDialogAction onClick={handleCloseImpact} className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white">
-              Fechar e ver resultado
+              Fechar e ver laudo completo
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
