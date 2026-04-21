@@ -231,15 +231,14 @@ export default function FichaACForm({
     }));
   }, [grid]);
 
-  // Validation
+  // Validation — peso não é mais obrigatório aqui (capturado no laudo, após o Bloco 1)
   const canSave = useMemo(() => {
     if (!dataInicio || !dataFim || !dataConsulta) return false;
     if (!igSemanas) return false;
     if (totalPreenchidos === 0) return false;
     if (hasNegativeValues) return false;
-    if (pesoRequired && (!peso || pesoNum <= 0)) return false;
     return true;
-  }, [dataInicio, dataFim, dataConsulta, igSemanas, totalPreenchidos, hasNegativeValues, pesoRequired, peso, pesoNum]);
+  }, [dataInicio, dataFim, dataConsulta, igSemanas, totalPreenchidos, hasNegativeValues]);
 
   // Confirm high values
   const [showHighValueConfirm, setShowHighValueConfirm] = useState(false);
