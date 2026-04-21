@@ -11,7 +11,7 @@ const POINT_LABELS_6: Record<Point6, string> = {
 };
 
 const POINT_META_LABELS: Record<Point6, string> = {
-  jejum: '< 90',
+  jejum: '< 95',
   pos_cafe: '< 140',
   pre_almoco: '70-100',
   pos_almoco: '< 140',
@@ -29,7 +29,7 @@ const IS_PRE_PRANDIAL: Record<Point6, boolean> = {
 };
 
 function isWithinMeta(point: Point6, value: number): boolean {
-  if (point === 'jejum') return value < 90;
+  if (point === 'jejum') return value < 95;
   if (point === 'pre_almoco' || point === 'pre_jantar') return value >= 70 && value <= 100;
   return value < 140;
 }
