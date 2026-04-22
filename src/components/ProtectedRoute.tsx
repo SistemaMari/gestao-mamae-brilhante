@@ -42,6 +42,11 @@ export default function ProtectedRoute({
     );
   }
 
+  // Server-side role enforcement: redirect users whose profile is not allowed for this route
+  if (allowedProfiles && !allowedProfiles.includes(profile as AllowedProfile)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   // Verificar perfil incompleto para profissionais (consultório / institucional)
   if (!skipProfileCheck && (profile === 'consultorio' || profile === 'institucional') && perfilIncompleto) {
     return <Navigate to="/completar-perfil" replace />;

@@ -93,12 +93,12 @@ const App = () => (
               <Route path="/completar-perfil" element={<CompletarPerfilPage />} />
             </Route>
 
-            {/* Rotas que NÃO usam o shell clínico */}
-            <Route path="/gestao" element={<ProtectedRoute><GestaoPage /></ProtectedRoute>} />
-            <Route path="/gestao/equipe" element={<ProtectedRoute><GestaoEquipePage /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
-            <Route path="/admin/base-conhecimento" element={<ProtectedRoute><BaseConhecimentoPage /></ProtectedRoute>} />
-            <Route path="/consolidar" element={<ProtectedRoute><ConsolidarPage /></ProtectedRoute>} />
+            {/* Rotas que NÃO usam o shell clínico — com role guards */}
+            <Route path="/gestao" element={<ProtectedRoute allowedProfiles={['gestor', 'admin', 'gestor_geral']}><GestaoPage /></ProtectedRoute>} />
+            <Route path="/gestao/equipe" element={<ProtectedRoute allowedProfiles={['gestor']}><GestaoEquipePage /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute allowedProfiles={['admin']}><AdminPage /></ProtectedRoute>} />
+            <Route path="/admin/base-conhecimento" element={<ProtectedRoute allowedProfiles={['admin']}><BaseConhecimentoPage /></ProtectedRoute>} />
+            <Route path="/consolidar" element={<ProtectedRoute allowedProfiles={['admin', 'gestor_geral']}><ConsolidarPage /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
