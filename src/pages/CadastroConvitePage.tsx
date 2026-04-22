@@ -71,6 +71,10 @@ export default function CadastroConvitePage() {
         setStatus(data.status);
         return;
       }
+      if (data.status !== 'valido') {
+        setStatus('invalido');
+        return;
+      }
 
       setConvite({
         id: '',
