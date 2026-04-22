@@ -585,6 +585,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      belongs_to_unidade: {
+        Args: { _unidade_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_gestor_geral: { Args: { _user_id: string }; Returns: boolean }
       pode_criar_ficha: {
         Args: { p_profissional_id: string }
         Returns: boolean
