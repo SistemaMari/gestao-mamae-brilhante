@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { addPreviewPaciente } from '@/lib/previewPatients';
 import { countries } from '@/data/locationData';
 import { useCidadesIBGE } from '@/hooks/useCidadesIBGE';
+import CidadeCombobox from '@/components/CidadeCombobox';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -299,19 +300,13 @@ export default function Consulta1Form() {
                   placeholder="Cidade"
                 />
               ) : (
-                <Select value={cidade} onValueChange={setCidade} disabled={!estado}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Cidade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cityList.map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                    {estado && cityList.length === 0 && (
-                      <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma cidade encontrada</div>
-                    )}
-                  </SelectContent>
-                </Select>
+                <CidadeCombobox
+                  value={cidade}
+                  onChange={setCidade}
+                  cidades={cityList}
+                  disabled={!estado}
+                  placeholder={estado ? 'Selecione a cidade...' : 'Selecione o estado primeiro'}
+                />
               )}
             </div>
           </div>

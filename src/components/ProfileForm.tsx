@@ -7,6 +7,7 @@ import { Loader2, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { countries, especialidades, idiomas, identificadores } from '@/data/locationData';
 import { useCidadesIBGE } from '@/hooks/useCidadesIBGE';
+import CidadeCombobox from '@/components/CidadeCombobox';
 
 export interface ProfileFormData {
   nome: string;
@@ -226,25 +227,16 @@ export default function ProfileForm({ initialData, onSubmit, isLoading, submitLa
             placeholder="Digite a cidade"
           />
         ) : (
-          <Select
+          <CidadeCombobox
             value={form.cidade}
-            onValueChange={v => handleChange('cidade', v)}
+            onChange={v => {
+              handleChange('cidade', v);
+              setTouched(p => ({ ...p, cidade: true }));
+            }}
+            cidades={filteredCities}
             disabled={!form.estado}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={
-                form.estado ? 'Selecione a cidade...' : 'Selecione o estado primeiro'
-              } />
-            </SelectTrigger>
-            <SelectContent>
-              {filteredCities.map(c => (
-                <SelectItem key={c} value={c}>{c}</SelectItem>
-              ))}
-              {filteredCities.length === 0 && form.estado && (
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma cidade encontrada</div>
-              )}
-            </SelectContent>
-          </Select>
+            placeholder={form.estado ? 'Selecione a cidade...' : 'Selecione o estado primeiro'}
+          />
         )}
         {showError('cidade') && <p className="text-xs text-destructive">{errors.cidade}</p>}
       </div>
