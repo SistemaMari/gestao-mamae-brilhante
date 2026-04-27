@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import AppSidebar from '@/components/AppSidebar';
 import StatCard from '@/components/StatCard';
-import { Users, Building2, UserPlus, ShieldCheck, Plus, Loader2, Trash2, ShieldOff, Shield, Mail } from 'lucide-react';
+import { Users, Building2, UserPlus, ShieldCheck, Plus, Loader2, Trash2, ShieldOff, Shield, Mail, Search, Download, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,8 @@ type Profissional = {
   especialidade: string | null;
   unidade_id: string | null;
   perfil_institucional: string | null;
+  plano: string | null;
+  plano_status: string | null;
   created_at: string;
 };
 type Unidade = { id: string; nome: string; tipo: string | null; created_at: string };
