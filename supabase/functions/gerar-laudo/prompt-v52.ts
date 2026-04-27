@@ -295,7 +295,7 @@ const ROTEAMENTO: Record<CenarioId, string[]> = {
   '2':  [PROTOCOLO, 'M6.pdf', 'M9.pdf', 'M10.pdf', 'M13.pdf'],
   '3':  [PROTOCOLO, 'M3.pdf', 'M6.pdf', 'M7.pdf', 'M9.pdf', 'M10.pdf', 'M13.pdf'],
   '4':  [PROTOCOLO, 'M6.pdf', 'M7.pdf', 'M9.pdf', 'M10.pdf', 'M13.pdf'],
-  '5':  [PROTOCOLO, 'M12.pdf', 'M13.pdf'],
+  '5':  [PROTOCOLO, 'M2.pdf', 'M12.pdf', 'M13.pdf'],
   '6':  [PROTOCOLO, 'M2.pdf', 'M3.pdf', 'M4.pdf', 'M6.pdf', 'M9.pdf', 'M10.pdf', 'M13.pdf'],
   '6B': [PROTOCOLO, 'M2.pdf', 'M3.pdf', 'M4.pdf', 'M6.pdf', 'M9.pdf', 'M10.pdf', 'M13.pdf'],
   '7':  [PROTOCOLO, 'M7.pdf', 'M13.pdf'],
