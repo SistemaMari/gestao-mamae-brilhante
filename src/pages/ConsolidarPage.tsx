@@ -332,9 +332,14 @@ export default function ConsolidarPage() {
   }
 
   // ----- UI computeds -----
+  const relatoriosFiltrados = useMemo(() => {
+    if (filtroOrigem === 'todas') return relatorios;
+    return relatorios.filter((r) => r.origem === filtroOrigem);
+  }, [relatorios, filtroOrigem]);
+
   const todasUnidadesSelecionadas = unidades.length > 0 && unidadesSelecionadas.size === unidades.length;
   const algumasUnidadesSelecionadas = unidadesSelecionadas.size > 0 && !todasUnidadesSelecionadas;
-  const todosRelatoriosSelecionados = relatorios.length > 0 && selecionadosRel.size === relatorios.length;
+  const todosRelatoriosSelecionados = relatoriosFiltrados.length > 0 && selecionadosRel.size === relatoriosFiltrados.length;
   const algunsRelatoriosSelecionados = selecionadosRel.size > 0 && !todosRelatoriosSelecionados;
   const labelPeriodo = useMemo(() => {
     if (!periodo?.from) return 'Selecionar período';
