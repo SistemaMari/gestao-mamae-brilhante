@@ -750,7 +750,9 @@ export default function FichaPacientePage() {
               if (c.ig_semanas != null) {
                 igDisplay = { semanas: c.ig_semanas, dias: c.ig_dias || 0 };
               } else if (paciente?.dum) {
-                const diasFromDum = differenceInDays(new Date(c.data), new Date(paciente.dum));
+                const cData = parseDateLocal(c.data);
+                const cDum = parseDateLocal(paciente.dum);
+                const diasFromDum = (cData && cDum) ? differenceInDays(cData, cDum) : -1;
                 if (diasFromDum >= 0) {
                   igDisplay = { semanas: Math.floor(diasFromDum / 7), dias: diasFromDum % 7 };
                 }
