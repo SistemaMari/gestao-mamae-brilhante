@@ -392,7 +392,7 @@ export default function FichaACForm({
         .update({
           status_ficha: newStatus,
           data_ultima_consulta: dataConsulta,
-          data_proximo_retorno: format(addDays(new Date(dataConsulta), retornoDias), 'yyyy-MM-dd'),
+          data_proximo_retorno: dataConsultaLocal ? format(addDays(dataConsultaLocal, retornoDias), 'yyyy-MM-dd') : null,
         })
         .eq('id', paciente.id);
 
