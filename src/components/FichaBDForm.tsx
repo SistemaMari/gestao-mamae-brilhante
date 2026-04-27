@@ -532,10 +532,13 @@ export default function FichaBDForm({
     <div className="space-y-5">
       {/* Header */}
       <div className="rounded-xl border border-[#9b87f5] bg-[#F1F0FB] p-4 space-y-1">
-        <h2 className="text-base font-bold text-[#5B21B6] flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          {headerTitle}
-        </h2>
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-base font-bold text-[#5B21B6] flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            {headerTitle}
+          </h2>
+          {!isPreview && !editingConsulta && <AutosaveIndicator status={autosaveStatus} />}
+        </div>
         <p className="text-xs text-[#6D28D9]">
           Preencha a grade com as glicemias capilares registradas pela paciente.
         </p>
