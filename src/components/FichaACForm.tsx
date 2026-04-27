@@ -78,14 +78,17 @@ export default function FichaACForm({
   // Form fields
   const [dataInicio, setDataInicio] = useState(editingConsulta?.data_inicio ?? '');
   const [dataFim, setDataFim] = useState(editingConsulta?.data_fim ?? '');
-  const [dataConsulta, setDataConsulta] = useState(editingConsulta?.data ?? new Date().toISOString().slice(0, 10));
+  const [dataConsulta, setDataConsulta] = useState(editingConsulta?.data ?? todayLocalISO());
   const [observacoes, setObservacoes] = useState(editingConsulta?.observacoes ?? '');
   const [saving, setSaving] = useState(false);
 
   // IG auto-calculated
   const igAtual = useMemo(() => {
     if (!paciente.dum) return null;
-    const dias = differenceInDays(new Date(dataConsulta), new Date(paciente.dum));
+    const consulta = parseDateLocal(dataConsulta);
+    const dum = parseDateLocal(paciente.dum);
+    if (!consulta || !dum) return null;
+    const dias = differenceInDays(consulta, dum);
     if (dias < 0) return null;
     return { semanas: Math.floor(dias / 7), dias: dias % 7 };
   }, [paciente.dum, dataConsulta]);
