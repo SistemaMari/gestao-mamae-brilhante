@@ -181,8 +181,6 @@ export default function GttForm({
     return igCalculada;
   }, [igSemanas, igDias, igCalculada]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
   // Autosave (modo real, novas consultas)
   const draftConsultaIdRef = useRef<string | null>(null);
 
