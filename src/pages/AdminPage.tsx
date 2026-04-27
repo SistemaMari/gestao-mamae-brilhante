@@ -469,6 +469,14 @@ export default function AdminPage() {
                           ? (p.perfil_institucional === 'gestor' ? 'Gestor de unidade' : 'Profissional institucional')
                           : 'Consultório'}
                       </TableCell>
+                      <TableCell className="text-sm">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-medium">{p.plano ?? '—'}</span>
+                          {p.plano_status && p.plano_status !== 'ativo' && (
+                            <Badge variant="outline" className="w-fit text-[10px]">{p.plano_status}</Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {isAdmin(p.user_id) && <Badge className="bg-primary/10 text-primary border-primary/20">Admin</Badge>}
