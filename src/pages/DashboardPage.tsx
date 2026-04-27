@@ -291,7 +291,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Toggle: mostrar fichas encerradas */}
-        <div className="mb-4 flex items-center justify-end gap-2">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          {!isPreview ? <RealtimeIndicator status={rtStatus} /> : <span />}
+          <div className="flex items-center gap-2">
           <Switch
             id="show-encerradas"
             checked={showEncerradas}
