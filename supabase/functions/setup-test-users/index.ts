@@ -58,22 +58,15 @@ Deno.serve(async (req) => {
 
       if (errUser) {
         if (errUser.message.toLowerCase().includes('already')) {
-          // Buscar via raw SQL no schema auth (service role tem permissão)
-          const { data: existing, error: errSql } = await supabase
-            .schema('auth' as any).from('users').select('id, email').eq('email', u.email).maybeSingle();
-          if (errSql || !existing) {
-            // Fallback: paginar listUsers
-            for (let page = 1; page <= 10; page++) {
-              const { data: list } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
-              user = list.users.find((x) => x.email?.toLowerCase() === u.email.toLowerCase());
-              if (user) break;
-              if (list.users.length < 1000) break;
-            }
-            if (!user) throw new Error(`Usuário ${u.email} já existe mas não foi encontrado`);
-          } else {
-            user = { id: existing.id, email: existing.email };
+          // Usar generateLink para obter o user pelo email
+          const { data: linkData, error: errLink } = await supabase.auth.admin.generateLink({
+            type: 'magiclink',
+            email: u.email,
+          });
+          if (errLink || !linkData?.user) {
+            throw new Error(`Não consegui obter user ${u.email}: ${errLink?.message ?? 'sem dados'}`);
           }
-          // Resetar senha pra padrão
+          user = linkData.user;
           await supabase.auth.admin.updateUserById(user.id, { password: SENHA, email_confirm: true });
           log.push({ step: 'user', email: u.email, acao: 'reutilizado', id: user.id });
         } else {
