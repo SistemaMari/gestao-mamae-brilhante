@@ -29,6 +29,7 @@ import PreviewHubPage, {
 import PreviewAppShell from "./components/PreviewAppShell";
 import PacientePage from "./pages/PacientePage";
 import PerfilPage from "./pages/PerfilPage";
+import HistoricoLaudosPage from "./pages/HistoricoLaudosPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -87,6 +88,7 @@ const App = () => (
               <Route path="/paciente/:id" element={<PacientePage />} />
               <Route path="/planos" element={<PlanosPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
+              <Route path="/laudos" element={<HistoricoLaudosPage />} />
             </Route>
 
             {/* Onboarding (autenticado, sem perfil ainda) */}

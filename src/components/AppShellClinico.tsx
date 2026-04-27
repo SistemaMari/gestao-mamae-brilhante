@@ -5,7 +5,7 @@ import { useProfissionalData } from '@/hooks/useProfissionalData';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Users, UserPlus, CreditCard, UserCog, LogOut, Menu, X,
-  ChevronRight, User, Loader2, BarChart3
+  ChevronRight, User, Loader2, BarChart3, FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,10 +13,12 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import BlockingModal from '@/components/BlockingModal';
+import BannerUsoLaudos from '@/components/BannerUsoLaudos';
 
 const navItemsClinical = [
   { label: 'Pacientes', icon: Users, path: '/dashboard' },
   { label: 'Nova Paciente', icon: UserPlus, path: '/paciente/nova', checkLimit: true },
+  { label: 'Histórico de Laudos', icon: FileText, path: '/laudos' },
   { label: 'Meu Dashboard', icon: BarChart3, path: '/dashboard/metricas' },
 ];
 
@@ -51,6 +53,7 @@ function useBreadcrumb() {
   if (path === '/perfil') return { parent: null, current: 'Meu Perfil' };
   if (path === '/completar-perfil') return { parent: null, current: 'Completar Perfil' };
   if (path === '/dashboard/metricas') return { parent: null, current: 'Meu Dashboard' };
+  if (path === '/laudos') return { parent: null, current: 'Histórico de Laudos' };
   return null;
 }
 
@@ -199,8 +202,8 @@ export default function AppShellClinico() {
         </DropdownMenu>
       </header>
 
-      {/* Banner slot for future payment banners (Prompts 20/21) */}
-      {/* <div id="payment-banner-slot" className="print:hidden" /> */}
+      {/* Banner global de uso de laudos */}
+      <BannerUsoLaudos />
 
       <div className="flex flex-1 overflow-hidden print:block print:overflow-visible print:h-auto">
         {/* Desktop sidebar */}
