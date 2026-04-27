@@ -300,10 +300,13 @@ export default function Consulta1Form() {
   return (
     <div className="mx-auto max-w-lg space-y-5">
       <div className="rounded-xl border border-[#9b87f5] bg-[#F1F0FB] p-4 space-y-1">
-        <h1 className="text-base font-bold text-[#5B21B6] flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          CONSULTA 1 — Dados da Paciente
-        </h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-base font-bold text-[#5B21B6] flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            CONSULTA 1 — Dados da Paciente
+          </h1>
+          {!isPreview && <AutosaveIndicator status={autosaveStatus} />}
+        </div>
         <p className="text-xs text-[#6D28D9]">
           Preencha os dados iniciais e abra a ficha clínica com pedido de exame.
         </p>
