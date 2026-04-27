@@ -17,9 +17,10 @@ import {
 } from '@/components/ui/select';
 import { Info, Loader2, FileText } from 'lucide-react';
 import { differenceInYears } from 'date-fns';
+import { todayLocalISO, parseDateLocal } from '@/lib/dateUtils';
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return todayLocalISO();
 }
 
 export default function Consulta1Form() {
