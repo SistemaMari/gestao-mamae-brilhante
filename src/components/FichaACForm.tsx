@@ -156,8 +156,9 @@ export default function FichaACForm({
 
   // Next return interval
   const retornoDias = igSemNum > 30 ? 7 : 15;
-  const dataProximoRetorno = dataConsulta
-    ? format(addDays(new Date(dataConsulta), retornoDias), 'dd/MM/yyyy')
+  const dataConsultaLocal = parseDateLocal(dataConsulta);
+  const dataProximoRetorno = dataConsultaLocal
+    ? format(addDays(dataConsultaLocal, retornoDias), 'dd/MM/yyyy')
     : null;
 
   // Impact popup
