@@ -237,14 +237,14 @@ Retorne APENAS um JSON válido, sem texto antes/depois, sem markdown.
   ],
   "metadados_do_laudo": {
     "cenario_processado": "eco do cenario_clinico",
-    "usou_nota_diagnostico_tardio": true,
-    "usou_frase_motivacional_final": true,
-    "usou_regra_go_conduz_cenario_7": false,
-    "incluiu_argumentacao_paciente": true,
-    "incluiu_aporte_calorico_individualizado": true,
-    "incluiu_4_armadilhas_dieta": true,
-    "citou_recursos_oficiais_ms": true,
-    "usou_estrutura_4_subtitulos": true
+    "usou_nota_diagnostico_tardio": "true|false (true apenas no 6B)",
+    "usou_frase_motivacional_final": "true|false (false nos cenários 5 e 7)",
+    "usou_regra_go_conduz_cenario_7": "true|false (true apenas no 7)",
+    "incluiu_argumentacao_paciente": "true|false",
+    "incluiu_aporte_calorico_individualizado": "true|false",
+    "incluiu_4_armadilhas_dieta": "true|false",
+    "citou_recursos_oficiais_ms": "true|false",
+    "usou_estrutura_4_subtitulos": "true|false (true nos cenários 1, 3, 6, 6B, 8)"
   }
 }
 
