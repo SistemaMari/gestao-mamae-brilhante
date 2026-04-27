@@ -13,6 +13,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
+import { todayLocalISO } from '@/lib/dateUtils';
 
 type Profissional = {
   id: string;
@@ -184,7 +185,7 @@ export default function AdminPage() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    const ts = new Date().toISOString().slice(0, 10);
+    const ts = todayLocalISO();
     a.href = url;
     a.download = `profissionais-${ts}.csv`;
     a.click();
