@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -141,11 +141,14 @@ Deno.serve(async (req) => {
 
         // Paginação do auth admin (perPage máx 1000)
         let page = 1;
-        const perPage = 200;
-        // limite de segurança: 10 páginas (2000 usuários)
-        for (let i = 0; i < 10; i++) {
+        const perPage = 50;
+        // limite de segurança: 40 páginas (2000 usuários)
+        for (let i = 0; i < 40; i++) {
           const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
-          if (error) throw error;
+          if (error) {
+            console.error('listUsers falhou', { page, perPage, error });
+            throw new Error(`Falha ao listar usuários (page ${page}): ${error.message}`);
+          }
           for (const u of data.users) {
             usuarios.push({
               user_id: u.id,
