@@ -37,6 +37,7 @@ import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
 import { differenceInYears, differenceInDays, addDays, format } from 'date-fns';
+import { parseDateLocal, formatDateBR } from '@/lib/dateUtils';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   aguardando_gj: { label: 'Aguardando GJ', color: 'bg-gray-500' },
