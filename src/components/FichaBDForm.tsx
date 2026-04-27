@@ -436,63 +436,69 @@ export default function FichaBDForm({
 
       const nextSeq = (consultas.length || 0) + 1;
 
-      const { data: newConsulta, error: consErr } = await supabase
-        .from('consultas')
-        .insert({
-          paciente_id: paciente.id,
-          profissional_id: profId,
-          tipo: fichaType,
-          numero_sequencial: nextSeq,
-          data: dataConsulta,
-          ig_semanas: igS,
-          ig_dias: igD,
-          observacoes: observacoes.trim() || null,
-          status_gerado: newStatus,
-          cenario_clinico: cenario,
-        })
-        .select('id')
-        .single();
+      const consultaPayload = {
+        paciente_id: paciente.id,
+        profissional_id: profId,
+        tipo: fichaType,
+        numero_sequencial: nextSeq,
+        data: dataConsulta,
+        ig_semanas: igS,
+        ig_dias: igD,
+        observacoes: observacoes.trim() || null,
+        status_gerado: newStatus,
+        cenario_clinico: cenario,
+        is_rascunho: false,
+      };
 
-      if (consErr || !newConsulta) throw consErr || new Error('Falha ao criar consulta');
+      let consultaId = draftConsultaIdRef.current;
+      if (consultaId) {
+        const { error } = await supabase
+          .from('consultas').update(consultaPayload as any).eq('id', consultaId);
+        if (error) throw error;
+      } else {
+        const { data: newConsulta, error: consErr } = await supabase
+          .from('consultas').insert(consultaPayload as any).select('id').single();
+        if (consErr || !newConsulta) throw consErr || new Error('Falha ao criar consulta');
+        consultaId = newConsulta.id;
+      }
 
-      const { data: newPerfil, error: perfErr } = await supabase
-        .from('perfis_glicemicos' as any)
-        .insert({
-          consulta_id: newConsulta.id,
-          paciente_id: paciente.id,
-          profissional_id: profId,
-          tipo_perfil: '6_pontos',
-          peso_paciente_kg: null,
-          data_inicio: dataInicio,
-          data_fim: dataFim,
-          percentual_meta: percentual ?? 0,
-          decisao,
-          dose_insulina_calculada: null,
-        })
-        .select('id')
-        .single();
+      const perfilPayload = {
+        consulta_id: consultaId,
+        paciente_id: paciente.id,
+        profissional_id: profId,
+        tipo_perfil: '6_pontos',
+        peso_paciente_kg: null,
+        data_inicio: dataInicio,
+        data_fim: dataFim,
+        percentual_meta: percentual ?? 0,
+        decisao,
+        dose_insulina_calculada: null,
+      };
 
-      if (perfErr || !newPerfil) throw perfErr || new Error('Falha ao criar perfil');
+      let perfilId = draftPerfilIdRef.current;
+      if (perfilId) {
+        const { error } = await supabase
+          .from('perfis_glicemicos' as any).update(perfilPayload as any).eq('id', perfilId);
+        if (error) throw error;
+      } else {
+        const { data: newPerfil, error: perfErr } = await supabase
+          .from('perfis_glicemicos' as any).insert(perfilPayload as any).select('id').single();
+        if (perfErr || !newPerfil) throw perfErr || new Error('Falha ao criar perfil');
+        perfilId = (newPerfil as any).id;
+      }
 
+      await supabase.from('valores_perfil' as any).delete().eq('perfil_id', perfilId);
       const valores: any[] = [];
       grid.forEach((row, dayIdx) => {
         POINTS_6.forEach(point => {
           const val = parseInt(row[point]);
           if (val && val > 0) {
-            valores.push({
-              perfil_id: (newPerfil as any).id,
-              dia: dayIdx + 1,
-              ponto: point,
-              valor_mgdl: val,
-            });
+            valores.push({ perfil_id: perfilId, dia: dayIdx + 1, ponto: point, valor_mgdl: val });
           }
         });
       });
-
       if (valores.length > 0) {
-        const { error: valErr } = await supabase
-          .from('valores_perfil' as any)
-          .insert(valores);
+        const { error: valErr } = await supabase.from('valores_perfil' as any).insert(valores);
         if (valErr) throw valErr;
       }
 
