@@ -321,24 +321,31 @@ export default function GttForm({
       return;
     }
 
-    const { data: consultaData, error: consErr } = await supabase
-      .from('consultas')
-      .insert({
-        paciente_id: paciente.id,
-        profissional_id: profissionalData.id,
-        tipo: 'gtt',
-        numero_sequencial: (consultas.length || 1) + 1,
-        data: dataConsulta,
-        ig_semanas: igFinal?.semanas ?? null,
-        ig_dias: igFinal?.dias ?? null,
-        observacoes: `GTT 75g: jejum ${jejumNum}${!recursoLimitado ? `, 1h ${h1Num}, 2h ${h2Num}` : ' (recurso limitado)'}. ${diag.label}.`,
-        status_gerado: diag.statusFicha,
-        cenario_clinico: diag.cenario,
-      } as any)
-      .select('id')
-      .single();
+    const consultaPayload = {
+      paciente_id: paciente.id,
+      profissional_id: profissionalData.id,
+      tipo: 'gtt',
+      numero_sequencial: (consultas.length || 1) + 1,
+      data: dataConsulta,
+      ig_semanas: igFinal?.semanas ?? null,
+      ig_dias: igFinal?.dias ?? null,
+      observacoes: `GTT 75g: jejum ${jejumNum}${!recursoLimitado ? `, 1h ${h1Num}, 2h ${h2Num}` : ' (recurso limitado)'}. ${diag.label}.`,
+      status_gerado: diag.statusFicha,
+      cenario_clinico: diag.cenario,
+      is_rascunho: false,
+    };
 
-    if (consErr || !consultaData) {
+    let consErr: unknown = null;
+    if (draftConsultaIdRef.current) {
+      const { error } = await supabase
+        .from('consultas').update(consultaPayload as any).eq('id', draftConsultaIdRef.current);
+      consErr = error;
+    } else {
+      const { error } = await supabase.from('consultas').insert(consultaPayload as any);
+      consErr = error;
+    }
+
+    if (consErr) {
       toast.error('Erro ao registrar consulta.');
       console.error(consErr);
       setSaving(false);
