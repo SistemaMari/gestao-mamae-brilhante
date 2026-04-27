@@ -26,9 +26,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Info, Loader2, AlertTriangle, CheckCircle2, XCircle, Printer } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
+import { todayLocalISO, parseDateLocal } from '@/lib/dateUtils';
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return todayLocalISO();
 }
 
 type GttDiagResult = {
