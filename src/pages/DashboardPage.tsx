@@ -376,7 +376,7 @@ export default function DashboardPage() {
                         <td className="px-4 py-3 text-muted-foreground">{calcIdadeGestacional(pac)}</td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {pac.data_ultima_consulta
-                            ? format(new Date(pac.data_ultima_consulta), 'dd/MM/yyyy')
+                            ? formatDateBR(pac.data_ultima_consulta)
                             : '—'}
                         </td>
                         <td className="px-4 py-3">
@@ -450,7 +450,7 @@ export default function DashboardPage() {
                       <span>IG: {calcIdadeGestacional(pac)}</span>
                       <span>
                         Última: {pac.data_ultima_consulta
-                          ? format(new Date(pac.data_ultima_consulta), 'dd/MM/yyyy')
+                          ? formatDateBR(pac.data_ultima_consulta)
                           : '—'}
                       </span>
                     </div>
