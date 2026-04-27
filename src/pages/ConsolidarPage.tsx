@@ -395,7 +395,7 @@ export default function ConsolidarPage() {
               <h2 className="font-heading text-base font-semibold text-foreground">Filtros</h2>
             </div>
             <div className="rounded-xl border border-border bg-card p-5">
-              <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+              <div className="grid gap-4 lg:grid-cols-[1fr_1fr_220px_auto] lg:items-end">
                 {/* Multi-select de unidades */}
                 <div>
                   <label className="mb-1 block text-sm font-medium text-foreground">Unidade(s)</label>
