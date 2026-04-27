@@ -22,6 +22,7 @@ import { avaliarPlanoStatus } from '@/lib/planoStatus';
 import { toast } from '@/hooks/use-toast';
 
 function useBreadcrumb() {
+  const { t } = useTranslation();
   const location = useLocation();
   const [pacienteNome, setPacienteNome] = useState<string | null>(null);
   const path = location.pathname;
@@ -41,15 +42,35 @@ function useBreadcrumb() {
   }, [path]);
 
   if (path === '/dashboard') return null;
-  if (path === '/paciente/nova') return { parent: { label: 'Pacientes', path: '/dashboard' }, current: 'Nova paciente' };
-  if (path.startsWith('/paciente/')) return { parent: { label: 'Pacientes', path: '/dashboard' }, current: pacienteNome || '...' };
-  if (path === '/planos') return { parent: null, current: 'Meu Plano' };
-  if (path === '/perfil') return { parent: null, current: 'Meu Perfil' };
-  if (path === '/completar-perfil') return { parent: null, current: 'Completar Perfil' };
-  if (path === '/dashboard/metricas') return { parent: null, current: 'Meu Dashboard' };
-  if (path === '/laudos') return { parent: null, current: 'Histórico de Laudos' };
+  const patientsParent = { label: t('nav.patients'), path: '/dashboard' };
+  if (path === '/paciente/nova') return { parent: patientsParent, current: t('nav.newPatient') };
+  if (path.startsWith('/paciente/')) return { parent: patientsParent, current: pacienteNome || '...' };
+  if (path === '/planos') return { parent: null, current: t('nav.plans') };
+  if (path === '/perfil') return { parent: null, current: t('nav.profile') };
+  if (path === '/completar-perfil') return { parent: null, current: t('profile.title') };
+  if (path === '/dashboard/metricas') return { parent: null, current: t('nav.metrics') };
+  if (path === '/laudos') return { parent: null, current: t('nav.history') };
   return null;
 }
+
+interface NavItem {
+  labelKey: string;
+  icon: typeof Users;
+  path: string;
+  checkLimit?: boolean;
+}
+
+const navItemsClinical: NavItem[] = [
+  { labelKey: 'nav.patients', icon: Users, path: '/dashboard' },
+  { labelKey: 'nav.newPatient', icon: UserPlus, path: '/paciente/nova', checkLimit: true },
+  { labelKey: 'nav.history', icon: FileText, path: '/laudos' },
+  { labelKey: 'nav.metrics', icon: BarChart3, path: '/dashboard/metricas' },
+];
+
+const navItemsAdmin: NavItem[] = [
+  { labelKey: 'nav.plans', icon: CreditCard, path: '/planos' },
+  { labelKey: 'nav.profile', icon: UserCog, path: '/perfil' },
+];
 
 export default function AppShellClinico() {
   const { user, signOut, profile, loading: authLoading } = useAuth();
