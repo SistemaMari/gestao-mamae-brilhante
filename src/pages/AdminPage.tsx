@@ -118,6 +118,79 @@ export default function AdminPage() {
   const isAdmin = (userId: string) => admins.some((a) => a.user_id === userId);
   const isGestorGeral = (userId: string) => gestoresGerais.some((g) => g.user_id === userId);
   const unidadeNome = (id: string | null) => (id ? (unidades.find((u) => u.id === id)?.nome ?? '—') : '—');
+  const emailDe = (userId: string) => usuariosSistema.find((u) => u.user_id === userId)?.email ?? '';
+
+  const planosUnicos = useMemo(
+    () => Array.from(new Set(profissionais.map((p) => p.plano).filter(Boolean) as string[])).sort(),
+    [profissionais],
+  );
+
+  const profissionaisFiltrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return profissionais.filter((p) => {
+      if (q) {
+        const email = emailDe(p.user_id).toLowerCase();
+        const matches =
+          p.nome.toLowerCase().includes(q) ||
+          email.includes(q) ||
+          (p.crm ?? '').toLowerCase().includes(q) ||
+          (p.especialidade ?? '').toLowerCase().includes(q);
+        if (!matches) return false;
+      }
+      if (filtroUnidade !== 'all') {
+        if (filtroUnidade === 'sem') { if (p.unidade_id) return false; }
+        else if (p.unidade_id !== filtroUnidade) return false;
+      }
+      if (filtroPlano !== 'all' && p.plano !== filtroPlano) return false;
+      if (filtroPerfil !== 'all') {
+        const perfilCalc = !p.unidade_id
+          ? 'consultorio'
+          : p.perfil_institucional === 'gestor' ? 'gestor' : 'institucional';
+        const ehAdmin = isAdmin(p.user_id);
+        const ehGestorGeral = isGestorGeral(p.user_id);
+        if (filtroPerfil === 'admin' && !ehAdmin) return false;
+        if (filtroPerfil === 'gestor_geral' && !ehGestorGeral) return false;
+        if (['consultorio', 'gestor', 'institucional'].includes(filtroPerfil) && perfilCalc !== filtroPerfil) return false;
+      }
+      return true;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profissionais, busca, filtroUnidade, filtroPlano, filtroPerfil, admins, gestoresGerais, usuariosSistema]);
+
+  const limparFiltros = () => { setBusca(''); setFiltroUnidade('all'); setFiltroPlano('all'); setFiltroPerfil('all'); };
+  const filtrosAtivos = busca || filtroUnidade !== 'all' || filtroPlano !== 'all' || filtroPerfil !== 'all';
+
+  const exportarCSV = () => {
+    const linhas = profissionaisFiltrados;
+    const headers = ['Nome', 'E-mail', 'CRM', 'Especialidade', 'Unidade', 'Perfil institucional', 'Plano', 'Status do plano', 'Admin', 'Gestor geral', 'Cadastrado em'];
+    const escape = (v: unknown) => {
+      const s = v == null ? '' : String(v);
+      return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = linhas.map((p) => [
+      p.nome,
+      emailDe(p.user_id),
+      p.crm ?? '',
+      p.especialidade ?? '',
+      unidadeNome(p.unidade_id),
+      !p.unidade_id ? 'Consultório' : (p.perfil_institucional === 'gestor' ? 'Gestor de unidade' : 'Profissional institucional'),
+      p.plano ?? '',
+      p.plano_status ?? '',
+      isAdmin(p.user_id) ? 'sim' : 'não',
+      isGestorGeral(p.user_id) ? 'sim' : 'não',
+      new Date(p.created_at).toLocaleDateString('pt-BR'),
+    ].map(escape).join(','));
+    const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `profissionais-${ts}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: 'CSV exportado', description: `${linhas.length} ${linhas.length === 1 ? 'profissional' : 'profissionais'} exportado(s).` });
+  };
 
   return (
     <div className="flex h-screen bg-background">
