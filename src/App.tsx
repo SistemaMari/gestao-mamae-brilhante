@@ -14,6 +14,7 @@ import DashboardPage from "./pages/DashboardPage";
 import DashboardMetricasPage from "./pages/DashboardMetricasPage";
 import GestaoPage from "./pages/GestaoPage";
 import AdminPage from "./pages/AdminPage";
+import AdminUnidadesPage from "./pages/AdminUnidadesPage";
 import ConsolidarPage from "./pages/ConsolidarPage";
 import PlanosPage from "./pages/PlanosPage";
 import CompletarPerfilPage from "./pages/CompletarPerfilPage";
@@ -113,6 +114,7 @@ const App = () => (
             <Route path="/gestao/equipe" element={<ProtectedRoute allowedProfiles={['gestor']}><GestaoEquipePage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute allowedProfiles={['admin']}><AdminPage /></ProtectedRoute>} />
             <Route path="/admin/base-conhecimento" element={<ProtectedRoute allowedProfiles={['admin']}><BaseConhecimentoPage /></ProtectedRoute>} />
+            <Route path="/admin/unidades" element={<ProtectedRoute allowedProfiles={['admin']}><AdminUnidadesPage /></ProtectedRoute>} />
             <Route path="/consolidar" element={<ProtectedRoute allowedProfiles={['admin', 'gestor_geral']}><ConsolidarPage /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />

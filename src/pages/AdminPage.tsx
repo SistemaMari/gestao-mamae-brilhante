@@ -139,10 +139,14 @@ export default function AdminPage() {
               <h2 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-primary" /> Unidades
               </h2>
-              <Dialog open={novaUnidadeOpen} onOpenChange={setNovaUnidadeOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Nova unidade</Button>
-                </DialogTrigger>
+              <div className="flex items-center gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <a href="/admin/unidades">Gerenciar todas</a>
+                </Button>
+                <Dialog open={novaUnidadeOpen} onOpenChange={setNovaUnidadeOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Nova unidade</Button>
+                  </DialogTrigger>
                 <DialogContent>
                   <DialogHeader><DialogTitle>Criar nova unidade</DialogTitle></DialogHeader>
                   <div className="space-y-4 py-2">
@@ -173,6 +177,7 @@ export default function AdminPage() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              </div>
             </div>
             {loading ? (
               <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
