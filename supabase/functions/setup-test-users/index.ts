@@ -46,9 +46,13 @@ Deno.serve(async (req) => {
     // 2. Criar/garantir usuários
     const credenciais: any[] = [];
     for (const u of USUARIOS) {
-      // Procurar usuário existente
-      const { data: list } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
-      let user = list.users.find((x) => x.email === u.email);
+      // Procurar usuário existente paginando até encontrar
+      let user: any = null;
+      for (let page = 1; page <= 10; page++) {
+        const { data: list } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+        user = list.users.find((x) => x.email?.toLowerCase() === u.email.toLowerCase());
+        if (user || list.users.length < 1000) break;
+      }
 
       if (!user) {
         const { data: novo, error: errUser } = await supabase.auth.admin.createUser({
