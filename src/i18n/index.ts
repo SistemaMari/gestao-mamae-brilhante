@@ -27,7 +27,6 @@ i18n
     fallbackLng: 'pt-BR',
     supportedLngs: SUPPORTED_LANGUAGES as unknown as string[],
     nonExplicitSupportedLngs: true,
-    load: 'currentOnly',
     detection: {
       order: ['localStorage', 'navigator'],
       lookupLocalStorage: 'app.lang',
@@ -35,6 +34,7 @@ i18n
     },
     interpolation: { escapeValue: false },
     returnNull: false,
+    react: { useSuspense: false },
   });
 
 // Helper para sincronizar idioma com Supabase profile
