@@ -193,7 +193,7 @@ export default function ConsolidarPage() {
 
     let q = supabase
       .from('relatorios_unidade')
-      .select('id, unidade_id, periodo_inicio, periodo_fim, created_at, arquivo_path, metricas_resumo')
+      .select('id, unidade_id, periodo_inicio, periodo_fim, created_at, arquivo_path, metricas_resumo, origem')
       .in('unidade_id', unidadeIds)
       .order('created_at', { ascending: false });
 
@@ -212,6 +212,7 @@ export default function ConsolidarPage() {
     const lista: Relatorio[] = (data ?? []).map((r: any) => {
       const m = r.metricas_resumo as Record<string, unknown> | null;
       const total = (m && typeof m.total_gestantes === 'number') ? m.total_gestantes as number : null;
+      const origem: OrigemRelatorio = r.origem === 'automatico' ? 'automatico' : 'manual';
       return {
         id: r.id,
         unidade_id: r.unidade_id,
@@ -221,6 +222,7 @@ export default function ConsolidarPage() {
         created_at: r.created_at,
         arquivo_path: r.arquivo_path,
         total_gestantes: total,
+        origem,
       };
     });
     setRelatorios(lista);
