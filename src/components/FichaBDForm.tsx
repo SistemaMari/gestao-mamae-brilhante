@@ -194,8 +194,9 @@ export default function FichaBDForm({
     return alerts;
   }, [grid]);
 
-  const dataProximoRetorno = dataConsulta
-    ? format(addDays(new Date(dataConsulta), retornoDias), 'dd/MM/yyyy')
+  const dataConsultaLocal = parseDateLocal(dataConsulta);
+  const dataProximoRetorno = dataConsultaLocal
+    ? format(addDays(dataConsultaLocal, retornoDias), 'dd/MM/yyyy')
     : null;
 
   const [showImpact, setShowImpact] = useState(false);
