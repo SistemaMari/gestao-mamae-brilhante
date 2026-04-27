@@ -361,9 +361,9 @@ export default function RegistroPartoForm({
       return;
     }
 
-    const proxNumero = (consultas?.length || 0) + 1;
+    const proxNumero = proxNumeroRef.current;
 
-    const { error: cErr } = await supabase.from('consultas').insert({
+    const consultaPayload = {
       paciente_id: paciente.id,
       profissional_id: prof.id,
       tipo: 'registro_parto',
@@ -374,7 +374,20 @@ export default function RegistroPartoForm({
       observacoes: JSON.stringify(dadosParto),
       cenario_clinico: '5',
       status_gerado: 'resultado_parto',
-    });
+      is_rascunho: false,
+    };
+
+    let cErr: any = null;
+    if (draftConsultaIdRef.current) {
+      const { error } = await supabase
+        .from('consultas')
+        .update(consultaPayload)
+        .eq('id', draftConsultaIdRef.current);
+      cErr = error;
+    } else {
+      const { error } = await supabase.from('consultas').insert(consultaPayload);
+      cErr = error;
+    }
 
     if (cErr) {
       console.error(cErr);
