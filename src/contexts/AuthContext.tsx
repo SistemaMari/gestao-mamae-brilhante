@@ -63,15 +63,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listener primeiro
+    // Listener primeiro — NUNCA usar await dentro do callback (deadlock conhecido do Supabase Auth)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          const p = await determineProfile(session.user.id);
-          setProfile(p);
+          // Defer chamadas Supabase para fora do callback
+          setTimeout(() => {
+            determineProfile(session.user.id).then(setProfile).catch(() => setProfile(null));
+          }, 0);
         } else {
           setProfile(null);
         }
@@ -80,13 +82,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     // Depois getSession
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        const p = await determineProfile(session.user.id);
-        setProfile(p);
+        determineProfile(session.user.id).then(setProfile).catch(() => setProfile(null));
       }
       setLoading(false);
     });
