@@ -50,6 +50,7 @@ interface Relatorio {
   created_at: string;
   arquivo_path: string;
   total_gestantes: number | null;
+  origem: OrigemRelatorio;
 }
 
 interface Consolidacao {
