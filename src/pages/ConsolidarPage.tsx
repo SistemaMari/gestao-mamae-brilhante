@@ -461,6 +461,21 @@ export default function ConsolidarPage() {
                   </Popover>
                 </div>
 
+                {/* Filtro de origem */}
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground">Origem</label>
+                  <Select value={filtroOrigem} onValueChange={(v) => setFiltroOrigem(v as FiltroOrigem)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas</SelectItem>
+                      <SelectItem value="automatico">Somente automáticos</SelectItem>
+                      <SelectItem value="manual">Somente manuais</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="flex gap-2">
                   <Button onClick={carregarRelatorios} disabled={carregandoRelatorios}>
                     {carregandoRelatorios ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Filter className="mr-2 h-4 w-4" />}
