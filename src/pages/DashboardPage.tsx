@@ -125,6 +125,7 @@ export default function DashboardPage() {
     const { data } = await supabase
       .from('pacientes')
       .select('id, nome, numero_identificacao, dum, usg_data, usg_ig_semanas, usg_ig_dias, status_ficha, dmg_gestacao_anterior, data_ultima_consulta, data_proximo_retorno, tipo_retorno')
+      .eq('is_rascunho', false)
       .order('data_ultima_consulta', { ascending: false, nullsFirst: false });
 
     setPacientes((data as Paciente[]) || []);
