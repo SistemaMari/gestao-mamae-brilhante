@@ -250,6 +250,95 @@ export default function FichaACForm({
   // Confirm high values
   const [showHighValueConfirm, setShowHighValueConfirm] = useState(false);
 
+  // ── Autosave (modo real, novas fichas) ──
+  const draftConsultaIdRef = useRef<string | null>(null);
+  const draftPerfilIdRef = useRef<string | null>(null);
+
+  const canAutosave =
+    !isPreview && !editingConsulta && !!profissionalData &&
+    !!dataInicio && !!dataFim && totalPreenchidos > 0 && !hasNegativeValues && !saving;
+
+  const igSAuto = parseInt(igSemanas) || 0;
+  const fichaTypeAuto = igSAuto > 30 ? 'ficha_c' : 'ficha_a';
+
+  const autosaveData = useMemo(() => ({
+    grid, dataInicio, dataFim, dataConsulta, observacoes: observacoes.trim(),
+    igSemanas, igDias, percentual, totalPreenchidos, dentroMeta, fichaTypeAuto,
+  }), [grid, dataInicio, dataFim, dataConsulta, observacoes, igSemanas, igDias, percentual, totalPreenchidos, dentroMeta, fichaTypeAuto]);
+
+  const { status: autosaveStatus } = useAutosave({
+    data: autosaveData,
+    enabled: canAutosave,
+    onSave: async (d) => {
+      if (!profissionalData) return;
+      const profId = profissionalData.id;
+      const igS = parseInt(d.igSemanas) || 0;
+      const igD = parseInt(d.igDias) || 0;
+
+      const consPayload = {
+        paciente_id: paciente.id,
+        profissional_id: profId,
+        tipo: d.fichaTypeAuto,
+        numero_sequencial: (consultas.length || 0) + 1,
+        data: d.dataConsulta,
+        ig_semanas: igS,
+        ig_dias: igD,
+        observacoes: d.observacoes || null,
+        status_gerado: 'dmg_confirmado',
+        is_rascunho: true,
+      };
+      if (!draftConsultaIdRef.current) {
+        const { data: c, error } = await supabase
+          .from('consultas').insert(consPayload as any).select('id').single();
+        if (error || !c) throw error ?? new Error('Falha consulta');
+        draftConsultaIdRef.current = c.id;
+      } else {
+        const { error } = await supabase
+          .from('consultas').update(consPayload as any).eq('id', draftConsultaIdRef.current);
+        if (error) throw error;
+      }
+
+      const perfPayload = {
+        consulta_id: draftConsultaIdRef.current,
+        paciente_id: paciente.id,
+        profissional_id: profId,
+        tipo_perfil: '4_pontos',
+        peso_paciente_kg: editingConsulta?.peso_kg ?? null,
+        data_inicio: d.dataInicio,
+        data_fim: d.dataFim,
+        percentual_meta: d.percentual ?? 0,
+        decisao: (d.percentual !== null && d.percentual >= 70) ? 'controle_adequado' : 'controle_inadequado',
+        dose_insulina_calculada: editingConsulta?.dose_total ?? null,
+      };
+      if (!draftPerfilIdRef.current) {
+        const { data: p, error } = await supabase
+          .from('perfis_glicemicos' as any).insert(perfPayload as any).select('id').single();
+        if (error || !p) throw error ?? new Error('Falha perfil');
+        draftPerfilIdRef.current = (p as any).id;
+      } else {
+        const { error } = await supabase
+          .from('perfis_glicemicos' as any).update(perfPayload as any).eq('id', draftPerfilIdRef.current);
+        if (error) throw error;
+      }
+
+      // Substitui valores: delete + insert (subtabela pequena, simples)
+      await supabase.from('valores_perfil' as any).delete().eq('perfil_id', draftPerfilIdRef.current);
+      const valores: any[] = [];
+      d.grid.forEach((row, dayIdx) => {
+        POINTS.forEach(point => {
+          const val = parseInt(row[point]);
+          if (val && val > 0) {
+            valores.push({ perfil_id: draftPerfilIdRef.current, dia: dayIdx + 1, ponto: point, valor_mgdl: val });
+          }
+        });
+      });
+      if (valores.length > 0) {
+        const { error } = await supabase.from('valores_perfil' as any).insert(valores);
+        if (error) throw error;
+      }
+    },
+  });
+
   const handleSave = async () => {
     if (hasHighValues && !showHighValueConfirm) {
       setShowHighValueConfirm(true);
