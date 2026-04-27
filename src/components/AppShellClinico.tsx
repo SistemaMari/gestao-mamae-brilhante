@@ -13,6 +13,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import BlockingModal from '@/components/BlockingModal';
+import BannerUsoLaudos from '@/components/BannerUsoLaudos';
 
 const navItemsClinical = [
   { label: 'Pacientes', icon: Users, path: '/dashboard' },
@@ -199,8 +200,8 @@ export default function AppShellClinico() {
         </DropdownMenu>
       </header>
 
-      {/* Banner slot for future payment banners (Prompts 20/21) */}
-      {/* <div id="payment-banner-slot" className="print:hidden" /> */}
+      {/* Banner global de uso de laudos */}
+      <BannerUsoLaudos />
 
       <div className="flex flex-1 overflow-hidden print:block print:overflow-visible print:h-auto">
         {/* Desktop sidebar */}
