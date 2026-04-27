@@ -4,6 +4,8 @@ import { differenceInDays, addDays, format } from 'date-fns';
 import { todayLocalISO, parseDateLocal } from '@/lib/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfissionalData } from '@/hooks/useProfissionalData';
+import { useAutosave } from '@/hooks/useAutosave';
+import AutosaveIndicator from '@/components/AutosaveIndicator';
 import {
   updatePreviewPaciente,
   type PreviewPaciente,
