@@ -530,7 +530,7 @@ Deno.serve(async (req) => {
           admin, unidade.id as string, unidade.nome as string, periodoInicio, periodoFim,
         );
 
-        const ehVazia = metricas.total_pacientes_periodo === 0 && metricas.total_partos === 0;
+        const ehVazia = metricas.total_gestantes === 0 && metricas.partos_registrados === 0;
 
         const pdfBytes = await gerarPdfRelatorio({
           metricas, periodoInicio, periodoFim, rotuloMes,
@@ -588,7 +588,7 @@ Deno.serve(async (req) => {
           const metricas = await agregarMetricas(
             admin, uni.id as string, uni.nome as string, periodoInicio, periodoFim,
           );
-          const ehVazia = metricas.total_pacientes_periodo === 0 && metricas.total_partos === 0;
+          const ehVazia = metricas.total_gestantes === 0 && metricas.partos_registrados === 0;
           const pdfBytes = await gerarPdfRelatorio({ metricas, periodoInicio, periodoFim, rotuloMes });
 
           const fd = new FormData();
