@@ -429,7 +429,8 @@ export default function FichaPacientePage() {
 
   const editIdade = useMemo(() => {
     if (!editDataNascimento) return null;
-    return differenceInYears(new Date(), new Date(editDataNascimento));
+    const nasc = parseDateLocal(editDataNascimento);
+    return nasc ? differenceInYears(new Date(), nasc) : null;
   }, [editDataNascimento]);
 
   if (loading) {
