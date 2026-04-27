@@ -110,7 +110,7 @@ export default function ConsolidarPage() {
   const [erroConsolidacao, setErroConsolidacao] = useState<string | null>(null);
 
   const [historico, setHistorico] = useState<Consolidacao[]>([]);
-
+  const [filtroOrigem, setFiltroOrigem] = useState<FiltroOrigem>('todas');
   // ----- Bootstrap: validar acesso, carregar gestor + unidades vinculadas -----
   useEffect(() => {
     let cancelled = false;
