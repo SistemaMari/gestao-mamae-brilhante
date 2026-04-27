@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import AppSidebar from '@/components/AppSidebar';
 import StatCard from '@/components/StatCard';
-import { Users, Building2, UserPlus, ShieldCheck, Plus, Loader2, Trash2, ShieldOff, Shield } from 'lucide-react';
+import { Users, Building2, UserPlus, ShieldCheck, Plus, Loader2, Trash2, ShieldOff, Shield, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,15 @@ type Profissional = {
 type Unidade = { id: string; nome: string; tipo: string | null; created_at: string };
 type Admin = { id: string; user_id: string; nome: string | null; created_at: string };
 type GestorGeral = { id: string; user_id: string; nome: string | null; created_at: string };
+type UsuarioSistema = {
+  user_id: string;
+  email: string | null;
+  created_at: string;
+  nome_profissional: string | null;
+  is_admin: boolean;
+  is_gestor_geral: boolean;
+  is_profissional: boolean;
+};
 
 export default function AdminPage() {
   const [stats, setStats] = useState({ profissionais: 0, unidades: 0, convites: 0 });
@@ -34,6 +43,8 @@ export default function AdminPage() {
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [gestoresGerais, setGestoresGerais] = useState<GestorGeral[]>([]);
+  const [usuariosSistema, setUsuariosSistema] = useState<UsuarioSistema[]>([]);
+  const [loadingUsuarios, setLoadingUsuarios] = useState(false);
   const [loading, setLoading] = useState(true);
   const [acaoLoading, setAcaoLoading] = useState<string | null>(null);
 
