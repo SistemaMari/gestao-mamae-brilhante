@@ -510,14 +510,17 @@ export default function FichaACForm({
     <div className="space-y-5">
       {/* Header */}
       <div className="rounded-xl border border-[#9b87f5] bg-[#F1F0FB] p-4 space-y-1">
-        <h2 className="text-base font-bold text-[#5B21B6] flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          {isFirstFichaA
-            ? 'RETORNO 2 — Hora de ver o resultado inicial do tratamento (Perfil Glicêmico de 4 pontos) e definir próximo passo'
-            : igSemNum > 30
-              ? 'FICHA C — Acompanhamento sem insulina, após a 30ª semana (Perfil Glicêmico de 4 pontos × 7 dias)'
-              : 'FICHA A — Acompanhamento sem insulina, até a 30ª semana (Perfil Glicêmico de 4 pontos × 15 dias)'}
-        </h2>
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-base font-bold text-[#5B21B6] flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            {isFirstFichaA
+              ? 'RETORNO 2 — Hora de ver o resultado inicial do tratamento (Perfil Glicêmico de 4 pontos) e definir próximo passo'
+              : igSemNum > 30
+                ? 'FICHA C — Acompanhamento sem insulina, após a 30ª semana (Perfil Glicêmico de 4 pontos × 7 dias)'
+                : 'FICHA A — Acompanhamento sem insulina, até a 30ª semana (Perfil Glicêmico de 4 pontos × 15 dias)'}
+          </h2>
+          {!isPreview && !editingConsulta && <AutosaveIndicator status={autosaveStatus} />}
+        </div>
         <p className="text-xs text-[#6D28D9]">
           Preencha a grade com as glicemias capilares registradas pela paciente.
         </p>
