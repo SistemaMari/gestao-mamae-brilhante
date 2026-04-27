@@ -5,7 +5,7 @@ import { ptBR } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
 import {
   BarChart3, Building2, Calendar as CalendarIcon, CheckCircle2, Download,
-  FileText, Filter, History, Loader2, RefreshCw, XCircle,
+  FileText, Filter, History, Loader2, RefreshCw, Sparkles, User, XCircle,
 } from 'lucide-react';
 
 import { supabase } from '@/integrations/supabase/client';
@@ -16,10 +16,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
+type OrigemRelatorio = 'manual' | 'automatico';
+type FiltroOrigem = 'todas' | 'manual' | 'automatico';
 
 interface GestorGeral {
   id: string;
@@ -41,6 +50,7 @@ interface Relatorio {
   created_at: string;
   arquivo_path: string;
   total_gestantes: number | null;
+  origem: OrigemRelatorio;
 }
 
 interface Consolidacao {
@@ -100,7 +110,7 @@ export default function ConsolidarPage() {
   const [erroConsolidacao, setErroConsolidacao] = useState<string | null>(null);
 
   const [historico, setHistorico] = useState<Consolidacao[]>([]);
-
+  const [filtroOrigem, setFiltroOrigem] = useState<FiltroOrigem>('todas');
   // ----- Bootstrap: validar acesso, carregar gestor + unidades vinculadas -----
   useEffect(() => {
     let cancelled = false;
@@ -183,7 +193,7 @@ export default function ConsolidarPage() {
 
     let q = supabase
       .from('relatorios_unidade')
-      .select('id, unidade_id, periodo_inicio, periodo_fim, created_at, arquivo_path, metricas_resumo')
+      .select('id, unidade_id, periodo_inicio, periodo_fim, created_at, arquivo_path, metricas_resumo, origem')
       .in('unidade_id', unidadeIds)
       .order('created_at', { ascending: false });
 
@@ -202,6 +212,7 @@ export default function ConsolidarPage() {
     const lista: Relatorio[] = (data ?? []).map((r: any) => {
       const m = r.metricas_resumo as Record<string, unknown> | null;
       const total = (m && typeof m.total_gestantes === 'number') ? m.total_gestantes as number : null;
+      const origem: OrigemRelatorio = r.origem === 'automatico' ? 'automatico' : 'manual';
       return {
         id: r.id,
         unidade_id: r.unidade_id,
@@ -211,6 +222,7 @@ export default function ConsolidarPage() {
         created_at: r.created_at,
         arquivo_path: r.arquivo_path,
         total_gestantes: total,
+        origem,
       };
     });
     setRelatorios(lista);
@@ -249,8 +261,8 @@ export default function ConsolidarPage() {
     });
   }
   function toggleTodosRelatorios() {
-    if (selecionadosRel.size === relatorios.length) setSelecionadosRel(new Set());
-    else setSelecionadosRel(new Set(relatorios.map((r) => r.id)));
+    if (selecionadosRel.size === relatoriosFiltrados.length) setSelecionadosRel(new Set());
+    else setSelecionadosRel(new Set(relatoriosFiltrados.map((r) => r.id)));
   }
 
   // ----- Download individual -----
@@ -320,9 +332,14 @@ export default function ConsolidarPage() {
   }
 
   // ----- UI computeds -----
+  const relatoriosFiltrados = useMemo(() => {
+    if (filtroOrigem === 'todas') return relatorios;
+    return relatorios.filter((r) => r.origem === filtroOrigem);
+  }, [relatorios, filtroOrigem]);
+
   const todasUnidadesSelecionadas = unidades.length > 0 && unidadesSelecionadas.size === unidades.length;
   const algumasUnidadesSelecionadas = unidadesSelecionadas.size > 0 && !todasUnidadesSelecionadas;
-  const todosRelatoriosSelecionados = relatorios.length > 0 && selecionadosRel.size === relatorios.length;
+  const todosRelatoriosSelecionados = relatoriosFiltrados.length > 0 && selecionadosRel.size === relatoriosFiltrados.length;
   const algunsRelatoriosSelecionados = selecionadosRel.size > 0 && !todosRelatoriosSelecionados;
   const labelPeriodo = useMemo(() => {
     if (!periodo?.from) return 'Selecionar período';
@@ -378,7 +395,7 @@ export default function ConsolidarPage() {
               <h2 className="font-heading text-base font-semibold text-foreground">Filtros</h2>
             </div>
             <div className="rounded-xl border border-border bg-card p-5">
-              <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+              <div className="grid gap-4 lg:grid-cols-[1fr_1fr_220px_auto] lg:items-end">
                 {/* Multi-select de unidades */}
                 <div>
                   <label className="mb-1 block text-sm font-medium text-foreground">Unidade(s)</label>
@@ -444,6 +461,21 @@ export default function ConsolidarPage() {
                   </Popover>
                 </div>
 
+                {/* Filtro de origem */}
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground">Origem</label>
+                  <Select value={filtroOrigem} onValueChange={(v) => setFiltroOrigem(v as FiltroOrigem)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Todas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas</SelectItem>
+                      <SelectItem value="automatico">Somente automáticos</SelectItem>
+                      <SelectItem value="manual">Somente manuais</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="flex gap-2">
                   <Button onClick={carregarRelatorios} disabled={carregandoRelatorios}>
                     {carregandoRelatorios ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Filter className="mr-2 h-4 w-4" />}
@@ -460,7 +492,7 @@ export default function ConsolidarPage() {
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary" />
                 <h2 className="font-heading text-base font-semibold text-foreground">Relatórios disponíveis</h2>
-                <Badge variant="outline">{relatorios.length}</Badge>
+                <Badge variant="outline">{relatoriosFiltrados.length}</Badge>
               </div>
               <Button
                 onClick={consolidar}
@@ -537,52 +569,79 @@ export default function ConsolidarPage() {
                 <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Carregando relatórios…
                 </div>
-              ) : relatorios.length === 0 ? (
+              ) : relatoriosFiltrados.length === 0 ? (
                 <div className="px-6 py-10 text-center text-sm text-muted-foreground">
-                  Nenhum relatório disponível para o período selecionado. Os relatórios ficam disponíveis automaticamente
-                  quando os gestores de unidade exportam seus dashboards.
+                  {relatorios.length === 0
+                    ? 'Nenhum relatório disponível para o período selecionado. Os relatórios ficam disponíveis automaticamente quando os gestores de unidade exportam seus dashboards.'
+                    : 'Nenhum relatório corresponde ao filtro de origem selecionado.'}
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-[#F8FAFC]">
-                      <TableHead className="w-[44px]">
-                        <Checkbox
-                          checked={todosRelatoriosSelecionados ? true : algunsRelatoriosSelecionados ? 'indeterminate' : false}
-                          onCheckedChange={toggleTodosRelatorios}
-                          aria-label="Selecionar todos"
-                        />
-                      </TableHead>
-                      <TableHead>Unidade</TableHead>
-                      <TableHead>Período</TableHead>
-                      <TableHead>Gerado em</TableHead>
-                      <TableHead className="text-right">Gestantes</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {relatorios.map((r, idx) => (
-                      <TableRow key={r.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-[#F8FAFC]'}>
-                        <TableCell>
+                <TooltipProvider delayDuration={150}>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-[#F8FAFC]">
+                        <TableHead className="w-[44px]">
                           <Checkbox
-                            checked={selecionadosRel.has(r.id)}
-                            onCheckedChange={() => toggleRelatorio(r.id)}
-                            aria-label={`Selecionar ${r.unidade_nome}`}
+                            checked={todosRelatoriosSelecionados ? true : algunsRelatoriosSelecionados ? 'indeterminate' : false}
+                            onCheckedChange={toggleTodosRelatorios}
+                            aria-label="Selecionar todos"
                           />
-                        </TableCell>
-                        <TableCell className="font-medium">{r.unidade_nome}</TableCell>
-                        <TableCell>{fmtPeriodo(r.periodo_inicio, r.periodo_fim)}</TableCell>
-                        <TableCell>{fmtData(r.created_at)}</TableCell>
-                        <TableCell className="text-right">{r.total_gestantes ?? '—'}</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={() => baixarRelatorioIndividual(r)}>
-                            <Download className="mr-1 h-3.5 w-3.5" /> Baixar PDF
-                          </Button>
-                        </TableCell>
+                        </TableHead>
+                        <TableHead>Unidade</TableHead>
+                        <TableHead>Período</TableHead>
+                        <TableHead>Gerado em</TableHead>
+                        <TableHead>Origem</TableHead>
+                        <TableHead className="text-right">Gestantes</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {relatoriosFiltrados.map((r, idx) => {
+                        const isAuto = r.origem === 'automatico';
+                        const badgeStyle = isAuto
+                          ? { background: '#EDE9FE', color: '#6D28D9' }
+                          : { background: '#F1F5F9', color: '#475569' };
+                        const tooltipText = isAuto
+                          ? 'Gerado automaticamente pelo sistema no dia 1 do mês.'
+                          : `Exportado pelo gestor de unidade em ${fmtData(r.created_at)}.`;
+                        return (
+                          <TableRow key={r.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-[#F8FAFC]'}>
+                            <TableCell>
+                              <Checkbox
+                                checked={selecionadosRel.has(r.id)}
+                                onCheckedChange={() => toggleRelatorio(r.id)}
+                                aria-label={`Selecionar ${r.unidade_nome}`}
+                              />
+                            </TableCell>
+                            <TableCell className="font-medium">{r.unidade_nome}</TableCell>
+                            <TableCell>{fmtPeriodo(r.periodo_inicio, r.periodo_fim)}</TableCell>
+                            <TableCell>{fmtData(r.created_at)}</TableCell>
+                            <TableCell>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded-full text-xs font-medium"
+                                    style={{ ...badgeStyle, padding: '3px 10px' }}
+                                  >
+                                    {isAuto ? <Sparkles className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                                    {isAuto ? 'Automático' : 'Manual'}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>{tooltipText}</TooltipContent>
+                              </Tooltip>
+                            </TableCell>
+                            <TableCell className="text-right">{r.total_gestantes ?? '—'}</TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="sm" onClick={() => baixarRelatorioIndividual(r)}>
+                                <Download className="mr-1 h-3.5 w-3.5" /> Baixar PDF
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TooltipProvider>
               )}
             </div>
           </section>
