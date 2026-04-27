@@ -356,36 +356,48 @@ export default function Retorno1Form({
       return;
     }
 
-    const { data: consultaData, error: consErr } = await supabase
-      .from('consultas')
-      .insert({
-        paciente_id: paciente.id,
-        profissional_id: profissionalData.id,
-        tipo: 'retorno_1',
-        numero_sequencial: 2,
-        data: dataConsultaRetorno,
-        ig_semanas: igFinal?.semanas ?? null,
-        ig_dias: igFinal?.dias ?? null,
-        observacoes: observacoes.trim()
-          ? `GJ: ${valorNum} mg/dL (${tipoExame}). ${isDiagApplicable && diag ? diag.label : 'Método não válido.'}${observacoes.trim() ? ' | ' + observacoes.trim() : ''}`
-          : isDiagApplicable && diag
-            ? `GJ: ${valorNum} mg/dL (plasmática). ${diag.label}.`
-            : `GJ: ${valorNum} mg/dL (capilar). Método não válido para diagnóstico.`,
-        status_gerado: newStatus,
-        cenario_clinico: isDiagApplicable && diag?.cenario ? String(diag.cenario) : null,
-      } as any)
-      .select('id')
-      .single();
+    const consultaPayload = {
+      paciente_id: paciente.id,
+      profissional_id: profissionalData.id,
+      tipo: 'retorno_1',
+      numero_sequencial: 2,
+      data: dataConsultaRetorno,
+      ig_semanas: igFinal?.semanas ?? null,
+      ig_dias: igFinal?.dias ?? null,
+      observacoes: observacoes.trim()
+        ? `GJ: ${valorNum} mg/dL (${tipoExame}). ${isDiagApplicable && diag ? diag.label : 'Método não válido.'}${observacoes.trim() ? ' | ' + observacoes.trim() : ''}`
+        : isDiagApplicable && diag
+          ? `GJ: ${valorNum} mg/dL (plasmática). ${diag.label}.`
+          : `GJ: ${valorNum} mg/dL (capilar). Método não válido para diagnóstico.`,
+      status_gerado: newStatus,
+      cenario_clinico: isDiagApplicable && diag?.cenario ? String(diag.cenario) : null,
+      is_rascunho: false,
+    };
 
-    if (consErr || !consultaData) {
-      toast.error('Erro ao registrar consulta.');
-      console.error(consErr);
-      setSaving(false);
-      return;
+    let consultaId = draftConsultaIdRef.current;
+    if (consultaId) {
+      const { error } = await supabase
+        .from('consultas').update(consultaPayload as any).eq('id', consultaId);
+      if (error) {
+        toast.error('Erro ao registrar consulta.');
+        console.error(error);
+        setSaving(false);
+        return;
+      }
+    } else {
+      const { data: consultaData, error: consErr } = await supabase
+        .from('consultas').insert(consultaPayload as any).select('id').single();
+      if (consErr || !consultaData) {
+        toast.error('Erro ao registrar consulta.');
+        console.error(consErr);
+        setSaving(false);
+        return;
+      }
+      consultaId = consultaData.id;
     }
 
-    await supabase.from('exames_glicemia' as any).insert({
-      consulta_id: consultaData.id,
+    const examePayload = {
+      consulta_id: consultaId,
       paciente_id: paciente.id,
       profissional_id: profissionalData.id,
       valor_mgdl: valorNum,
@@ -393,7 +405,13 @@ export default function Retorno1Form({
       data_exame: dataExame,
       ig_semanas_na_data: igFinal?.semanas ?? null,
       ig_dias_na_data: igFinal?.dias ?? null,
-    } as any);
+    };
+    if (draftExameIdRef.current) {
+      await supabase.from('exames_glicemia' as any)
+        .update(examePayload as any).eq('id', draftExameIdRef.current);
+    } else {
+      await supabase.from('exames_glicemia' as any).insert(examePayload as any);
+    }
 
     await supabase.from('pacientes').update({
       status_ficha: newStatus,
