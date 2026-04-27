@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { classificarRN } from '@/lib/intergrowth';
 
 import { differenceInDays, format } from 'date-fns';
+import { todayLocalISO, parseDateLocal } from '@/lib/dateUtils';
 import { toast } from 'sonner';
 import { FileText, Info, Loader2, Baby } from 'lucide-react';
 import { Button } from '@/components/ui/button';
