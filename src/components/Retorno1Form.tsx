@@ -1,7 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfissionalData } from '@/hooks/useProfissionalData';
 import { supabase } from '@/integrations/supabase/client';
+import { useAutosave } from '@/hooks/useAutosave';
+import AutosaveIndicator from '@/components/AutosaveIndicator';
 import {
   updatePreviewPaciente,
   getPreviewPacienteById,
@@ -190,6 +192,83 @@ export default function Retorno1Form({
     return igCalculada;
   }, [igSemanas, igDias, igCalculada]);
 
+  // Autosave: rascunho de consulta + exame_glicemia (modo real, novo retorno)
+  const draftConsultaIdRef = useRef<string | null>(null);
+  const draftExameIdRef = useRef<string | null>(null);
+
+  const canAutosave =
+    !isPreview &&
+    !editingConsulta &&
+    !!profissionalData &&
+    !!user &&
+    valorValido &&
+    !!tipoExame &&
+    !saving;
+
+  const autosaveData = useMemo(
+    () => ({
+      valorNum,
+      tipoExame,
+      dataExame,
+      dataConsultaRetorno,
+      observacoes: observacoes.trim(),
+      igSemanas: igFinal?.semanas ?? null,
+      igDias: igFinal?.dias ?? null,
+    }),
+    [valorNum, tipoExame, dataExame, dataConsultaRetorno, observacoes, igFinal],
+  );
+
+  const { status: autosaveStatus } = useAutosave({
+    data: autosaveData,
+    enabled: canAutosave,
+    onSave: async (d) => {
+      if (!profissionalData) return;
+      const consultaPayload = {
+        paciente_id: paciente.id,
+        profissional_id: profissionalData.id,
+        tipo: 'retorno_1',
+        numero_sequencial: 2,
+        data: d.dataConsultaRetorno,
+        ig_semanas: d.igSemanas,
+        ig_dias: d.igDias,
+        observacoes: d.observacoes || null,
+        status_gerado: paciente.status_ficha,
+        is_rascunho: true,
+      };
+      if (!draftConsultaIdRef.current) {
+        const { data: cons, error } = await supabase
+          .from('consultas').insert(consultaPayload as any).select('id').single();
+        if (error || !cons) throw error ?? new Error('Falha rascunho consulta');
+        draftConsultaIdRef.current = cons.id;
+      } else {
+        const { error } = await supabase
+          .from('consultas').update(consultaPayload as any).eq('id', draftConsultaIdRef.current);
+        if (error) throw error;
+      }
+
+      const examePayload = {
+        consulta_id: draftConsultaIdRef.current,
+        paciente_id: paciente.id,
+        profissional_id: profissionalData.id,
+        valor_mgdl: d.valorNum,
+        tipo_exame: d.tipoExame,
+        data_exame: d.dataExame,
+        ig_semanas_na_data: d.igSemanas,
+        ig_dias_na_data: d.igDias,
+      };
+      if (!draftExameIdRef.current) {
+        const { data: ex, error } = await supabase
+          .from('exames_glicemia' as any).insert(examePayload as any).select('id').single();
+        if (error || !ex) throw error ?? new Error('Falha rascunho exame');
+        draftExameIdRef.current = (ex as any).id;
+      } else {
+        const { error } = await supabase
+          .from('exames_glicemia' as any).update(examePayload as any).eq('id', draftExameIdRef.current);
+        if (error) throw error;
+      }
+    },
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched(true);
@@ -277,36 +356,48 @@ export default function Retorno1Form({
       return;
     }
 
-    const { data: consultaData, error: consErr } = await supabase
-      .from('consultas')
-      .insert({
-        paciente_id: paciente.id,
-        profissional_id: profissionalData.id,
-        tipo: 'retorno_1',
-        numero_sequencial: 2,
-        data: dataConsultaRetorno,
-        ig_semanas: igFinal?.semanas ?? null,
-        ig_dias: igFinal?.dias ?? null,
-        observacoes: observacoes.trim()
-          ? `GJ: ${valorNum} mg/dL (${tipoExame}). ${isDiagApplicable && diag ? diag.label : 'Método não válido.'}${observacoes.trim() ? ' | ' + observacoes.trim() : ''}`
-          : isDiagApplicable && diag
-            ? `GJ: ${valorNum} mg/dL (plasmática). ${diag.label}.`
-            : `GJ: ${valorNum} mg/dL (capilar). Método não válido para diagnóstico.`,
-        status_gerado: newStatus,
-        cenario_clinico: isDiagApplicable && diag?.cenario ? String(diag.cenario) : null,
-      } as any)
-      .select('id')
-      .single();
+    const consultaPayload = {
+      paciente_id: paciente.id,
+      profissional_id: profissionalData.id,
+      tipo: 'retorno_1',
+      numero_sequencial: 2,
+      data: dataConsultaRetorno,
+      ig_semanas: igFinal?.semanas ?? null,
+      ig_dias: igFinal?.dias ?? null,
+      observacoes: observacoes.trim()
+        ? `GJ: ${valorNum} mg/dL (${tipoExame}). ${isDiagApplicable && diag ? diag.label : 'Método não válido.'}${observacoes.trim() ? ' | ' + observacoes.trim() : ''}`
+        : isDiagApplicable && diag
+          ? `GJ: ${valorNum} mg/dL (plasmática). ${diag.label}.`
+          : `GJ: ${valorNum} mg/dL (capilar). Método não válido para diagnóstico.`,
+      status_gerado: newStatus,
+      cenario_clinico: isDiagApplicable && diag?.cenario ? String(diag.cenario) : null,
+      is_rascunho: false,
+    };
 
-    if (consErr || !consultaData) {
-      toast.error('Erro ao registrar consulta.');
-      console.error(consErr);
-      setSaving(false);
-      return;
+    let consultaId = draftConsultaIdRef.current;
+    if (consultaId) {
+      const { error } = await supabase
+        .from('consultas').update(consultaPayload as any).eq('id', consultaId);
+      if (error) {
+        toast.error('Erro ao registrar consulta.');
+        console.error(error);
+        setSaving(false);
+        return;
+      }
+    } else {
+      const { data: consultaData, error: consErr } = await supabase
+        .from('consultas').insert(consultaPayload as any).select('id').single();
+      if (consErr || !consultaData) {
+        toast.error('Erro ao registrar consulta.');
+        console.error(consErr);
+        setSaving(false);
+        return;
+      }
+      consultaId = consultaData.id;
     }
 
-    await supabase.from('exames_glicemia' as any).insert({
-      consulta_id: consultaData.id,
+    const examePayload = {
+      consulta_id: consultaId,
       paciente_id: paciente.id,
       profissional_id: profissionalData.id,
       valor_mgdl: valorNum,
@@ -314,7 +405,13 @@ export default function Retorno1Form({
       data_exame: dataExame,
       ig_semanas_na_data: igFinal?.semanas ?? null,
       ig_dias_na_data: igFinal?.dias ?? null,
-    } as any);
+    };
+    if (draftExameIdRef.current) {
+      await supabase.from('exames_glicemia' as any)
+        .update(examePayload as any).eq('id', draftExameIdRef.current);
+    } else {
+      await supabase.from('exames_glicemia' as any).insert(examePayload as any);
+    }
 
     await supabase.from('pacientes').update({
       status_ficha: newStatus,
@@ -539,10 +636,13 @@ export default function Retorno1Form({
   return (
     <div className="space-y-5">
       <div className="rounded-xl border border-[#9b87f5] bg-[#F1F0FB] p-4 space-y-1">
-        <h2 className="text-base font-bold text-[#5B21B6] flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          RETORNO 1 — Resultado da Glicemia de Jejum
-        </h2>
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-base font-bold text-[#5B21B6] flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            RETORNO 1 — Resultado da Glicemia de Jejum
+          </h2>
+          {!isPreview && !editingConsulta && <AutosaveIndicator status={autosaveStatus} />}
+        </div>
         <p className="text-xs text-[#6D28D9]">
           Insira o resultado da glicemia de jejum para diagnóstico automático.
         </p>
