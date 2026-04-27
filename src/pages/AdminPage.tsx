@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import AppSidebar from '@/components/AppSidebar';
 import StatCard from '@/components/StatCard';
-import { Users, Building2, UserPlus, ShieldCheck, Plus, Loader2, Trash2, ShieldOff, Shield } from 'lucide-react';
+import { Users, Building2, UserPlus, ShieldCheck, Plus, Loader2, Trash2, ShieldOff, Shield, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,15 @@ type Profissional = {
 type Unidade = { id: string; nome: string; tipo: string | null; created_at: string };
 type Admin = { id: string; user_id: string; nome: string | null; created_at: string };
 type GestorGeral = { id: string; user_id: string; nome: string | null; created_at: string };
+type UsuarioSistema = {
+  user_id: string;
+  email: string | null;
+  created_at: string;
+  nome_profissional: string | null;
+  is_admin: boolean;
+  is_gestor_geral: boolean;
+  is_profissional: boolean;
+};
 
 export default function AdminPage() {
   const [stats, setStats] = useState({ profissionais: 0, unidades: 0, convites: 0 });
@@ -34,6 +43,8 @@ export default function AdminPage() {
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [gestoresGerais, setGestoresGerais] = useState<GestorGeral[]>([]);
+  const [usuariosSistema, setUsuariosSistema] = useState<UsuarioSistema[]>([]);
+  const [loadingUsuarios, setLoadingUsuarios] = useState(false);
   const [loading, setLoading] = useState(true);
   const [acaoLoading, setAcaoLoading] = useState<string | null>(null);
 
@@ -66,7 +77,20 @@ export default function AdminPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { carregar(); }, [carregar]);
+  const carregarUsuarios = useCallback(async () => {
+    setLoadingUsuarios(true);
+    const { data, error } = await supabase.functions.invoke('admin-gerenciar-usuarios', {
+      body: { acao: 'listar_usuarios' },
+    });
+    setLoadingUsuarios(false);
+    if (error || (data && data.error)) {
+      toast({ title: 'Erro', description: (data?.error || error?.message) ?? 'Falha ao carregar usuários', variant: 'destructive' });
+      return;
+    }
+    setUsuariosSistema((data?.usuarios ?? []) as UsuarioSistema[]);
+  }, []);
+
+  useEffect(() => { carregar(); carregarUsuarios(); }, [carregar, carregarUsuarios]);
 
   const chamarAcao = async (acao: string, alvo_user_id?: string, payload?: Record<string, unknown>) => {
     setAcaoLoading(acao + (alvo_user_id ?? ''));
@@ -79,7 +103,7 @@ export default function AdminPage() {
       return false;
     }
     toast({ title: 'Sucesso', description: 'Ação executada.' });
-    await carregar();
+    await Promise.all([carregar(), carregarUsuarios()]);
     return true;
   };
 
@@ -169,6 +193,87 @@ export default function AdminPage() {
                       <TableCell className="font-medium">{u.nome}</TableCell>
                       <TableCell className="text-muted-foreground">{u.tipo ?? '—'}</TableCell>
                       <TableCell className="text-muted-foreground">{new Date(u.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          {/* Usuários do sistema (todos os auth users, mesmo sem profissional) */}
+          <div className="mb-6 rounded-xl border border-border bg-card p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
+                <Mail className="h-4 w-4 text-primary" /> Usuários do sistema
+              </h2>
+              <span className="text-xs text-muted-foreground">
+                {usuariosSistema.length} {usuariosSistema.length === 1 ? 'usuário' : 'usuários'}
+              </span>
+            </div>
+            {loadingUsuarios ? (
+              <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+            ) : usuariosSistema.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">Nenhum usuário encontrado</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>E-mail</TableHead>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Privilégios</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {usuariosSistema.map((u) => (
+                    <TableRow key={u.user_id}>
+                      <TableCell>
+                        <div className="font-medium">{u.email ?? '—'}</div>
+                        <div className="text-xs text-muted-foreground">criado em {new Date(u.created_at).toLocaleDateString('pt-BR')}</div>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {u.nome_profissional ?? <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {u.is_admin && <Badge className="bg-primary/10 text-primary border-primary/20">Admin</Badge>}
+                          {u.is_gestor_geral && <Badge variant="secondary">Gestor geral</Badge>}
+                          {u.is_profissional && <Badge variant="outline">Profissional</Badge>}
+                          {!u.is_admin && !u.is_gestor_geral && !u.is_profissional && (
+                            <span className="text-xs text-muted-foreground">sem perfil</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-wrap justify-end gap-1">
+                          {!u.is_admin ? (
+                            <Button size="sm" variant="outline"
+                              onClick={() => chamarAcao('promover_admin', u.user_id, { nome: u.nome_profissional ?? u.email })}
+                              disabled={acaoLoading === 'promover_admin' + u.user_id}>
+                              <Shield className="mr-1 h-3 w-3" /> Promover admin
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline"
+                              onClick={() => chamarAcao('remover_admin', u.user_id)}
+                              disabled={acaoLoading === 'remover_admin' + u.user_id}>
+                              <ShieldOff className="mr-1 h-3 w-3" /> Remover admin
+                            </Button>
+                          )}
+                          {!u.is_gestor_geral ? (
+                            <Button size="sm" variant="outline"
+                              onClick={() => chamarAcao('promover_gestor_geral', u.user_id, { nome: u.nome_profissional ?? u.email })}
+                              disabled={acaoLoading === 'promover_gestor_geral' + u.user_id}>
+                              Gestor geral
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline"
+                              onClick={() => chamarAcao('remover_gestor_geral', u.user_id)}
+                              disabled={acaoLoading === 'remover_gestor_geral' + u.user_id}>
+                              <Trash2 className="mr-1 h-3 w-3" /> Tirar gestor geral
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
