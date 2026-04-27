@@ -215,7 +215,8 @@ export default function AppShellClinico() {
         </DropdownMenu>
       </header>
 
-      {/* Banner global de uso de laudos */}
+      {/* Banners globais */}
+      <BannerStatusPlano />
       <BannerUsoLaudos />
 
       <div className="flex flex-1 overflow-hidden print:block print:overflow-visible print:h-auto">
