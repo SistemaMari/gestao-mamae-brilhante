@@ -183,6 +183,51 @@ export default function GttForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+  // Autosave (modo real, novas consultas)
+  const draftConsultaIdRef = useRef<string | null>(null);
+
+  const canAutosave =
+    !isPreview && !editingConsulta && !!profissionalData && !!user &&
+    jejumValido && (recursoLimitado || (h1Valido && h2Valido)) && !saving;
+
+  const autosaveData = useMemo(() => ({
+    jejumNum, h1Num, h2Num, recursoLimitado, dataExame, dataConsulta,
+    igSemanas: igFinal?.semanas ?? null, igDias: igFinal?.dias ?? null,
+    observacoes: observacoes.trim(),
+  }), [jejumNum, h1Num, h2Num, recursoLimitado, dataExame, dataConsulta, igFinal, observacoes]);
+
+  const { status: autosaveStatus } = useAutosave({
+    data: autosaveData,
+    enabled: canAutosave,
+    onSave: async (d) => {
+      if (!profissionalData) return;
+      const payload = {
+        paciente_id: paciente.id,
+        profissional_id: profissionalData.id,
+        tipo: 'gtt',
+        numero_sequencial: (consultas.length || 1) + 1,
+        data: d.dataConsulta,
+        ig_semanas: d.igSemanas,
+        ig_dias: d.igDias,
+        observacoes: `GTT 75g (rascunho): jejum ${d.jejumNum}${!d.recursoLimitado ? `, 1h ${d.h1Num}, 2h ${d.h2Num}` : ' (recurso limitado)'}.${d.observacoes ? ' ' + d.observacoes : ''}`,
+        status_gerado: paciente.status_ficha,
+        is_rascunho: true,
+      };
+      if (!draftConsultaIdRef.current) {
+        const { data: c, error } = await supabase
+          .from('consultas').insert(payload as any).select('id').single();
+        if (error || !c) throw error ?? new Error('Falha consulta GTT');
+        draftConsultaIdRef.current = c.id;
+      } else {
+        const { error } = await supabase
+          .from('consultas').update(payload as any).eq('id', draftConsultaIdRef.current);
+        if (error) throw error;
+      }
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setTouched(true);
     if (!isValid) {
       toast.error('Preencha todos os campos obrigatórios.');
