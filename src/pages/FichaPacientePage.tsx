@@ -262,7 +262,8 @@ export default function FichaPacientePage() {
 
   const idade = useMemo(() => {
     if (!paciente?.data_nascimento) return null;
-    return differenceInYears(new Date(), new Date(paciente.data_nascimento));
+    const nasc = parseDateLocal(paciente.data_nascimento);
+    return nasc ? differenceInYears(new Date(), nasc) : null;
   }, [paciente?.data_nascimento]);
 
   const primeiraConsulta = consultas.find((c) => c.tipo === 'consulta_1');
