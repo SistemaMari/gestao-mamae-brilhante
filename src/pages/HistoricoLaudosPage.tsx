@@ -1,24 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Loader2, Search, Filter, History } from 'lucide-react';
+import { FileText, Loader2, Search, Filter, History, Eye, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { downloadLaudoPdf, laudoConteudoToText } from '@/lib/laudoPdf';
 
 interface LaudoRow {
   id: string;
   paciente_id: string;
   paciente_nome: string;
   cenario_clinico: string | null;
+  conteudo_laudo: string | null;
   status: string;
   created_at: string;
 }
@@ -40,6 +44,7 @@ function fmtData(iso: string) {
 
 export default function HistoricoLaudosPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [laudos, setLaudos] = useState<LaudoRow[]>([]);
   const [busca, setBusca] = useState('');
@@ -69,7 +74,7 @@ export default function HistoricoLaudosPage() {
 
       const { data, error } = await supabase
         .from('laudos')
-        .select('id, paciente_id, cenario_clinico, status, created_at, pacientes:paciente_id(nome)')
+        .select('id, paciente_id, cenario_clinico, status, conteudo_laudo, created_at, pacientes:paciente_id(nome)')
         .eq('profissional_id', prof.id)
         .order('created_at', { ascending: false })
         .limit(200);
@@ -87,6 +92,7 @@ export default function HistoricoLaudosPage() {
         paciente_id: l.paciente_id,
         paciente_nome: l.pacientes?.nome ?? '—',
         cenario_clinico: l.cenario_clinico,
+        conteudo_laudo: l.conteudo_laudo,
         status: l.status,
         created_at: l.created_at,
       }));
@@ -195,13 +201,27 @@ export default function HistoricoLaudosPage() {
                 <TableHead className="w-[140px]">Cenário</TableHead>
                 <TableHead className="w-[120px]">Status</TableHead>
                 <TableHead className="w-[200px]">Gerado em</TableHead>
+                <TableHead className="w-[180px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtrados.map((l) => {
                 const status = STATUS_LABEL[l.status] ?? { label: l.status, variant: 'outline' as const };
+                const pronto = l.status === 'pronto' && !!l.conteudo_laudo;
+                const handleDownload = () => {
+                  if (!l.conteudo_laudo) {
+                    toast.error('Este laudo ainda não tem conteúdo para baixar.');
+                    return;
+                  }
+                  downloadLaudoPdf({
+                    pacienteNome: l.paciente_nome,
+                    cenario: l.cenario_clinico,
+                    geradoEm: fmtData(l.created_at),
+                    conteudo: laudoConteudoToText(l.conteudo_laudo),
+                  });
+                };
                 return (
-                  <TableRow key={l.id} className="cursor-pointer hover:bg-muted/40">
+                  <TableRow key={l.id} className="hover:bg-muted/40">
                     <TableCell>
                       <Link to={`/paciente/${l.paciente_id}`} className="font-medium text-foreground hover:underline">
                         {l.paciente_nome}
@@ -215,6 +235,29 @@ export default function HistoricoLaudosPage() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {fmtData(l.created_at)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/laudo/${l.id}`)}
+                          title="Visualizar laudo"
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only md:not-sr-only md:ml-2">Ver</span>
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={handleDownload}
+                          disabled={!pronto}
+                          title={pronto ? 'Baixar PDF' : 'Laudo ainda não está pronto'}
+                        >
+                          <Download className="h-4 w-4" />
+                          <span className="sr-only md:not-sr-only md:ml-2">PDF</span>
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

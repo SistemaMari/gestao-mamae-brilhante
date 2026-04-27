@@ -30,6 +30,7 @@ import PreviewAppShell from "./components/PreviewAppShell";
 import PacientePage from "./pages/PacientePage";
 import PerfilPage from "./pages/PerfilPage";
 import HistoricoLaudosPage from "./pages/HistoricoLaudosPage";
+import LaudoViewerPage from "./pages/LaudoViewerPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -89,6 +90,7 @@ const App = () => (
               <Route path="/planos" element={<PlanosPage />} />
               <Route path="/perfil" element={<PerfilPage />} />
               <Route path="/laudos" element={<HistoricoLaudosPage />} />
+              <Route path="/laudo/:id" element={<LaudoViewerPage />} />
             </Route>
 
             {/* Onboarding (autenticado, sem perfil ainda) */}
