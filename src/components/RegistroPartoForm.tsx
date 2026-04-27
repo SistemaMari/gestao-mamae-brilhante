@@ -63,7 +63,9 @@ export default function RegistroPartoForm({
   // ── IG atual calculada a partir da DUM (badge no cabeçalho) ──
   const igAtual = useMemo(() => {
     if (!paciente.dum) return null;
-    const dias = differenceInDays(new Date(), new Date(paciente.dum));
+    const dum = parseDateLocal(paciente.dum);
+    if (!dum) return null;
+    const dias = differenceInDays(new Date(), dum);
     if (dias < 0) return null;
     return { semanas: Math.floor(dias / 7), dias: dias % 7 };
   }, [paciente.dum]);
