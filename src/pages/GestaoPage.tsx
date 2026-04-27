@@ -115,7 +115,8 @@ export default function GestaoPage() {
     let qFichas = supabase
       .from('pacientes')
       .select('id, nome, status_ficha, profissional_id, data_ultima_consulta, created_at, dmg_gestacao_anterior')
-      .eq('unidade_id', unidadeId);
+      .eq('unidade_id', unidadeId)
+      .eq('is_rascunho', false);
     if (inicioStr) qFichas = qFichas.gte('created_at', inicioStr);
     if (fimStr) qFichas = qFichas.lte('created_at', fimStr + 'T23:59:59');
 
