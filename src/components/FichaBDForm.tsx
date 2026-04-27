@@ -4,6 +4,8 @@ import { differenceInDays, addDays, format } from 'date-fns';
 import { todayLocalISO, parseDateLocal } from '@/lib/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfissionalData } from '@/hooks/useProfissionalData';
+import { useAutosave } from '@/hooks/useAutosave';
+import AutosaveIndicator from '@/components/AutosaveIndicator';
 import {
   updatePreviewPaciente,
   type PreviewPaciente,
@@ -278,6 +280,91 @@ export default function FichaBDForm({
 
   const [showHighValueConfirm, setShowHighValueConfirm] = useState(false);
 
+  // ── Autosave (modo real, novas fichas) ──
+  const draftConsultaIdRef = useRef<string | null>(null);
+  const draftPerfilIdRef = useRef<string | null>(null);
+
+  const canAutosave =
+    !isPreview && !editingConsulta && !!profissionalData &&
+    !!dataInicio && !!dataFim && totalPreenchidos > 0 && !hasNegativeValues && !saving;
+
+  const autosaveData = useMemo(() => ({
+    grid, dataInicio, dataFim, dataConsulta, observacoes: observacoes.trim(),
+    igSemanas, igDias, percentual, fichaType,
+  }), [grid, dataInicio, dataFim, dataConsulta, observacoes, igSemanas, igDias, percentual, fichaType]);
+
+  const { status: autosaveStatus } = useAutosave({
+    data: autosaveData,
+    enabled: canAutosave,
+    onSave: async (d) => {
+      if (!profissionalData) return;
+      const profId = profissionalData.id;
+      const igS = parseInt(d.igSemanas) || 0;
+      const igD = parseInt(d.igDias) || 0;
+
+      const consPayload = {
+        paciente_id: paciente.id,
+        profissional_id: profId,
+        tipo: d.fichaType,
+        numero_sequencial: (consultas.length || 0) + 1,
+        data: d.dataConsulta,
+        ig_semanas: igS,
+        ig_dias: igD,
+        observacoes: d.observacoes || null,
+        status_gerado: 'dmg_confirmado',
+        is_rascunho: true,
+      };
+      if (!draftConsultaIdRef.current) {
+        const { data: c, error } = await supabase
+          .from('consultas').insert(consPayload as any).select('id').single();
+        if (error || !c) throw error ?? new Error('Falha consulta');
+        draftConsultaIdRef.current = c.id;
+      } else {
+        const { error } = await supabase
+          .from('consultas').update(consPayload as any).eq('id', draftConsultaIdRef.current);
+        if (error) throw error;
+      }
+
+      const perfPayload = {
+        consulta_id: draftConsultaIdRef.current,
+        paciente_id: paciente.id,
+        profissional_id: profId,
+        tipo_perfil: '6_pontos',
+        peso_paciente_kg: null,
+        data_inicio: d.dataInicio,
+        data_fim: d.dataFim,
+        percentual_meta: d.percentual ?? 0,
+        decisao: (d.percentual !== null && d.percentual >= 70) ? 'controle_adequado' : 'controle_inadequado',
+        dose_insulina_calculada: null,
+      };
+      if (!draftPerfilIdRef.current) {
+        const { data: p, error } = await supabase
+          .from('perfis_glicemicos' as any).insert(perfPayload as any).select('id').single();
+        if (error || !p) throw error ?? new Error('Falha perfil');
+        draftPerfilIdRef.current = (p as any).id;
+      } else {
+        const { error } = await supabase
+          .from('perfis_glicemicos' as any).update(perfPayload as any).eq('id', draftPerfilIdRef.current);
+        if (error) throw error;
+      }
+
+      await supabase.from('valores_perfil' as any).delete().eq('perfil_id', draftPerfilIdRef.current);
+      const valores: any[] = [];
+      d.grid.forEach((row, dayIdx) => {
+        POINTS_6.forEach(point => {
+          const val = parseInt(row[point]);
+          if (val && val > 0) {
+            valores.push({ perfil_id: draftPerfilIdRef.current, dia: dayIdx + 1, ponto: point, valor_mgdl: val });
+          }
+        });
+      });
+      if (valores.length > 0) {
+        const { error } = await supabase.from('valores_perfil' as any).insert(valores);
+        if (error) throw error;
+      }
+    },
+  });
+
   const handleSave = async () => {
     if (hasHighValues && !showHighValueConfirm) {
       setShowHighValueConfirm(true);
@@ -349,63 +436,69 @@ export default function FichaBDForm({
 
       const nextSeq = (consultas.length || 0) + 1;
 
-      const { data: newConsulta, error: consErr } = await supabase
-        .from('consultas')
-        .insert({
-          paciente_id: paciente.id,
-          profissional_id: profId,
-          tipo: fichaType,
-          numero_sequencial: nextSeq,
-          data: dataConsulta,
-          ig_semanas: igS,
-          ig_dias: igD,
-          observacoes: observacoes.trim() || null,
-          status_gerado: newStatus,
-          cenario_clinico: cenario,
-        })
-        .select('id')
-        .single();
+      const consultaPayload = {
+        paciente_id: paciente.id,
+        profissional_id: profId,
+        tipo: fichaType,
+        numero_sequencial: nextSeq,
+        data: dataConsulta,
+        ig_semanas: igS,
+        ig_dias: igD,
+        observacoes: observacoes.trim() || null,
+        status_gerado: newStatus,
+        cenario_clinico: cenario,
+        is_rascunho: false,
+      };
 
-      if (consErr || !newConsulta) throw consErr || new Error('Falha ao criar consulta');
+      let consultaId = draftConsultaIdRef.current;
+      if (consultaId) {
+        const { error } = await supabase
+          .from('consultas').update(consultaPayload as any).eq('id', consultaId);
+        if (error) throw error;
+      } else {
+        const { data: newConsulta, error: consErr } = await supabase
+          .from('consultas').insert(consultaPayload as any).select('id').single();
+        if (consErr || !newConsulta) throw consErr || new Error('Falha ao criar consulta');
+        consultaId = newConsulta.id;
+      }
 
-      const { data: newPerfil, error: perfErr } = await supabase
-        .from('perfis_glicemicos' as any)
-        .insert({
-          consulta_id: newConsulta.id,
-          paciente_id: paciente.id,
-          profissional_id: profId,
-          tipo_perfil: '6_pontos',
-          peso_paciente_kg: null,
-          data_inicio: dataInicio,
-          data_fim: dataFim,
-          percentual_meta: percentual ?? 0,
-          decisao,
-          dose_insulina_calculada: null,
-        })
-        .select('id')
-        .single();
+      const perfilPayload = {
+        consulta_id: consultaId,
+        paciente_id: paciente.id,
+        profissional_id: profId,
+        tipo_perfil: '6_pontos',
+        peso_paciente_kg: null,
+        data_inicio: dataInicio,
+        data_fim: dataFim,
+        percentual_meta: percentual ?? 0,
+        decisao,
+        dose_insulina_calculada: null,
+      };
 
-      if (perfErr || !newPerfil) throw perfErr || new Error('Falha ao criar perfil');
+      let perfilId = draftPerfilIdRef.current;
+      if (perfilId) {
+        const { error } = await supabase
+          .from('perfis_glicemicos' as any).update(perfilPayload as any).eq('id', perfilId);
+        if (error) throw error;
+      } else {
+        const { data: newPerfil, error: perfErr } = await supabase
+          .from('perfis_glicemicos' as any).insert(perfilPayload as any).select('id').single();
+        if (perfErr || !newPerfil) throw perfErr || new Error('Falha ao criar perfil');
+        perfilId = (newPerfil as any).id;
+      }
 
+      await supabase.from('valores_perfil' as any).delete().eq('perfil_id', perfilId);
       const valores: any[] = [];
       grid.forEach((row, dayIdx) => {
         POINTS_6.forEach(point => {
           const val = parseInt(row[point]);
           if (val && val > 0) {
-            valores.push({
-              perfil_id: (newPerfil as any).id,
-              dia: dayIdx + 1,
-              ponto: point,
-              valor_mgdl: val,
-            });
+            valores.push({ perfil_id: perfilId, dia: dayIdx + 1, ponto: point, valor_mgdl: val });
           }
         });
       });
-
       if (valores.length > 0) {
-        const { error: valErr } = await supabase
-          .from('valores_perfil' as any)
-          .insert(valores);
+        const { error: valErr } = await supabase.from('valores_perfil' as any).insert(valores);
         if (valErr) throw valErr;
       }
 
@@ -439,10 +532,13 @@ export default function FichaBDForm({
     <div className="space-y-5">
       {/* Header */}
       <div className="rounded-xl border border-[#9b87f5] bg-[#F1F0FB] p-4 space-y-1">
-        <h2 className="text-base font-bold text-[#5B21B6] flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          {headerTitle}
-        </h2>
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-base font-bold text-[#5B21B6] flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            {headerTitle}
+          </h2>
+          {!isPreview && !editingConsulta && <AutosaveIndicator status={autosaveStatus} />}
+        </div>
         <p className="text-xs text-[#6D28D9]">
           Preencha a grade com as glicemias capilares registradas pela paciente.
         </p>
