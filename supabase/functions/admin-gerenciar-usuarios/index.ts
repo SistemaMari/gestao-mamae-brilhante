@@ -12,7 +12,8 @@ type Acao =
   | 'remover_gestor_geral'
   | 'vincular_unidade'
   | 'criar_unidade'
-  | 'listar_usuarios';
+  | 'listar_usuarios'
+  | 'promover_admin_por_email';
 
 interface Body {
   acao: Acao;
