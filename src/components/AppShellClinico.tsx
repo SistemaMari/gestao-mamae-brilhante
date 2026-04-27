@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfissionalData } from '@/hooks/useProfissionalData';
+import { useSyncLanguageWithProfile } from '@/hooks/useSyncLanguageWithProfile';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Users, UserPlus, CreditCard, UserCog, LogOut, Menu, X,
@@ -15,20 +17,9 @@ import {
 import BlockingModal from '@/components/BlockingModal';
 import BannerUsoLaudos from '@/components/BannerUsoLaudos';
 import BannerStatusPlano from '@/components/BannerStatusPlano';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { avaliarPlanoStatus } from '@/lib/planoStatus';
 import { toast } from '@/hooks/use-toast';
-
-const navItemsClinical = [
-  { label: 'Pacientes', icon: Users, path: '/dashboard' },
-  { label: 'Nova Paciente', icon: UserPlus, path: '/paciente/nova', checkLimit: true },
-  { label: 'Histórico de Laudos', icon: FileText, path: '/laudos' },
-  { label: 'Meu Dashboard', icon: BarChart3, path: '/dashboard/metricas' },
-];
-
-const navItemsAdmin = [
-  { label: 'Meu Plano', icon: CreditCard, path: '/planos' },
-  { label: 'Meu Perfil', icon: UserCog, path: '/perfil' },
-];
 
 function useBreadcrumb() {
   const location = useLocation();
