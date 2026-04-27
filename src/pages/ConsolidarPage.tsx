@@ -492,7 +492,7 @@ export default function ConsolidarPage() {
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary" />
                 <h2 className="font-heading text-base font-semibold text-foreground">Relatórios disponíveis</h2>
-                <Badge variant="outline">{relatorios.length}</Badge>
+                <Badge variant="outline">{relatoriosFiltrados.length}</Badge>
               </div>
               <Button
                 onClick={consolidar}
