@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import AppSidebar from '@/components/AppSidebar';
 import StatCard from '@/components/StatCard';
-import { Users, Building2, UserPlus, ShieldCheck, Plus, Loader2, Trash2, ShieldOff, Shield, Mail } from 'lucide-react';
+import { Users, Building2, UserPlus, ShieldCheck, Plus, Loader2, Trash2, ShieldOff, Shield, Mail, Search, Download, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,8 @@ type Profissional = {
   especialidade: string | null;
   unidade_id: string | null;
   perfil_institucional: string | null;
+  plano: string | null;
+  plano_status: string | null;
   created_at: string;
 };
 type Unidade = { id: string; nome: string; tipo: string | null; created_at: string };
@@ -56,10 +58,16 @@ export default function AdminPage() {
   const [vincularUnidadeId, setVincularUnidadeId] = useState<string>('');
   const [vincularPerfil, setVincularPerfil] = useState<string>('profissional');
 
+  // Filtros da seção de profissionais
+  const [busca, setBusca] = useState('');
+  const [filtroUnidade, setFiltroUnidade] = useState<string>('all');
+  const [filtroPlano, setFiltroPlano] = useState<string>('all');
+  const [filtroPerfil, setFiltroPerfil] = useState<string>('all');
+
   const carregar = useCallback(async () => {
     setLoading(true);
     const [profsRes, unitsRes, convitesRes, adminsRes, gestoresRes] = await Promise.all([
-      supabase.from('profissionais').select('id, user_id, nome, crm, especialidade, unidade_id, perfil_institucional, created_at').order('created_at', { ascending: false }),
+      supabase.from('profissionais').select('id, user_id, nome, crm, especialidade, unidade_id, perfil_institucional, plano, plano_status, created_at').order('created_at', { ascending: false }),
       supabase.from('unidades').select('id, nome, tipo, created_at').order('created_at', { ascending: false }),
       supabase.from('convites').select('id').eq('status', 'pendente'),
       supabase.from('admins').select('id, user_id, nome, created_at').order('created_at', { ascending: false }),
@@ -110,6 +118,79 @@ export default function AdminPage() {
   const isAdmin = (userId: string) => admins.some((a) => a.user_id === userId);
   const isGestorGeral = (userId: string) => gestoresGerais.some((g) => g.user_id === userId);
   const unidadeNome = (id: string | null) => (id ? (unidades.find((u) => u.id === id)?.nome ?? '—') : '—');
+  const emailDe = (userId: string) => usuariosSistema.find((u) => u.user_id === userId)?.email ?? '';
+
+  const planosUnicos = useMemo(
+    () => Array.from(new Set(profissionais.map((p) => p.plano).filter(Boolean) as string[])).sort(),
+    [profissionais],
+  );
+
+  const profissionaisFiltrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return profissionais.filter((p) => {
+      if (q) {
+        const email = emailDe(p.user_id).toLowerCase();
+        const matches =
+          p.nome.toLowerCase().includes(q) ||
+          email.includes(q) ||
+          (p.crm ?? '').toLowerCase().includes(q) ||
+          (p.especialidade ?? '').toLowerCase().includes(q);
+        if (!matches) return false;
+      }
+      if (filtroUnidade !== 'all') {
+        if (filtroUnidade === 'sem') { if (p.unidade_id) return false; }
+        else if (p.unidade_id !== filtroUnidade) return false;
+      }
+      if (filtroPlano !== 'all' && p.plano !== filtroPlano) return false;
+      if (filtroPerfil !== 'all') {
+        const perfilCalc = !p.unidade_id
+          ? 'consultorio'
+          : p.perfil_institucional === 'gestor' ? 'gestor' : 'institucional';
+        const ehAdmin = isAdmin(p.user_id);
+        const ehGestorGeral = isGestorGeral(p.user_id);
+        if (filtroPerfil === 'admin' && !ehAdmin) return false;
+        if (filtroPerfil === 'gestor_geral' && !ehGestorGeral) return false;
+        if (['consultorio', 'gestor', 'institucional'].includes(filtroPerfil) && perfilCalc !== filtroPerfil) return false;
+      }
+      return true;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profissionais, busca, filtroUnidade, filtroPlano, filtroPerfil, admins, gestoresGerais, usuariosSistema]);
+
+  const limparFiltros = () => { setBusca(''); setFiltroUnidade('all'); setFiltroPlano('all'); setFiltroPerfil('all'); };
+  const filtrosAtivos = busca || filtroUnidade !== 'all' || filtroPlano !== 'all' || filtroPerfil !== 'all';
+
+  const exportarCSV = () => {
+    const linhas = profissionaisFiltrados;
+    const headers = ['Nome', 'E-mail', 'CRM', 'Especialidade', 'Unidade', 'Perfil institucional', 'Plano', 'Status do plano', 'Admin', 'Gestor geral', 'Cadastrado em'];
+    const escape = (v: unknown) => {
+      const s = v == null ? '' : String(v);
+      return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = linhas.map((p) => [
+      p.nome,
+      emailDe(p.user_id),
+      p.crm ?? '',
+      p.especialidade ?? '',
+      unidadeNome(p.unidade_id),
+      !p.unidade_id ? 'Consultório' : (p.perfil_institucional === 'gestor' ? 'Gestor de unidade' : 'Profissional institucional'),
+      p.plano ?? '',
+      p.plano_status ?? '',
+      isAdmin(p.user_id) ? 'sim' : 'não',
+      isGestorGeral(p.user_id) ? 'sim' : 'não',
+      new Date(p.created_at).toLocaleDateString('pt-BR'),
+    ].map(escape).join(','));
+    const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `profissionais-${ts}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: 'CSV exportado', description: `${linhas.length} ${linhas.length === 1 ? 'profissional' : 'profissionais'} exportado(s).` });
+  };
 
   return (
     <div className="flex h-screen bg-background">
@@ -293,13 +374,76 @@ export default function AdminPage() {
 
           {/* Profissionais */}
           <div className="mb-6 rounded-xl border border-border bg-card p-5">
-            <h2 className="mb-4 font-heading text-base font-semibold text-foreground flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" /> Gestão de profissionais
-            </h2>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-heading text-base font-semibold text-foreground flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" /> Gestão de profissionais
+                <Badge variant="outline" className="ml-1 font-normal">
+                  {profissionaisFiltrados.length}{filtrosAtivos ? ` / ${profissionais.length}` : ''}
+                </Badge>
+              </h2>
+              <Button size="sm" variant="outline" onClick={exportarCSV} disabled={profissionaisFiltrados.length === 0}>
+                <Download className="mr-2 h-4 w-4" /> Exportar CSV
+              </Button>
+            </div>
+
+            {/* Filtros */}
+            <div className="mb-4 grid gap-3 md:grid-cols-12">
+              <div className="relative md:col-span-5">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar por nome, e-mail, CRM…"
+                  className="pl-9"
+                />
+              </div>
+              <div className="md:col-span-3">
+                <Select value={filtroUnidade} onValueChange={setFiltroUnidade}>
+                  <SelectTrigger><SelectValue placeholder="Unidade" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as unidades</SelectItem>
+                    <SelectItem value="sem">Sem unidade (consultório)</SelectItem>
+                    {unidades.map((u) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2">
+                <Select value={filtroPlano} onValueChange={setFiltroPlano}>
+                  <SelectTrigger><SelectValue placeholder="Plano" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os planos</SelectItem>
+                    {planosUnicos.map((pl) => <SelectItem key={pl} value={pl}>{pl}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2">
+                <Select value={filtroPerfil} onValueChange={setFiltroPerfil}>
+                  <SelectTrigger><SelectValue placeholder="Perfil" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os perfis</SelectItem>
+                    <SelectItem value="consultorio">Consultório</SelectItem>
+                    <SelectItem value="institucional">Institucional</SelectItem>
+                    <SelectItem value="gestor">Gestor de unidade</SelectItem>
+                    <SelectItem value="gestor_geral">Gestor geral</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {filtrosAtivos && (
+              <div className="mb-3 flex justify-end">
+                <Button size="sm" variant="ghost" onClick={limparFiltros}>
+                  <X className="mr-1 h-3 w-3" /> Limpar filtros
+                </Button>
+              </div>
+            )}
+
             {loading ? (
               <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
-            ) : profissionais.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">Nenhum profissional cadastrado</p>
+            ) : profissionaisFiltrados.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                {profissionais.length === 0 ? 'Nenhum profissional cadastrado' : 'Nenhum resultado para os filtros aplicados'}
+              </p>
             ) : (
               <Table>
                 <TableHeader>
@@ -307,12 +451,13 @@ export default function AdminPage() {
                     <TableHead>Nome</TableHead>
                     <TableHead>Unidade</TableHead>
                     <TableHead>Perfil</TableHead>
+                    <TableHead>Plano</TableHead>
                     <TableHead>Privilégios</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {profissionais.map((p) => (
+                  {profissionaisFiltrados.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>
                         <div className="font-medium">{p.nome}</div>
@@ -323,6 +468,14 @@ export default function AdminPage() {
                         {p.unidade_id
                           ? (p.perfil_institucional === 'gestor' ? 'Gestor de unidade' : 'Profissional institucional')
                           : 'Consultório'}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-medium">{p.plano ?? '—'}</span>
+                          {p.plano_status && p.plano_status !== 'ativo' && (
+                            <Badge variant="outline" className="w-fit text-[10px]">{p.plano_status}</Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
