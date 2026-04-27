@@ -512,6 +512,45 @@ export type Database = {
           },
         ]
       }
+      relatorios_unidade: {
+        Row: {
+          arquivo_path: string
+          arquivo_tamanho_bytes: number | null
+          created_at: string
+          gestor_id: string
+          id: string
+          metricas_resumo: Json | null
+          periodo_fim: string
+          periodo_inicio: string
+          tipo: string
+          unidade_id: string
+        }
+        Insert: {
+          arquivo_path: string
+          arquivo_tamanho_bytes?: number | null
+          created_at?: string
+          gestor_id: string
+          id?: string
+          metricas_resumo?: Json | null
+          periodo_fim: string
+          periodo_inicio: string
+          tipo?: string
+          unidade_id: string
+        }
+        Update: {
+          arquivo_path?: string
+          arquivo_tamanho_bytes?: number | null
+          created_at?: string
+          gestor_id?: string
+          id?: string
+          metricas_resumo?: Json | null
+          periodo_fim?: string
+          periodo_inicio?: string
+          tipo?: string
+          unidade_id?: string
+        }
+        Relationships: []
+      }
       unidades: {
         Row: {
           created_at: string
