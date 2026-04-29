@@ -162,12 +162,15 @@ Deno.serve(async (req) => {
       await supabase.from("profissionais").update(dados).eq("id", exist.id);
       return exist.id as string;
     }
-    const { data: novo } = await supabase
+    const { data: novo, error: insErr } = await supabase
       .from("profissionais")
       .insert({ user_id: userId, ...dados })
       .select("id")
       .single();
-    return novo!.id as string;
+    if (insErr || !novo) {
+      throw new Error(`profissionais insert falhou para ${userId}: ${JSON.stringify(insErr)}`);
+    }
+    return novo.id as string;
   };
 
   const profProId = await upsertProf(ids.consultorio_pro, {
