@@ -71,6 +71,7 @@ const navItemsClinical: NavItem[] = [
 const navItemsAdmin: NavItem[] = [
   { labelKey: 'nav.plans', icon: CreditCard, path: '/planos' },
   { labelKey: 'nav.profile', icon: UserCog, path: '/perfil' },
+  { labelKey: 'Meus Cursos', icon: GraduationCap, path: '/meus-cursos' },
 ];
 
 export default function AppShellClinico() {
