@@ -43,39 +43,14 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            {/* Vitrine (preview sem login) */}
-            <Route path="/" element={<PreviewHubPage />} />
-            <Route path="/vitrine" element={<Navigate to="/" replace />} />
-            <Route path="/vitrine/completar-perfil" element={<PreviewCompletarPerfilPage />} />
-            <Route path="/vitrine/gestao" element={<GestaoPage />} />
-            <Route path="/vitrine/gestao/equipe" element={<PreviewGestaoEquipePage />} />
-            <Route path="/vitrine/consolidar" element={<ConsolidarPage />} />
-            <Route path="/vitrine/cadastro-convite" element={<PreviewCadastroConvitePage />} />
-
-            {/* Vitrine com App Shell */}
-            <Route element={<PreviewAppShell />}>
-              <Route path="/vitrine/dashboard" element={<DashboardPage />} />
-              <Route path="/vitrine/dashboard/metricas" element={<DashboardMetricasPage />} />
-              <Route path="/vitrine/paciente/:id" element={<PacientePage />} />
-              <Route path="/vitrine/planos" element={<PlanosPage />} />
-              <Route path="/vitrine/perfil" element={<PerfilPage />} />
-            </Route>
-
-            {/* Redirects /preview → /vitrine */}
-            <Route path="/preview" element={<Navigate to="/" replace />} />
-            <Route path="/preview/completar-perfil" element={<Navigate to="/vitrine/completar-perfil" replace />} />
-            <Route path="/preview/dashboard" element={<Navigate to="/vitrine/dashboard" replace />} />
-            <Route path="/preview/gestao" element={<Navigate to="/vitrine/gestao" replace />} />
-            <Route path="/preview/gestao/equipe" element={<Navigate to="/vitrine/gestao/equipe" replace />} />
-            <Route path="/preview/consolidar" element={<Navigate to="/vitrine/consolidar" replace />} />
-            <Route path="/preview/cadastro-convite" element={<Navigate to="/vitrine/cadastro-convite" replace />} />
+            {/* Domínio raiz redireciona para login */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
 
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/recuperar-senha" element={<RecuperarSenhaPage />} />
             <Route path="/nova-senha" element={<NovaSenhaPage />} />
             <Route path="/reset-password" element={<Navigate to="/nova-senha" replace />} />
-            <Route path="/convite/token-exemplo-preview" element={<Navigate to="/vitrine/cadastro-convite" replace />} />
             <Route path="/convite/:token" element={<CadastroConvitePage />} />
 
             {/* App Shell do profissional clínico — rotas clínicas (consultorio + institucional) */}
