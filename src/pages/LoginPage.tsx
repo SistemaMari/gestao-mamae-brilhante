@@ -160,7 +160,7 @@ export default function LoginPage() {
         <div className="mt-4 text-center">
           <p className="text-sm text-muted-foreground">
             {t('auth.previewCta')}{' '}
-            <Link to="/" className="font-medium text-primary transition-colors hover:opacity-80">
+            <Link to="/vitrine" className="font-medium text-primary transition-colors hover:opacity-80">
               {t('auth.previewLink')}
             </Link>
           </p>
