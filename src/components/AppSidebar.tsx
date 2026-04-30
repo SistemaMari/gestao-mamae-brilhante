@@ -18,11 +18,13 @@ const navByProfile: Record<string, NavItem[]> = {
     { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { label: 'Fichas', icon: FileText, path: '/dashboard' },
     { label: 'Configurações', icon: Settings, path: '/dashboard' },
+    { label: 'Meus Cursos', icon: GraduationCap, path: '/meus-cursos' },
   ],
   institucional: [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { label: 'Fichas', icon: FileText, path: '/dashboard' },
     { label: 'Configurações', icon: Settings, path: '/dashboard' },
+    { label: 'Meus Cursos', icon: GraduationCap, path: '/meus-cursos' },
   ],
   gestor: [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/gestao' },
