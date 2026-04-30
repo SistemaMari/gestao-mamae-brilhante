@@ -92,6 +92,7 @@ const App = () => (
               <Route path="/paciente/:id" element={<PacientePage />} />
               <Route path="/laudos" element={<HistoricoLaudosPage />} />
               <Route path="/laudo/:id" element={<LaudoViewerPage />} />
+              <Route path="/meus-cursos" element={<MeusCursosPage />} />
             </Route>
 
             {/* Planos — exclusivo do consultório */}
