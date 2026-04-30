@@ -24,7 +24,7 @@ import PlanosPage from "./pages/PlanosPage";
 import CompletarPerfilPage from "./pages/CompletarPerfilPage";
 import GestaoEquipePage from "./pages/GestaoEquipePage";
 import CadastroConvitePage from "./pages/CadastroConvitePage";
-import BaseConhecimentoPage from "./pages/BaseConhecimentoPage";
+
 import OnboardingPage from "./pages/OnboardingPage";
 import PreviewHubPage, {
   PreviewCompletarPerfilPage,
