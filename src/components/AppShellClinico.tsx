@@ -7,7 +7,7 @@ import { useSyncLanguageWithProfile } from '@/hooks/useSyncLanguageWithProfile';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Users, UserPlus, CreditCard, UserCog, LogOut, Menu, X,
-  ChevronRight, User, Loader2, BarChart3, FileText
+  ChevronRight, User, Loader2, BarChart3, FileText, GraduationCap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,7 @@ function useBreadcrumb() {
   if (path === '/completar-perfil') return { parent: null, current: t('profile.title') };
   if (path === '/dashboard/metricas') return { parent: null, current: t('nav.metrics') };
   if (path === '/laudos') return { parent: null, current: t('nav.history') };
+  if (path === '/meus-cursos') return { parent: null, current: 'Meus Cursos' };
   return null;
 }
 
@@ -70,6 +71,7 @@ const navItemsClinical: NavItem[] = [
 const navItemsAdmin: NavItem[] = [
   { labelKey: 'nav.plans', icon: CreditCard, path: '/planos' },
   { labelKey: 'nav.profile', icon: UserCog, path: '/perfil' },
+  { labelKey: 'Meus Cursos', icon: GraduationCap, path: '/meus-cursos' },
 ];
 
 export default function AppShellClinico() {

@@ -1,144 +1,62 @@
-## Etapa 1 — Reformular estrutura de planos no banco
+## Etapa final — "Meus Cursos" no shell real + tornar o domínio raiz privado
 
-Apenas alterações de banco. Frontend fica pra Etapas 2 e 3.
+### Parte A — Adicionar "Meus Cursos" no AppShellClinico (shell real)
 
-### Migration única (uma migration consolidando tudo)
+Arquivo: `src/components/AppShellClinico.tsx`
 
-**1. Criar tabela `planos`**
+1. Importar `GraduationCap` do `lucide-react` (linha de imports já tem `Users, UserPlus, CreditCard, ...`).
+2. Adicionar item ao array `navItemsAdmin` (após `nav.profile`):
+   ```ts
+   { labelKey: 'nav.myCourses', icon: GraduationCap, path: '/meus-cursos' },
+   ```
+   Como `t('nav.myCourses')` ainda não existe nos JSON de i18n, o react-i18next cai no fallback e exibe a chave. Para evitar isso sem editar locales, vou usar string literal: passar `labelKey: 'Meus Cursos'` continua funcionando porque `t('Meus Cursos')` retorna a própria chave quando não há tradução. **Decisão**: usar `labelKey: 'Meus Cursos'` (literal), igual ao padrão já tolerado pelo projeto. Sem mexer em arquivos de tradução.
+3. Em `useBreadcrumb()`, adicionar:
+   ```ts
+   if (path === '/meus-cursos') return { parent: null, current: 'Meus Cursos' };
+   ```
 
-```sql
-CREATE TABLE public.planos (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug text UNIQUE NOT NULL,
-  nome text NOT NULL,
-  preco_mensal numeric(10,2) NOT NULL,
-  laudos_por_mes integer NOT NULL,
-  pacientes_max integer,
-  suporte text NOT NULL,
-  cursos_inclusos text[] NOT NULL DEFAULT '{}',
-  ordem integer NOT NULL,
-  ativo boolean NOT NULL DEFAULT true,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
+Arquivo: `src/App.tsx` — a rota `/meus-cursos` **já está registrada** (linha 95). Nada a fazer aqui na Parte A.
 
-ALTER TABLE public.planos ENABLE ROW LEVEL SECURITY;
+### Parte B — Tornar o domínio raiz privado e remover a vitrine
 
-CREATE TRIGGER planos_set_updated_at
-  BEFORE UPDATE ON public.planos
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-```
+**B.1 — Arquivos a DELETAR:**
+- `src/pages/PreviewHubPage.tsx` (contém `PreviewHubPage`, `PreviewCompletarPerfilPage`, `PreviewGestaoEquipePage`, `PreviewCadastroConvitePage`)
+- `src/components/PreviewAppShell.tsx`
 
-Seed:
-```sql
-INSERT INTO public.planos (slug, nome, preco_mensal, laudos_por_mes, pacientes_max, suporte, cursos_inclusos, ordem) VALUES
-  ('inicial',       'Inicial',       79.00,  10,  NULL, 'email',       ARRAY['hiperglicemia'], 1),
-  ('intermediaria', 'Intermediária', 139.00, 35,  NULL, 'email',       ARRAY['hiperglicemia','insulinoterapia'], 2),
-  ('profissional',  'Profissional',  299.00, 100, NULL, 'prioritario', ARRAY['hiperglicemia','insulinoterapia','novos-paradigmas-dmg'], 3);
-```
+**B.2 — Arquivo a MANTER (apesar do nome):**
+- `src/lib/previewPatients.ts` — **NÃO deletar.** Apesar do nome, é usado por páginas/componentes reais autenticados:
+  - `src/pages/DashboardPage.tsx`, `src/pages/FichaPacientePage.tsx`
+  - `src/components/FichaACForm.tsx`, `FichaBDForm.tsx`, `FichaACResultCard.tsx`, `GttForm.tsx`, `GttResultCard.tsx`, `Consulta1Form.tsx`, `Retorno1Form.tsx`, `Retorno1ResultCard.tsx`, `RegistroPartoForm.tsx`, `RegistroPartoReadOnlyCard.tsx`
+  - Esses arquivos importam tipos (`PreviewConsulta`, `PreviewPaciente`) e helpers que hoje fazem parte do fluxo real. Removê-lo quebraria o sistema autenticado. Renomear/refatorar fica fora do escopo desta etapa.
 
-**2. Adicionar `plano_id` em `profissionais`**
+**B.3 — Rotas a REMOVER do `src/App.tsx`** (linhas 52–77):
+- `<Route path="/" element={<PreviewHubPage />} />` (linha 53) → substituir por `<Route path="/" element={<Navigate to="/login" replace />} />`
+- `<Route path="/vitrine" ... />` (54)
+- `<Route path="/vitrine/completar-perfil" ... />` (55)
+- `<Route path="/vitrine/gestao" ... />` (56)
+- `<Route path="/vitrine/gestao/equipe" ... />` (57)
+- `<Route path="/vitrine/consolidar" ... />` (58)
+- `<Route path="/vitrine/cadastro-convite" ... />` (59)
+- Bloco `<Route element={<PreviewAppShell />}>...</Route>` (62–68) — todas as 5 rotas `/vitrine/*` internas
+- Redirects `/preview/*` (71–77) — todos os 7 redirects
+- `<Route path="/convite/token-exemplo-preview" ... />` (84) — redirect para vitrine, perde o sentido
 
-```sql
-ALTER TABLE public.profissionais ADD COLUMN plano_id uuid REFERENCES public.planos(id);
+**B.4 — Imports órfãos a REMOVER do `src/App.tsx`:**
+- Linhas 29–33: `import PreviewHubPage, { PreviewCompletarPerfilPage, PreviewGestaoEquipePage, PreviewCadastroConvitePage } from "./pages/PreviewHubPage";`
+- Linha 34: `import PreviewAppShell from "./components/PreviewAppShell";`
+- `Navigate` continua sendo usado (no novo redirect de `/` e no redirect de `/reset-password`), portanto mantém.
 
-UPDATE public.profissionais
-SET plano_id = (SELECT id FROM public.planos WHERE slug = 'inicial');
+### Confirmações
 
-ALTER TABLE public.profissionais ALTER COLUMN plano_id SET NOT NULL;
-```
+1. **Páginas reais não tocadas**: `DashboardPage`, `DashboardMetricasPage`, `PlanosPage`, `PerfilPage`, `MeusCursosPage`, `PacientePage`, `HistoricoLaudosPage`, `LaudoViewerPage`, `GestaoPage`, `GestaoEquipePage`, `ConsolidarPage`, `CadastroConvitePage`, `CompletarPerfilPage`, `OnboardingPage`, todo o `admin/*`. Nenhum desses arquivos será modificado.
+2. **Rotas autenticadas intactas**: blocos `<ProtectedRoute>` (linhas 88–134) permanecem byte-a-byte iguais.
+3. **`/login` permanece funcional**: `LoginPage` continua importada e mapeada em `<Route path="/login" .../>`.
+4. **Outras sidebars não tocadas**: `AdminSidebar`, `AppSidebar`, etc. permanecem inalteradas.
+5. **Após mudança**: acessar `https://gestao-mamae-brilhante.lovable.app/` redireciona para `/login`. Acessar qualquer `/vitrine/*` ou `/preview/*` cai em `NotFound` (catch-all `*`).
 
-Campo legado `plano` (text) **mantido** — será dropado em prompt futuro.
+### Resumo das alterações
+- **Editar**: `src/components/AppShellClinico.tsx` (1 import + 1 item de nav + 1 linha breadcrumb), `src/App.tsx` (remover ~25 linhas de rotas + 2 imports, trocar rota `/`).
+- **Deletar**: `src/pages/PreviewHubPage.tsx`, `src/components/PreviewAppShell.tsx`.
+- **Manter**: `src/lib/previewPatients.ts` (dependência de código real — fora de escopo refatorar).
 
-**3. Sincronizar `laudos_limite` e zerar `laudos_usados`**
-
-```sql
-UPDATE public.profissionais p
-SET laudos_limite = pl.laudos_por_mes,
-    laudos_usados = 0
-FROM public.planos pl
-WHERE p.plano_id = pl.id;
-```
-
-**4. Atualizar `pode_criar_ficha`** — remover limite de 3 pacientes do extinto Free. Como agora todos os planos têm pacientes ilimitados, a função passa a retornar sempre `true` (mantida por compatibilidade com código que ainda chama):
-
-```sql
-CREATE OR REPLACE FUNCTION public.pode_criar_ficha(p_profissional_id uuid)
-RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
-AS $$
-  SELECT EXISTS (SELECT 1 FROM profissionais WHERE id = p_profissional_id);
-$$;
-```
-
-`pode_gerar_laudo` permanece inalterada — já lê `laudos_limite`/`laudos_usados` direto do profissional, que continuam existindo e foram sincronizados.
-
-**5. Criar tabela `tipos_unidade` + coluna `tipo_id` em `unidades`**
-
-```sql
-CREATE TABLE public.tipos_unidade (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug text UNIQUE NOT NULL,
-  nome text NOT NULL,
-  ativo boolean NOT NULL DEFAULT true,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-ALTER TABLE public.tipos_unidade ENABLE ROW LEVEL SECURITY;
-
-INSERT INTO public.tipos_unidade (slug, nome) VALUES
-  ('ubs','UBS'),
-  ('usf','USF'),
-  ('hospital','Hospital'),
-  ('hospital-universitario','Hospital Universitário'),
-  ('maternidade','Maternidade'),
-  ('clinica-particular','Clínica Particular'),
-  ('clinica-da-familia','Clínica da Família'),
-  ('plano-de-saude','Plano de Saúde'),
-  ('consultorio','Consultório'),
-  ('outro','Outro');
-
-ALTER TABLE public.unidades ADD COLUMN tipo_id uuid REFERENCES public.tipos_unidade(id);
-
-UPDATE public.unidades SET tipo_id = (SELECT id FROM public.tipos_unidade WHERE slug='hospital')   WHERE tipo='hospital';
-UPDATE public.unidades SET tipo_id = (SELECT id FROM public.tipos_unidade WHERE slug='maternidade') WHERE tipo='maternidade';
-```
-
-Campo legado `tipo` (text) em `unidades` **mantido**.
-
-**6. RLS**
-
-`planos` — leitura para qualquer autenticado; escrita apenas admin (via `has_role` / `is_admin`):
-```sql
-CREATE POLICY "Planos visiveis para autenticados" ON public.planos
-  FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Admins inserem planos" ON public.planos
-  FOR INSERT TO authenticated WITH CHECK (public.is_admin(auth.uid()));
-CREATE POLICY "Admins atualizam planos" ON public.planos
-  FOR UPDATE TO authenticated USING (public.is_admin(auth.uid()));
-CREATE POLICY "Admins removem planos" ON public.planos
-  FOR DELETE TO authenticated USING (public.is_admin(auth.uid()));
-```
-
-`tipos_unidade` — mesmas 4 policies análogas.
-
-### Verificação pós-migration (queries de leitura)
-
-- `SELECT count(*) FROM planos` → 3
-- `SELECT count(*) FROM tipos_unidade` → 10
-- `SELECT count(*) FROM profissionais WHERE plano_id IS NULL` → 0
-- `SELECT count(*) FROM unidades WHERE tipo_id IS NULL` → 0
-- `SELECT laudos_limite, laudos_usados FROM profissionais` → todos com 10/0 (Inicial)
-- `SELECT pode_criar_ficha(id), pode_gerar_laudo(id) FROM profissionais LIMIT 1` → executa sem erro
-
-### Fora de escopo (confirmado)
-
-- PlanosPage.tsx (Etapa 2)
-- Sidebar profissional + aba Meus Cursos (Etapa 3)
-- Tela admin de tipos de unidade
-- Tabela `assinaturas` e webhook Asaas (Lucas)
-- Drop dos campos legados `plano` e `tipo`
-
-### Critérios de aceite
-
-Todos os listados no prompt — atendidos pelos passos acima.
+Aguardando aprovação para executar.
