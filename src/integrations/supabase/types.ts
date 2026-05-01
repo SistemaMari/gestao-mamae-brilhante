@@ -975,6 +975,7 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_gestor_geral: { Args: { _user_id: string }; Returns: boolean }
+      metricas_diagnosticos_admin: { Args: never; Returns: Json }
       pode_criar_ficha: {
         Args: { p_profissional_id: string }
         Returns: boolean
