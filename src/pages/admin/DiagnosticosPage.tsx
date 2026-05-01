@@ -3,7 +3,6 @@ import {
   ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   PieChart, Pie, Cell,
-  BarChart, Bar,
 } from "recharts";
 import { Loader2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
