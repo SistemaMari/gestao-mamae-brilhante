@@ -11,18 +11,25 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const items = [
-  { title: "Visão Geral", url: "/admin", icon: BarChart3, exact: true },
-  { title: "Diagnósticos", url: "/admin/diagnosticos", icon: Map, exact: false },
-  { title: "Filtros e Exportação", url: "/admin/exportar", icon: Download, exact: false },
-  { title: "Administradores", url: "/admin/admins", icon: Users, exact: false },
-  { title: "Contas Institucionais", url: "/admin/institucionais", icon: Building2, exact: false },
+const baseItems = [
+  { title: "Visão Geral", path: "", icon: BarChart3, exact: true },
+  { title: "Diagnósticos", path: "/diagnosticos", icon: Map, exact: false },
+  { title: "Filtros e Exportação", path: "/exportar", icon: Download, exact: false },
+  { title: "Administradores", path: "/admins", icon: Users, exact: false },
+  { title: "Contas Institucionais", path: "/institucionais", icon: Building2, exact: false },
 ];
 
 export function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
+
+  // Detecta se estamos no modo vitrine para prefixar as URLs.
+  const prefix = pathname.startsWith("/vitrine/admin") ? "/vitrine/admin" : "/admin";
+  const items = baseItems.map((it) => ({
+    ...it,
+    url: it.path === "" ? prefix : `${prefix}${it.path}`,
+  }));
 
   const isActive = (url: string, exact: boolean) =>
     exact ? pathname === url : pathname === url || pathname.startsWith(`${url}/`);
