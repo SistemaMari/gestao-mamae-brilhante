@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { CardResumo } from "@/components/admin/CardResumo";
 import { PlaceholderSecao } from "@/components/admin/PlaceholderSecao";
 import { supabase } from "@/integrations/supabase/client";
+import { mockVisaoGeral } from "@/lib/mockVisaoGeral";
 
 interface Resumo {
   profissionais: number | null;
@@ -11,6 +13,9 @@ interface Resumo {
 }
 
 export default function VisaoGeralPage() {
+  const { pathname } = useLocation();
+  const isPreview = pathname.startsWith("/vitrine");
+
   const [resumo, setResumo] = useState<Resumo>({
     profissionais: null,
     unidades: null,
@@ -21,6 +26,12 @@ export default function VisaoGeralPage() {
 
   useEffect(() => {
     let cancelado = false;
+
+    if (isPreview) {
+      setResumo(mockVisaoGeral);
+      setLoading(false);
+      return;
+    }
 
     const carregar = async () => {
       const [profs, unids, pacs, lauds] = await Promise.all([
@@ -46,7 +57,7 @@ export default function VisaoGeralPage() {
     return () => {
       cancelado = true;
     };
-  }, []);
+  }, [isPreview]);
 
   return (
     <div className="space-y-8">
