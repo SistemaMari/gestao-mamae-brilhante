@@ -1,39 +1,44 @@
-## Diagnóstico
+## Problema
 
-A tela de Diagnósticos está renderizando o erro **"Não foi possível carregar as métricas: forbidden"**.
+A `/vitrine/admin` (Visão Geral) mostra `0` em todos os cards porque a página faz `count('*', { head: true })` direto em `profissionais`, `unidades`, `pacientes` e `laudos`. Sem login, RLS bloqueia tudo e o count volta zero (sem erro — por isso não aparece toast vermelho como aconteceu em Diagnósticos).
 
-Isso é o comportamento correto da RPC `metricas_diagnosticos_admin` — ela tem este bloqueio no início:
+Mesma estratégia já aplicada em `DiagnosticosPage`: detectar `/vitrine` e injetar mock localmente.
 
-```sql
-IF NOT public.is_admin(auth.uid()) THEN
-  RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501';
-END IF;
+## Arquivos a alterar
+
+### 1. `src/lib/mockVisaoGeral.ts` (novo)
+
+```ts
+export const mockVisaoGeral = {
+  profissionais: 84,
+  unidades: 12,
+  pacientes: 1248,   // bate com total_gestantes do mock de Diagnósticos
+  laudos: 3672,
+};
 ```
 
-Como você está acessando via `/vitrine/admin/diagnosticos` (vitrine pública, sem login ou logado como conta que não está na tabela `admins`), o `auth.uid()` não passa em `is_admin(...)` e a função aborta. A página então cai no branch de erro, mostrando o card vermelho.
+### 2. `src/pages/admin/VisaoGeralPage.tsx`
 
-**Não é regressão da página em si** — todo o layout, gráficos e cards continuam intactos. Falta apenas alimentar a página com dados quando estamos em modo vitrine.
+- Importar `useLocation` e `mockVisaoGeral`.
+- `const isPreview = pathname.startsWith('/vitrine')`.
+- No `useEffect`:
+  - Se `isPreview` → `setResumo(mockVisaoGeral)`, `setLoading(false)`, `return` (sem chamar Supabase).
+  - Senão → fluxo atual permanece (4 queries em paralelo).
+- `PlaceholderSecao "Métricas gerais — em breve"` permanece igual nos dois modos.
 
-## Solução
+## O que não muda
 
-Fazer a `DiagnosticosPage` detectar `/vitrine` e, nesse caso, exibir **dados de demonstração mockados** localmente — sem chamar a RPC. Mesmo padrão que o `DashboardPage` já usa (`isPreview = pathname.startsWith('/vitrine')`).
-
-A RPC e a tela real de admin (`/admin/diagnosticos`) ficam intactas.
-
-### Arquivos a alterar
-
-1. **`src/lib/mockMetricasDiagnosticos.ts`** (novo) — objeto com a mesma forma do JSON da RPC, preenchido com números plausíveis (~1.248 gestantes, ~187 DMG, evolução de 12 meses, top estados/cidades/unidades, desfechos perinatais). Serve apenas para a vitrine.
-
-2. **`src/pages/admin/DiagnosticosPage.tsx`**:
-   - Importar `useLocation` e o mock.
-   - Adicionar `const isPreview = pathname.startsWith('/vitrine')`.
-   - No `useEffect`: se `isPreview`, setar `dados = mock` e `loading = false`, **sem** chamar a RPC.
-   - Caso contrário, fluxo atual permanece (chama RPC, trata erro).
-
-Nada de migração, nada de RLS, nada de mexer na função SQL.
+- Rota `/admin` real continua usando queries com RLS — admin de verdade vê dados de verdade.
+- Sem migração, sem mexer em RLS, sem novas RPCs.
+- Outras páginas admin vazias (Institucionais, Admins, Exportar) ficam para um próximo passe — não fazem parte deste plano.
 
 ## Resultado esperado
 
-- `/vitrine/admin/diagnosticos` mostra o painel completo populado com dados de exemplo (cards, evolução mensal, pizzas, funil, tabelas regionais).
-- `/admin/diagnosticos` (admin de verdade) continua usando a RPC real, com os bloqueios de admin intactos.
-- Sem alterações de backend / segurança.
+`/vitrine/admin` exibe:
+- Total de profissionais: **84**
+- Total de unidades: **12**
+- Total de pacientes: **1.248**
+- Total de laudos gerados: **3.672**
+- Card "Métricas gerais — em breve" mantido abaixo.
+
+`/admin` (autenticado): inalterado.
