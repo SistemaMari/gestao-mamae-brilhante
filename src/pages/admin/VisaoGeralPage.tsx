@@ -13,12 +13,25 @@ interface Resumo {
 }
 
 export default function VisaoGeralPage() {
+  const { pathname } = useLocation();
+  const isPreview = pathname.startsWith("/vitrine");
+
   const [resumo, setResumo] = useState<Resumo>({
     profissionais: null,
     unidades: null,
     pacientes: null,
     laudos: null,
   });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+
+    if (isPreview) {
+      setResumo(mockVisaoGeral);
+      setLoading(false);
+      return;
+    }
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
