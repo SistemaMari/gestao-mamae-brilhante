@@ -42,6 +42,7 @@ export default function Consulta1Form() {
   const [dataNascimento, setDataNascimento] = useState('');
   const [tipoIdentificacao, setTipoIdentificacao] = useState('cpf');
   const [numeroId, setNumeroId] = useState('');
+  const [whatsapp, setWhatsapp] = useState(''); // string mascarada (sem DDI)
   const [dum, setDum] = useState('');
   const [dataConsulta, setDataConsulta] = useState(todayISO());
   const [observacoes, setObservacoes] = useState('');
