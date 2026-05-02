@@ -361,6 +361,7 @@ export default function FichaPacientePage() {
     setEditNome(paciente.nome);
     setEditDataNascimento(paciente.data_nascimento || '');
     setEditNumeroId(paciente.numero_identificacao || '');
+    setEditWhatsapp(deCanonicoParaInput((paciente as any).whatsapp));
     setEditDmgAnterior(!!paciente.dmg_gestacao_anterior);
     setEditDataConsulta(primeiraConsulta.data);
     setEditObservacoes(primeiraConsulta.observacoes || '');
