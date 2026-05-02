@@ -202,6 +202,15 @@ export default function ConsolidarPage() {
 
   async function carregarRelatorios() {
     if (!gestor) return;
+    if (isVitrine) {
+      // Demo: lista vazia, sem chamada ao Supabase
+      setRelatorios([]);
+      setCarregandoRelatorios(false);
+      setSelecionadosRel(new Set());
+      setResultado(null);
+      setErroConsolidacao(null);
+      return;
+    }
     setCarregandoRelatorios(true);
     setSelecionadosRel(new Set());
     setResultado(null);
