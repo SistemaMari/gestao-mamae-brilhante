@@ -385,7 +385,37 @@ export default function Consulta1Form() {
             </div>
           </div>
 
-          {/* País / Estado / Cidade */}
+          {/* WhatsApp (opcional) */}
+          <div className="space-y-2">
+            <FieldLabel
+              htmlFor="whatsapp"
+              tooltip="Opcional. DDD + número, 10 ou 11 dígitos. DDI brasileiro (+55) é fixo."
+            >
+              WhatsApp
+            </FieldLabel>
+            <div className="flex items-stretch gap-2">
+              <span className="flex shrink-0 items-center rounded-md border border-input bg-muted px-3 text-sm font-medium text-muted-foreground">
+                +55
+              </span>
+              <Input
+                id="whatsapp"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(mascararWhatsappBR(e.target.value))}
+                placeholder="(11) 91234-5678"
+                className={`flex-1 ${
+                  touched && !whatsappValidacao.ok ? 'border-destructive focus-visible:ring-destructive' : ''
+                }`}
+                aria-invalid={touched && !whatsappValidacao.ok}
+              />
+            </div>
+            {touched && !whatsappValidacao.ok && whatsappValidacao.mensagem && (
+              <p className="text-xs text-destructive">{whatsappValidacao.mensagem}</p>
+            )}
+          </div>
+
           <div className="space-y-2">
             <FieldLabel tooltip="Local de residência da paciente. A lista de estados e cidades muda conforme o país.">
               Localização
