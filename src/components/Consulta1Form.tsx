@@ -69,7 +69,9 @@ export default function Consulta1Form() {
   const isOutro = pais === 'Outro';
   const { cidades: cityList } = useCidadesIBGE(pais, estado);
 
-  const isValid = nome.trim() && dataNascimento && dum && dataConsulta && dmgAnterior !== null;
+  const whatsappValidacao = validarWhatsappBR(whatsapp);
+  const isValid =
+    nome.trim() && dataNascimento && dum && dataConsulta && dmgAnterior !== null && whatsappValidacao.ok;
 
   // Mínimo para começar a salvar rascunho: nome + DUM
   const canAutosave =
