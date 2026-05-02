@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppShellClinico from "@/components/AppShellClinico";
+import PlanoGuard from "@/components/PlanoGuard";
 import LoginPage from "./pages/LoginPage";
 import RecuperarSenhaPage from "./pages/RecuperarSenhaPage";
 import NovaSenhaPage from "./pages/NovaSenhaPage";
@@ -93,7 +94,19 @@ const App = () => (
             {/* App Shell do profissional clínico — rotas clínicas (consultorio + institucional) */}
             <Route element={<ProtectedRoute allowedProfiles={['consultorio', 'institucional']}><AppShellClinico /></ProtectedRoute>}>
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/dashboard/metricas" element={<DashboardMetricasPage />} />
+              <Route
+                path="/dashboard/metricas"
+                element={
+                  <PlanoGuard
+                    planosPermitidos={['profissional']}
+                    nomePlanoNecessario="Profissional"
+                    titulo="Dashboard analítico"
+                    descricao="Acompanhe métricas avançadas do seu consultório: evolução de pacientes, taxas de controle, desfechos. Disponível no plano Profissional."
+                  >
+                    <DashboardMetricasPage />
+                  </PlanoGuard>
+                }
+              />
               <Route path="/paciente/nova" element={<PacientePage />} />
               <Route path="/paciente/:id" element={<PacientePage />} />
               <Route path="/laudos" element={<HistoricoLaudosPage />} />
