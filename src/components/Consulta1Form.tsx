@@ -19,6 +19,11 @@ import {
 import { Info, Loader2, FileText } from 'lucide-react';
 import { differenceInYears } from 'date-fns';
 import { todayLocalISO, parseDateLocal } from '@/lib/dateUtils';
+import {
+  mascararWhatsappBR,
+  validarWhatsappBR,
+  paraFormatoCanonico,
+} from '@/lib/whatsapp';
 import { useAutosave } from '@/hooks/useAutosave';
 import AutosaveIndicator from '@/components/AutosaveIndicator';
 
@@ -37,6 +42,7 @@ export default function Consulta1Form() {
   const [dataNascimento, setDataNascimento] = useState('');
   const [tipoIdentificacao, setTipoIdentificacao] = useState('cpf');
   const [numeroId, setNumeroId] = useState('');
+  const [whatsapp, setWhatsapp] = useState(''); // string mascarada (sem DDI)
   const [dum, setDum] = useState('');
   const [dataConsulta, setDataConsulta] = useState(todayISO());
   const [observacoes, setObservacoes] = useState('');
@@ -63,7 +69,9 @@ export default function Consulta1Form() {
   const isOutro = pais === 'Outro';
   const { cidades: cityList } = useCidadesIBGE(pais, estado);
 
-  const isValid = nome.trim() && dataNascimento && dum && dataConsulta && dmgAnterior !== null;
+  const whatsappValidacao = validarWhatsappBR(whatsapp);
+  const isValid =
+    nome.trim() && dataNascimento && dum && dataConsulta && dmgAnterior !== null && whatsappValidacao.ok;
 
   // Mínimo para começar a salvar rascunho: nome + DUM
   const canAutosave =
@@ -75,6 +83,7 @@ export default function Consulta1Form() {
       dataNascimento,
       tipoIdentificacao,
       numeroId: numeroId.trim(),
+      whatsapp: paraFormatoCanonico(whatsapp),
       dum,
       dataConsulta,
       observacoes: observacoes.trim(),
@@ -83,7 +92,7 @@ export default function Consulta1Form() {
       estado,
       cidade,
     }),
-    [nome, dataNascimento, tipoIdentificacao, numeroId, dum, dataConsulta, observacoes, dmgAnterior, pais, estado, cidade],
+    [nome, dataNascimento, tipoIdentificacao, numeroId, whatsapp, dum, dataConsulta, observacoes, dmgAnterior, pais, estado, cidade],
   );
 
   const { status: autosaveStatus } = useAutosave({
@@ -97,6 +106,7 @@ export default function Consulta1Form() {
         data_nascimento: d.dataNascimento || null,
         numero_identificacao: d.numeroId || null,
         tipo_identificacao: d.tipoIdentificacao,
+        whatsapp: d.whatsapp,
         dum: d.dum,
         pais: d.pais,
         estado: d.estado || null,
@@ -202,6 +212,7 @@ export default function Consulta1Form() {
       data_nascimento: dataNascimento,
       numero_identificacao: numeroId.trim() || null,
       tipo_identificacao: tipoIdentificacao,
+      whatsapp: paraFormatoCanonico(whatsapp),
       dum,
       pais,
       estado: estado || null,
@@ -374,7 +385,37 @@ export default function Consulta1Form() {
             </div>
           </div>
 
-          {/* País / Estado / Cidade */}
+          {/* WhatsApp (opcional) */}
+          <div className="space-y-2">
+            <FieldLabel
+              htmlFor="whatsapp"
+              tooltip="Opcional. DDD + número, 10 ou 11 dígitos. DDI brasileiro (+55) é fixo."
+            >
+              WhatsApp
+            </FieldLabel>
+            <div className="flex items-stretch gap-2">
+              <span className="flex shrink-0 items-center rounded-md border border-input bg-muted px-3 text-sm font-medium text-muted-foreground">
+                +55
+              </span>
+              <Input
+                id="whatsapp"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(mascararWhatsappBR(e.target.value))}
+                placeholder="(11) 91234-5678"
+                className={`flex-1 ${
+                  touched && !whatsappValidacao.ok ? 'border-destructive focus-visible:ring-destructive' : ''
+                }`}
+                aria-invalid={touched && !whatsappValidacao.ok}
+              />
+            </div>
+            {touched && !whatsappValidacao.ok && whatsappValidacao.mensagem && (
+              <p className="text-xs text-destructive">{whatsappValidacao.mensagem}</p>
+            )}
+          </div>
+
           <div className="space-y-2">
             <FieldLabel tooltip="Local de residência da paciente. A lista de estados e cidades muda conforme o país.">
               Localização

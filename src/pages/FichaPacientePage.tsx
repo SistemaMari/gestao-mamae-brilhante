@@ -17,8 +17,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  AlertTriangle, Calendar, Clock, FileText, Pencil, Plus, User, Loader2,
+  AlertTriangle, Calendar, Clock, FileText, Pencil, Plus, User, Loader2, MessageCircle,
 } from 'lucide-react';
+import {
+  mascararWhatsappBR,
+  validarWhatsappBR,
+  paraFormatoCanonico,
+  deCanonicoParaInput,
+  formatarWhatsappExibicao,
+} from '@/lib/whatsapp';
 import Retorno1Form from '@/components/Retorno1Form';
 import Consulta1ResultCard from '@/components/Consulta1ResultCard';
 import Retorno1ResultCard from '@/components/Retorno1ResultCard';
@@ -208,6 +215,7 @@ export default function FichaPacientePage() {
   const [editNome, setEditNome] = useState('');
   const [editDataNascimento, setEditDataNascimento] = useState('');
   const [editNumeroId, setEditNumeroId] = useState('');
+  const [editWhatsapp, setEditWhatsapp] = useState(''); // mascarado, sem DDI
   const [editDmgAnterior, setEditDmgAnterior] = useState<boolean>(false);
   const [editDataConsulta, setEditDataConsulta] = useState('');
   const [editObservacoes, setEditObservacoes] = useState('');
@@ -353,6 +361,7 @@ export default function FichaPacientePage() {
     setEditNome(paciente.nome);
     setEditDataNascimento(paciente.data_nascimento || '');
     setEditNumeroId(paciente.numero_identificacao || '');
+    setEditWhatsapp(deCanonicoParaInput((paciente as any).whatsapp));
     setEditDmgAnterior(!!paciente.dmg_gestacao_anterior);
     setEditDataConsulta(primeiraConsulta.data);
     setEditObservacoes(primeiraConsulta.observacoes || '');
@@ -365,6 +374,14 @@ export default function FichaPacientePage() {
 
   const saveEditing = async () => {
     if (!paciente || !primeiraConsulta || !id) return;
+
+    const whatsappValid = validarWhatsappBR(editWhatsapp);
+    if (!whatsappValid.ok) {
+      toast.error(whatsappValid.mensagem || 'WhatsApp inválido.');
+      return;
+    }
+    const whatsappCanonico = paraFormatoCanonico(editWhatsapp);
+
     setEditSaving(true);
 
     if (isPreview) {
@@ -398,8 +415,9 @@ export default function FichaPacientePage() {
         nome: editNome.trim(),
         data_nascimento: editDataNascimento,
         numero_identificacao: editNumeroId.trim() || null,
+        whatsapp: whatsappCanonico,
         dmg_gestacao_anterior: editDmgAnterior,
-      })
+      } as any)
       .eq('id', id);
 
     const { error: consErr } = await supabase
@@ -425,8 +443,9 @@ export default function FichaPacientePage() {
             nome: editNome.trim(),
             data_nascimento: editDataNascimento,
             numero_identificacao: editNumeroId.trim() || null,
+            whatsapp: whatsappCanonico,
             dmg_gestacao_anterior: editDmgAnterior,
-          }
+          } as any
         : prev
     );
     setConsultas((prev) =>
@@ -551,6 +570,22 @@ export default function FichaPacientePage() {
                   onChange={(e) => setEditNumeroId(e.target.value)}
                   placeholder="Opcional"
                 />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <label className="text-xs font-medium text-foreground">WhatsApp (opcional)</label>
+                <div className="flex items-stretch gap-2">
+                  <span className="flex shrink-0 items-center rounded-md border border-input bg-muted px-3 text-sm font-medium text-muted-foreground">
+                    +55
+                  </span>
+                  <Input
+                    type="tel"
+                    inputMode="numeric"
+                    value={editWhatsapp}
+                    onChange={(e) => setEditWhatsapp(mascararWhatsappBR(e.target.value))}
+                    placeholder="(11) 91234-5678"
+                    className="flex-1"
+                  />
+                </div>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-foreground">Data da consulta 1</label>
