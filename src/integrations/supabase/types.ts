@@ -466,6 +466,7 @@ export type Database = {
           usg_data: string | null
           usg_ig_dias: number | null
           usg_ig_semanas: number | null
+          whatsapp: string | null
         }
         Insert: {
           cidade?: string | null
@@ -490,6 +491,7 @@ export type Database = {
           usg_data?: string | null
           usg_ig_dias?: number | null
           usg_ig_semanas?: number | null
+          whatsapp?: string | null
         }
         Update: {
           cidade?: string | null
@@ -514,6 +516,7 @@ export type Database = {
           usg_data?: string | null
           usg_ig_dias?: number | null
           usg_ig_semanas?: number | null
+          whatsapp?: string | null
         }
         Relationships: [
           {
