@@ -443,8 +443,9 @@ export default function FichaPacientePage() {
             nome: editNome.trim(),
             data_nascimento: editDataNascimento,
             numero_identificacao: editNumeroId.trim() || null,
+            whatsapp: whatsappCanonico,
             dmg_gestacao_anterior: editDmgAnterior,
-          }
+          } as any
         : prev
     );
     setConsultas((prev) =>
