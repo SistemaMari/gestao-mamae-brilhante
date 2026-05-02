@@ -215,6 +215,7 @@ export default function FichaPacientePage() {
   const [editNome, setEditNome] = useState('');
   const [editDataNascimento, setEditDataNascimento] = useState('');
   const [editNumeroId, setEditNumeroId] = useState('');
+  const [editWhatsapp, setEditWhatsapp] = useState(''); // mascarado, sem DDI
   const [editDmgAnterior, setEditDmgAnterior] = useState<boolean>(false);
   const [editDataConsulta, setEditDataConsulta] = useState('');
   const [editObservacoes, setEditObservacoes] = useState('');
