@@ -1,3 +1,15 @@
+// enviar-convite v2 — verificação ampliada de unicidade de e-mail
+// Status retornados:
+//   - enviado            (com fluxo: 'criacao' | 'vinculacao')
+//   - ja_vinculado
+//   - convite_pendente
+//   - email_em_uso_admin
+//   - email_em_uso_gestor_unidade
+//   - email_em_uso_gestor_geral
+//   - email_em_uso_outra_unidade
+//   - email_em_uso_outro
+//   - erro
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
@@ -15,7 +27,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    // 1. Auth check — derive caller identity from JWT, never trust the body
+    // 1. Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return json({ status: "erro", mensagem: "Não autenticado." }, 401);
@@ -46,13 +58,12 @@ Deno.serve(async (req) => {
     if (!unidade_id || !email_raw) {
       return json({ status: "erro", mensagem: "Campos obrigatórios faltando." }, 400);
     }
-    // Basic email validation
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email_raw) || email_raw.length > 254) {
       return json({ status: "erro", mensagem: "E-mail inválido." }, 400);
     }
     const email_convidado = email_raw.toLowerCase();
 
-    // 2. Verify caller is a gestor of THIS unit
+    // 2. Verify caller is gestor of THIS unit
     const { data: gestor } = await supabaseAdmin
       .from("profissionais")
       .select("id, unidade_id, perfil_institucional")
@@ -63,23 +74,58 @@ Deno.serve(async (req) => {
       return json({ status: "erro", mensagem: "Sem permissão." }, 403);
     }
 
-    // 3. Check if email is already linked to this unit
+    // 3. Locate auth user by email (if any)
     const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-    const authUser = authUsers?.users?.find(u => u.email?.toLowerCase() === email_convidado);
+    const authUser = authUsers?.users?.find(
+      (u) => u.email?.toLowerCase() === email_convidado
+    );
+
+    let fluxo: "criacao" | "vinculacao" = "criacao";
 
     if (authUser) {
+      // 3a. Already an admin?
+      const { data: adminRow } = await supabaseAdmin
+        .from("admins")
+        .select("id")
+        .eq("user_id", authUser.id)
+        .maybeSingle();
+      if (adminRow) return json({ status: "email_em_uso_admin" });
+
+      // 3b. Already a gestor geral?
+      const { data: ggRow } = await supabaseAdmin
+        .from("gestores_gerais")
+        .select("id")
+        .eq("user_id", authUser.id)
+        .maybeSingle();
+      if (ggRow) return json({ status: "email_em_uso_gestor_geral" });
+
+      // 3c. Already a profissional? Check unidade + perfil
       const { data: prof } = await supabaseAdmin
         .from("profissionais")
-        .select("id, unidade_id")
+        .select("id, unidade_id, perfil_institucional")
         .eq("user_id", authUser.id)
         .maybeSingle();
 
-      if (prof && prof.unidade_id === unidade_id) {
-        return json({ status: "ja_vinculado" });
+      if (prof) {
+        if (prof.unidade_id === unidade_id) {
+          return json({ status: "ja_vinculado" });
+        }
+        // Different unit
+        if (prof.unidade_id) {
+          if (prof.perfil_institucional === "gestor") {
+            return json({ status: "email_em_uso_gestor_unidade" });
+          }
+          return json({ status: "email_em_uso_outra_unidade" });
+        }
+        // Has account but no unidade => consultorio: oferece vinculação
+        fluxo = "vinculacao";
+      } else {
+        // Auth user exists but no profissional row — treat as outro perfil em uso
+        return json({ status: "email_em_uso_outro" });
       }
     }
 
-    // 4. Check pending invite
+    // 4. Pending invite (same unit)
     const { data: pendingInvite } = await supabaseAdmin
       .from("convites")
       .select("id")
@@ -101,7 +147,7 @@ Deno.serve(async (req) => {
       email_convidado,
       token: token_invite,
       status: "pendente",
-      convidado_por: callerUserId, // derived from JWT, NOT from body
+      convidado_por: callerUserId,
     });
 
     if (insertError) {
@@ -115,9 +161,11 @@ Deno.serve(async (req) => {
       .eq("id", unidade_id)
       .single();
 
-    console.log(`[CONVITE] Email would be sent to ${email_convidado} for unit ${unidade?.nome}`);
+    console.log(
+      `[CONVITE] (${fluxo}) Email would be sent to ${email_convidado} for unit ${unidade?.nome}`
+    );
 
-    return json({ status: "enviado" });
+    return json({ status: "enviado", fluxo });
   } catch (err) {
     console.error("[enviar-convite] unexpected error:", err);
     return json({ status: "erro", mensagem: "Erro interno. Tente novamente." }, 500);
