@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Users, Building2, GraduationCap } from "lucide-react";
+import { Users, Building2 } from "lucide-react";
 import { CardResumo } from "@/components/admin/CardResumo";
 import { TabelaOrdenavel } from "@/components/admin/TabelaOrdenavel";
 import { AlertaOperacionalCard, ALERTAS_CONFIG } from "@/components/admin/AlertaOperacionalCard";
