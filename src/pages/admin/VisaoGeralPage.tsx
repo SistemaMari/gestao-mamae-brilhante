@@ -8,10 +8,10 @@ import { GraficoLinhaEvolucao } from "@/components/admin/GraficoLinhaEvolucao";
 import { GraficoPizzaPlanos } from "@/components/admin/GraficoPizzaPlanos";
 import { GraficoPizzaTiposUnidade } from "@/components/admin/GraficoPizzaTiposUnidade";
 import { SecaoBloco } from "@/components/admin/SecaoBloco";
-import { SeletorPais } from "@/components/admin/SeletorPais";
 import { supabase } from "@/integrations/supabase/client";
 import { mockVisaoGeral } from "@/lib/mockVisaoGeral";
 import { useAdminView, useAlertasOperacionais } from "@/hooks/useAdminMetrics";
+import { useAdminFiltros } from "@/contexts/AdminFiltrosContext";
 import type {
   AlertaRow,
   CidadeRow,
