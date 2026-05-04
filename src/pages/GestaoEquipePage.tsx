@@ -17,7 +17,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, RefreshCw, Trash2, Loader2, Users } from 'lucide-react';
+import { ArrowLeft, Plus, RefreshCw, Trash2, Loader2, Users, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Membro {
@@ -44,6 +44,9 @@ export default function GestaoEquipePage() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [sendingInvite, setSendingInvite] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [showResendOption, setShowResendOption] = useState(false);
+  const [unidadeNome, setUnidadeNome] = useState<string>('');
 
   // Modal de remoção
   const [removeTarget, setRemoveTarget] = useState<Membro | null>(null);
