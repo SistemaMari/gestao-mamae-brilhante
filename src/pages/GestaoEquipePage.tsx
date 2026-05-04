@@ -116,36 +116,54 @@ export default function GestaoEquipePage() {
 
   useEffect(() => { fetchEquipe(); }, [user]);
 
+  const STATUS_MENSAGENS: Record<string, string> = {
+    ja_vinculado: 'Este profissional já faz parte da unidade.',
+    email_em_uso_admin:
+      'Este e-mail está cadastrado como administrador da Mari DMG Diagnóstica. Cada e-mail só pode ter um perfil — peça à pessoa que use outro e-mail.',
+    email_em_uso_gestor_unidade:
+      'Este e-mail está cadastrado como gestor de outra unidade. Cada e-mail só pode ter um perfil — peça à pessoa que use outro e-mail.',
+    email_em_uso_gestor_geral:
+      'Este e-mail está cadastrado como gestor geral. Cada e-mail só pode ter um perfil — peça à pessoa que use outro e-mail.',
+    email_em_uso_outra_unidade:
+      'Este e-mail já é profissional de outra unidade. No MVP atual, um profissional não pode estar em duas unidades simultaneamente — peça à pessoa que use outro e-mail.',
+    email_em_uso_outro: 'Este e-mail já está em uso no sistema. Use outro e-mail.',
+  };
+
   const handleEnviarConvite = async () => {
     if (!inviteEmail || !unidadeId || !user) return;
+    setInviteError(null);
+    setShowResendOption(false);
     setSendingInvite(true);
 
     try {
       const res = await supabase.functions.invoke('enviar-convite', {
-        body: { unidade_id: unidadeId, email_convidado: inviteEmail, convidado_por: user.id },
+        body: { unidade_id: unidadeId, email_convidado: inviteEmail },
       });
 
       const data = res.data;
+      const status = data?.status;
 
-      if (data?.status === 'enviado') {
-        toast.success(`Convite enviado para ${inviteEmail}!`);
+      if (status === 'enviado') {
+        if (data?.fluxo === 'vinculacao') {
+          toast.success(
+            `Convite enviado para ${inviteEmail}! Esta pessoa já tem uma conta — ela poderá vincular ao aceitar.`
+          );
+        } else {
+          toast.success(`Convite enviado para ${inviteEmail}!`);
+        }
         setShowInviteModal(false);
         setInviteEmail('');
         fetchEquipe();
-      } else if (data?.status === 'ja_vinculado') {
-        toast.error('Este profissional já faz parte da unidade.');
-      } else if (data?.status === 'convite_pendente') {
-        toast.warning('Já existe um convite pendente para este e-mail. Deseja reenviar?', {
-          action: {
-            label: 'Reenviar',
-            onClick: () => handleReenviar(inviteEmail),
-          },
-        });
+      } else if (status === 'convite_pendente') {
+        setInviteError('Já existe um convite pendente para este e-mail. Deseja reenviar?');
+        setShowResendOption(true);
+      } else if (status && STATUS_MENSAGENS[status]) {
+        setInviteError(STATUS_MENSAGENS[status]);
       } else {
-        toast.error(data?.mensagem || 'Erro ao enviar convite.');
+        setInviteError(data?.mensagem || 'Erro ao enviar convite.');
       }
     } catch {
-      toast.error('Erro ao enviar convite.');
+      setInviteError('Erro ao enviar convite.');
     }
 
     setSendingInvite(false);
