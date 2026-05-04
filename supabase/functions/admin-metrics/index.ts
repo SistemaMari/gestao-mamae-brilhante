@@ -73,20 +73,29 @@ Deno.serve(async (req) => {
     );
   }
 
-  // 2. Valida JWT
+  // 2. Valida JWT — exige token com `sub` (usuário real, não anon)
   const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
     auth: { persistSession: false },
   });
   const token = authHeader.replace("Bearer ", "");
-  const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
-  if (claimsErr || !claimsData?.claims) {
+  let userId: string | null = null;
+  try {
+    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: invalid or anonymous token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    userId = claimsData.claims.sub as string;
+  } catch (err) {
+    console.error("[admin-metrics] getClaims threw:", err);
     return new Response(
-      JSON.stringify({ error: "Unauthorized: invalid token" }),
+      JSON.stringify({ error: "Unauthorized: token verification failed" }),
       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
-  const userId = claimsData.claims.sub as string;
 
   // 3. Parse params
   const url = new URL(req.url);
