@@ -71,6 +71,14 @@ export default function GestaoEquipePage() {
     setUnidadeId(prof.unidade_id);
     setProfissionalId(prof.id);
 
+    // Get unit name
+    const { data: unidade } = await supabase
+      .from('unidades')
+      .select('nome')
+      .eq('id', prof.unidade_id)
+      .maybeSingle();
+    setUnidadeNome(unidade?.nome || '');
+
     // Get active members
     const { data: profissionais } = await supabase
       .from('profissionais')
