@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
   ResponsiveContainer,
@@ -8,6 +8,7 @@ import {
 import { Loader2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { mockMetricasDiagnosticos } from "@/lib/mockMetricasDiagnosticos";
+import { useAdminFiltros } from "@/contexts/AdminFiltrosContext";
 import {
   Tooltip as UiTooltip,
   TooltipContent,
@@ -72,7 +73,7 @@ interface Metricas {
 const COR_VERDE = "#22C55E";
 const COR_LARANJA = "#F59E0B";
 const COR_VERMELHO = "#EF4444";
-const COR_LILAS = "#9b87f5";
+const COR_LILAS = "#7C4DBA";
 const COR_ROXO = "#7C4DBA";
 const COR_CINZA = "#94A3B8";
 
