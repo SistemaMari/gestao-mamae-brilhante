@@ -347,14 +347,27 @@ export default function GestaoEquipePage() {
       </div>
 
       {/* Modal de Convite */}
-      <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog
+        open={showInviteModal}
+        onOpenChange={(open) => {
+          setShowInviteModal(open);
+          if (!open) {
+            setInviteEmail('');
+            setInviteError(null);
+            setShowResendOption(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[480px] rounded-[12px]">
           <DialogHeader>
-            <DialogTitle>Convidar profissional</DialogTitle>
+            <DialogTitle className="font-heading">
+              Convidar profissional{unidadeNome ? ` para ${unidadeNome}` : ''}
+            </DialogTitle>
             <DialogDescription>
               Informe o e-mail do profissional para enviar o convite.
             </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-4 py-2">
             <div>
               <Label htmlFor="invite-email">E-mail do profissional</Label>
@@ -363,10 +376,55 @@ export default function GestaoEquipePage() {
                 type="email"
                 placeholder="profissional@email.com"
                 value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
+                onChange={(e) => {
+                  setInviteEmail(e.target.value);
+                  setInviteError(null);
+                  setShowResendOption(false);
+                }}
               />
             </div>
+
+            {/* Aviso fixo de unicidade — sempre visível */}
+            <div
+              className="flex items-start gap-2 rounded-md p-3 text-xs leading-relaxed"
+              style={{ backgroundColor: '#F5F3FA', color: '#4B3F66' }}
+            >
+              <Info className="h-4 w-4 shrink-0 mt-0.5" style={{ color: '#7C4DBA' }} />
+              <span>
+                Cada e-mail só pode ter um perfil no sistema. Se a pessoa já usa a Mari DMG
+                Diagnóstica como administrador, gestor de outra unidade ou gestor geral, ela
+                precisará usar um e-mail diferente. Se ela já tem uma conta no modelo consultório
+                (sem unidade vinculada), o sistema oferecerá a opção de vincular a conta existente
+                à sua unidade.
+              </span>
+            </div>
+
+            {/* Mensagem de erro / status retornado */}
+            {inviteError && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                <p>{inviteError}</p>
+                {showResendOption && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="mt-2"
+                    onClick={async () => {
+                      setInviteError(null);
+                      setShowResendOption(false);
+                      await handleReenviar(inviteEmail);
+                      setShowInviteModal(false);
+                      setInviteEmail('');
+                    }}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Reenviar
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowInviteModal(false)}>
               Cancelar
