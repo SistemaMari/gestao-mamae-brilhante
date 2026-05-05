@@ -1700,6 +1700,33 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ============= editar_gestor_unidade =============
+    if (acao === "editar_gestor_unidade") {
+      const gestor_id = String(body.gestor_id ?? "").trim();
+      const nome = typeof body.nome === "string" ? body.nome.trim() : "";
+      if (!gestor_id || !nome) {
+        return jsonResponse({ error: "Campos obrigatórios ausentes." }, 400);
+      }
+      const { data: prof } = await admin
+        .from("profissionais")
+        .select("id, perfil_institucional, user_id, nome")
+        .eq("id", gestor_id)
+        .maybeSingle();
+      if (!prof) return jsonResponse({ error: "Gestor não encontrado." }, 404);
+      if (prof.perfil_institucional !== "gestor") {
+        return jsonResponse({ error: "Não é gestor de unidade." }, 400);
+      }
+      const { error: errUpd } = await admin
+        .from("profissionais").update({ nome }).eq("id", gestor_id);
+      if (errUpd) return jsonResponse({ error: "Erro ao atualizar." }, 500);
+      const emailMap = await getEmailMap(admin, [prof.user_id]);
+      await inserirAuditoria(
+        admin, callerUserId, callerEmail, "editar_gestor_unidade",
+        emailMap.get(prof.user_id)?.email ?? "", nome, null, { gestor_id },
+      );
+      return jsonResponse({ status: "atualizado" });
+    }
+
     // ============= vincular_gestor_a_unidade =============
     if (acao === "vincular_gestor_a_unidade") {
       const gestor_id = String(body.gestor_id ?? "").trim();
