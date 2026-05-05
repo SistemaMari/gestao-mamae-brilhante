@@ -643,22 +643,12 @@ Deno.serve(async (req) => {
       if (!nome || !email) {
         return jsonResponse({ error: "Nome e e-mail são obrigatórios." }, 400);
       }
-      if (unidadeIds.length === 0) {
-        return jsonResponse(
-          {
-            codigo: "sem_unidades",
-            mensagem: "Gestor geral precisa de ao menos 1 unidade vinculada.",
-          },
-          400,
-        );
-      }
-
-      // valida unidades
+      // valida unidades (array vazio é válido — vínculo é opcional)
       const { data: existentes } = await admin
         .from("unidades")
         .select("id")
-        .in("id", unidadeIds);
-      if ((existentes?.length ?? 0) !== unidadeIds.length) {
+        .in("id", unidadeIds.length ? unidadeIds : ["00000000-0000-0000-0000-000000000000"]);
+      if (unidadeIds.length > 0 && (existentes?.length ?? 0) !== unidadeIds.length) {
         return jsonResponse(
           {
             codigo: "unidade_nao_encontrada",
