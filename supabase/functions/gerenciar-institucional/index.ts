@@ -268,6 +268,36 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: "Plano padrão não encontrado." }, 500);
       }
 
+      // ----- modo "em_aberto" (sem gestor) -----
+      if (gestorModo === "em_aberto") {
+        if (!nome) {
+          return jsonResponse({ error: "Nome da unidade obrigatório." }, 400);
+        }
+        const { data: unidade, error: errUni } = await admin
+          .from("unidades")
+          .insert({ nome, tipo, cnes, pais, estado, cidade, ativa: true })
+          .select("id, nome")
+          .single();
+        if (errUni || !unidade) {
+          console.error("Erro criar unidade em aberto:", errUni);
+          return jsonResponse({ error: "Erro ao processar operação. Nenhum dado foi alterado." }, 500);
+        }
+        await inserirAuditoria(
+          admin, callerUserId, callerEmail, "criar_unidade",
+          "", "", null,
+          {
+            unidade_id: unidade.id,
+            unidade_nome: unidade.nome,
+            gestor_modo: "em_aberto",
+            plano_categoria: planoCategoria,
+          },
+        );
+        return jsonResponse({
+          status: "criada_em_aberto",
+          unidade_id: unidade.id,
+        });
+      }
+
       if (gestorModo === "existente") {
         const gestorIdSel = String(body.gestor_id ?? "").trim();
         if (!nome || !gestorIdSel) {
