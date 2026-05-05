@@ -48,7 +48,7 @@ export default function ModalCriarUnidade({ open, onOpenChange, onSucesso }: Pro
   const [estado, setEstado] = useState("");
   const [cidade, setCidade] = useState("");
   const [plano, setPlano] = useState("Institucional");
-  const [gestorModo, setGestorModo] = useState<"novo" | "existente">("novo");
+  const [gestorModo, setGestorModo] = useState<"novo" | "existente" | "em_aberto">("novo");
   const [gestorNome, setGestorNome] = useState("");
   const [gestorEmail, setGestorEmail] = useState("");
   const [gestorIdSelecionado, setGestorIdSelecionado] = useState("");
@@ -79,7 +79,9 @@ export default function ModalCriarUnidade({ open, onOpenChange, onSucesso }: Pro
     baseDadosUnidadeOk &&
     (gestorModo === "novo"
       ? gestorNome.trim() && EMAIL_REGEX.test(gestorEmail.trim())
-      : !!gestorIdSelecionado);
+      : gestorModo === "existente"
+      ? !!gestorIdSelecionado
+      : true);
 
   function reset() {
     setNome(""); setTipo("UBS"); setCnes(""); setPais("Brasil");
@@ -117,7 +119,9 @@ export default function ModalCriarUnidade({ open, onOpenChange, onSucesso }: Pro
           gestor_nome: gestorNome.trim(),
           gestor_email: gestorEmail.trim().toLowerCase(),
         }
-      : { ...baseBody, gestor_id: gestorIdSelecionado };
+      : gestorModo === "existente"
+      ? { ...baseBody, gestor_id: gestorIdSelecionado }
+      : baseBody;
 
     const { error } = await supabase.functions.invoke("gerenciar-institucional", { body });
     if (error) {
@@ -135,7 +139,9 @@ export default function ModalCriarUnidade({ open, onOpenChange, onSucesso }: Pro
     toast.success(
       gestorModo === "novo"
         ? `Unidade criada! E-mail enviado para ${gestorEmail.trim()}.`
-        : "Unidade criada e gestor vinculado.",
+        : gestorModo === "existente"
+        ? "Unidade criada e gestor vinculado."
+        : "Unidade criada em aberto. Vincule um gestor depois.",
     );
     handleOpenChange(false);
     onSucesso();
