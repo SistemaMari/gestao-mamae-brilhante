@@ -149,43 +149,6 @@ function ListaHistorico({ pacienteId, ehInstitucional }: { pacienteId: string; e
   });
 
   if (!ehInstitucional) return null;
-
-  return (
-    <div className="space-y-2">
-      <h3 className="font-[Sora] text-base font-semibold text-[#5B3A8E]">
-        Histórico de atendimentos
-      </h3>
-      {isLoading ? (
-        <Skeleton className="h-20 w-full" />
-      ) : !data || data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Nenhum atendimento registrado ainda.
-        </p>
-      ) : (
-        <ul className="divide-y rounded-md border bg-white">
-          {data.map((r) => (
-            <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
-              <div>
-                <div className="font-medium">{labelTipoOperacao(r.tipo_operacao)}</div>
-                <div className="text-xs text-muted-foreground">
-                  {r.profissional_nome}
-                  {r.profissional_crm ? ` — CRM ${r.profissional_crm}` : ""}
-                  {r.profissional_especialidade ? ` • ${r.profissional_especialidade}` : ""}
-                </div>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {new Date(r.created_at).toLocaleString("pt-BR", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
+  return <ListaRender data={data} isLoading={isLoading} />;
+}
 }
