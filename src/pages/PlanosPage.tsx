@@ -21,6 +21,7 @@ interface Plano {
   cursos_inclusos: string[];
   ordem: number;
   ativo: boolean;
+  link_pagamento_asaas: string | null;
 }
 
 function formatPreco(valor: number): string {
