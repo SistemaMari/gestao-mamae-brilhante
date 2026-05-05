@@ -55,7 +55,7 @@ export default function ModalVincularGestor({ alvo, onClose, onSucesso }: Props)
         body: { acao: "listar_gestores_unidade" },
       });
       return ((data?.gestores ?? []) as Array<any>)
-        .filter((g) => !g.unidade_id && !g.acesso_revogado && !g.convite_pendente);
+        .filter((g) => !g.unidade_id && !g.acesso_revogado);
     },
     enabled: !!alvo && alvo.modo === "fixar_unidade",
   });
