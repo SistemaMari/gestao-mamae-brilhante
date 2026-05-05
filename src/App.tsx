@@ -42,6 +42,7 @@ import PreviewHubPage, {
 import PreviewAppShell from "./components/PreviewAppShell";
 import PreviewAdminLayout from "./pages/admin/PreviewAdminLayout";
 import ComponentesDemoPage from "./pages/_dev/ComponentesDemoPage";
+import FichaCarimbadaDemo from "./pages/_dev/FichaCarimbadaDemo";
 
 const queryClient = new QueryClient();
 
