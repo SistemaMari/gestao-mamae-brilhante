@@ -228,7 +228,7 @@ export default function PlanosPage() {
                     className="w-full"
                     variant={botaoVariant}
                     disabled={botaoDisabled}
-                    onClick={handleAssinar}
+                    onClick={() => handleAssinar(plano)}
                   >
                     {botaoTexto}
                   </Button>
