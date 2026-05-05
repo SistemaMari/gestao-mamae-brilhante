@@ -46,6 +46,8 @@ export default function GestaoPage() {
   const [unidadeId, setUnidadeId] = useState<string | null>(null);
   const [isGestorGeral, setIsGestorGeral] = useState(false);
   const [unidadesDisponiveis, setUnidadesDisponiveis] = useState<UnidadeOpt[]>([]);
+  const [gestorSemUnidade, setGestorSemUnidade] = useState(false);
+  const [contextoCarregado, setContextoCarregado] = useState(false);
 
   const [totalProfissionais, setTotalProfissionais] = useState(0);
   const [convitesPendentes, setConvitesPendentes] = useState(0);
