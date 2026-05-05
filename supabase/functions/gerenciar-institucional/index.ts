@@ -811,15 +811,6 @@ Deno.serve(async (req) => {
           400,
         );
       }
-      if (unidadeIds.length === 0) {
-        return jsonResponse(
-          {
-            codigo: "sem_unidades",
-            mensagem: "Gestor geral precisa de ao menos 1 unidade vinculada.",
-          },
-          400,
-        );
-      }
 
       const { data: gg } = await admin
         .from("gestores_gerais")
@@ -836,18 +827,20 @@ Deno.serve(async (req) => {
         );
       }
 
-      const { data: existentes } = await admin
-        .from("unidades")
-        .select("id")
-        .in("id", unidadeIds);
-      if ((existentes?.length ?? 0) !== unidadeIds.length) {
-        return jsonResponse(
-          {
-            codigo: "unidade_nao_encontrada",
-            mensagem: "Uma ou mais unidades não existem.",
-          },
-          400,
-        );
+      if (unidadeIds.length > 0) {
+        const { data: existentes } = await admin
+          .from("unidades")
+          .select("id")
+          .in("id", unidadeIds);
+        if ((existentes?.length ?? 0) !== unidadeIds.length) {
+          return jsonResponse(
+            {
+              codigo: "unidade_nao_encontrada",
+              mensagem: "Uma ou mais unidades não existem.",
+            },
+            400,
+          );
+        }
       }
 
       const { data: atuaisRows } = await admin
