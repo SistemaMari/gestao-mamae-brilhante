@@ -697,21 +697,23 @@ Deno.serve(async (req) => {
         );
       }
 
-      const vinculos = unidadeIds.map((uid) => ({
-        gestor_geral_id: gg.id,
-        unidade_id: uid,
-      }));
-      const { error: errVinc } = await admin
-        .from("gestores_gerais_unidades")
-        .insert(vinculos);
-      if (errVinc) {
-        console.error("Erro vínculos:", errVinc);
-        await admin.from("gestores_gerais").delete().eq("id", gg.id);
-        await admin.auth.admin.deleteUser(newUserId).catch(() => {});
-        return jsonResponse(
-          { error: "Erro ao processar operação. Nenhum dado foi alterado." },
-          500,
-        );
+      if (unidadeIds.length > 0) {
+        const vinculos = unidadeIds.map((uid) => ({
+          gestor_geral_id: gg.id,
+          unidade_id: uid,
+        }));
+        const { error: errVinc } = await admin
+          .from("gestores_gerais_unidades")
+          .insert(vinculos);
+        if (errVinc) {
+          console.error("Erro vínculos:", errVinc);
+          await admin.from("gestores_gerais").delete().eq("id", gg.id);
+          await admin.auth.admin.deleteUser(newUserId).catch(() => {});
+          return jsonResponse(
+            { error: "Erro ao processar operação. Nenhum dado foi alterado." },
+            500,
+          );
+        }
       }
 
       await inserirAuditoria(
