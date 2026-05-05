@@ -176,7 +176,7 @@ export default function AbaGestoresUnidade() {
                     <Button variant="ghost" size="sm" onClick={() => setEditar(g)} disabled={g.acesso_revogado}>
                       <Pencil className="mr-1 h-3 w-3" /> Editar
                     </Button>
-                    {!g.acesso_revogado && !g.convite_pendente && !g.unidade_id && (
+                    {!g.acesso_revogado && !g.unidade_id && (
                       <Button variant="ghost" size="sm" onClick={() => setVincular({ modo: "fixar_gestor", gestor_id: g.id, gestor_nome: g.nome })}>
                         <Link2 className="mr-1 h-3 w-3" /> Vincular
                       </Button>
