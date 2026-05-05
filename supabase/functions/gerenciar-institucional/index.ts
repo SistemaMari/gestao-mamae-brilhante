@@ -1157,6 +1157,7 @@ Deno.serve(async (req) => {
           "id, user_id, nome, crm, especialidade, perfil_clinico, perfil_institucional, unidade_id, acesso_revogado, acesso_revogado_em, motivo_revogacao, created_at, unidades(nome)"
         )
         .not("unidade_id", "is", null)
+        .neq("perfil_institucional", "gestor")
         .order("acesso_revogado", { ascending: true })
         .order("created_at", { ascending: false });
       if (filtroUnidade) q = q.eq("unidade_id", filtroUnidade);
