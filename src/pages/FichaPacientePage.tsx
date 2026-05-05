@@ -1236,6 +1236,12 @@ export default function FichaPacientePage() {
             + Registrar parto
           </Button>
         )}
+
+        {paciente?.id && !isPreviewPaciente(id) && (
+          <div className="mt-6">
+            <CarimboAtendimento variant="lista" pacienteId={paciente.id} />
+          </div>
+        )}
       </div>
     </div>
   );
