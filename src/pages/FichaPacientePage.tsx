@@ -436,6 +436,13 @@ export default function FichaPacientePage() {
       return;
     }
 
+    const { carimbarAtendimento } = await import('@/lib/carimbar');
+    await carimbarAtendimento({
+      pacienteId: id!,
+      tipoOperacao: 'editar_dados_paciente',
+      recursoTipo: 'paciente',
+    });
+
     setPaciente((prev) =>
       prev
         ? {
