@@ -27,6 +27,9 @@ import CompletarPerfilPage from "./pages/CompletarPerfilPage";
 import GestaoEquipePage from "./pages/GestaoEquipePage";
 import CadastroConvitePage from "./pages/CadastroConvitePage";
 
+import AppShellGestor from "@/components/gestor/AppShellGestor";
+import AppShellGestorGeral from "@/components/gestor-geral/AppShellGestorGeral";
+import StubEmConstrucao from "@/components/StubEmConstrucao";
 import OnboardingPage from "./pages/OnboardingPage";
 import PacientePage from "./pages/PacientePage";
 import MeusCursosPage from "./pages/MeusCursosPage";
