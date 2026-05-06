@@ -508,6 +508,24 @@ export default function FichaPacientePage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
+      {isReadOnly && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-4 py-2 print:hidden">
+          <div className="flex items-center gap-2 text-sm">
+            <button
+              onClick={() => navigate(fichasBackPath)}
+              className="text-[#7C4DBA] hover:underline font-medium"
+            >
+              Fichas da unidade
+            </button>
+            <span className="text-muted-foreground">›</span>
+            <span className="text-foreground font-medium truncate">{paciente.nome}</span>
+          </div>
+          <Badge variant="outline" className="bg-muted text-muted-foreground border-muted-foreground/20 shrink-0">
+            Modo visualização
+          </Badge>
+        </div>
+      )}
+
       {/* DMG anterior banner */}
       {(editing ? editDmgAnterior : paciente.dmg_gestacao_anterior) && (
         <div className="flex items-start gap-3 rounded-xl border-2 border-orange-400 bg-orange-50 p-4">
