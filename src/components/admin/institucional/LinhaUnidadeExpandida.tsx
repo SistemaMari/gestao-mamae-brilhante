@@ -25,7 +25,10 @@ const PERFIL_LABEL: Record<string, string> = {
   consultorio: "Consultório",
 };
 
-export default function LinhaUnidadeExpandida({ unidadeId, cnes, plano, gestorEmail, createdAt }: Props) {
+export default function LinhaUnidadeExpandida({
+  unidadeId, cnes, plano, gestorEmail, createdAt,
+  contratanteAtivo, onTransferir,
+}: Props) {
   const { data, isLoading } = useQuery({
     queryKey: ["institucional", "unidade-profissionais", unidadeId],
     queryFn: async () => {
@@ -74,6 +77,32 @@ export default function LinhaUnidadeExpandida({ unidadeId, cnes, plano, gestorEm
           </Table>
         )}
       </div>
+
+      {onTransferir && (
+        <div className="mt-4 flex justify-end">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onTransferir}
+                    disabled={!contratanteAtivo}
+                  >
+                    <ArrowRightLeft className="mr-1 h-3 w-3" /> Transferir contratante
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!contratanteAtivo && (
+                <TooltipContent>
+                  Reative o contratante atual ou aguarde reativação para transferir.
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      )}
     </div>
   );
 }
