@@ -2024,6 +2024,7 @@ Deno.serve(async (req) => {
         return {
           ...c,
           unidades_count: unis.length,
+          unidades_nomes: nomesByCont.get(c.id) ?? [],
           gestores_gerais_count: ggByCont.get(c.id) ?? 0,
           profissionais_count: profCount,
         };
