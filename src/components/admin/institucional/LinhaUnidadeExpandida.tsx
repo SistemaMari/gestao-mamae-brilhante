@@ -2,13 +2,21 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { ArrowRightLeft } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Props {
   unidadeId: string;
+  unidadeNome: string;
   cnes: string | null;
   plano: string | null;
   gestorEmail: string | null;
   createdAt: string;
+  contratanteId: string | null;
+  contratanteNome: string | null;
+  contratanteAtivo: boolean;
+  onTransferir?: () => void;
 }
 
 const PERFIL_LABEL: Record<string, string> = {
