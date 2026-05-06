@@ -262,6 +262,31 @@ Deno.serve(async (req) => {
       const cidade = body.cidade ?? null;
       const planoCategoria = body.plano ?? "clinica"; // só categoria
       const gestorModo = String(body.gestor_modo ?? "novo");
+      const contratante_id = String(body.contratante_id ?? "").trim();
+
+      if (!contratante_id) {
+        return jsonResponse({
+          codigo: "contratante_obrigatorio",
+          mensagem: "Selecione um contratante para a unidade.",
+        }, 400);
+      }
+      const { data: contr } = await admin
+        .from("contratantes")
+        .select("id, status")
+        .eq("id", contratante_id)
+        .maybeSingle();
+      if (!contr) {
+        return jsonResponse({
+          codigo: "contratante_inexistente",
+          mensagem: "Contratante não encontrado.",
+        }, 400);
+      }
+      if (contr.status !== "ativo") {
+        return jsonResponse({
+          codigo: "contratante_encerrado",
+          mensagem: "Não é possível criar unidade vinculada a contratante encerrado/suspenso.",
+        }, 400);
+      }
 
       const planoId = await getPlanoIdInstitucional(admin);
       if (!planoId) {
@@ -275,7 +300,7 @@ Deno.serve(async (req) => {
         }
         const { data: unidade, error: errUni } = await admin
           .from("unidades")
-          .insert({ nome, tipo, cnes, pais, estado, cidade, ativa: true })
+          .insert({ nome, tipo, cnes, pais, estado, cidade, ativa: true, contratante_id })
           .select("id, nome")
           .single();
         if (errUni || !unidade) {
@@ -327,7 +352,7 @@ Deno.serve(async (req) => {
 
         const { data: unidade, error: errUni } = await admin
           .from("unidades")
-          .insert({ nome, tipo, cnes, pais, estado, cidade, ativa: true })
+          .insert({ nome, tipo, cnes, pais, estado, cidade, ativa: true, contratante_id })
           .select("id, nome")
           .single();
         if (errUni || !unidade) {
@@ -389,6 +414,7 @@ Deno.serve(async (req) => {
           estado,
           cidade,
           ativa: true,
+          contratante_id,
         })
         .select("id, nome")
         .single();
@@ -665,10 +691,13 @@ Deno.serve(async (req) => {
 
     // ============= listar_unidades =============
     if (acao === "listar_unidades") {
-      const { data: unidades } = await admin
+      const filtroContratante = body.contratante_id ?? null;
+      let q = admin
         .from("unidades")
-        .select("id, nome, tipo, cnes, pais, estado, cidade, created_at")
+        .select("id, nome, tipo, cnes, pais, estado, cidade, contratante_id, created_at, contratantes(id, nome, status)")
         .order("created_at", { ascending: false });
+      if (filtroContratante) q = q.eq("contratante_id", filtroContratante);
+      const { data: unidades } = await q;
 
       const { data: gestores } = await admin
         .from("profissionais")
@@ -691,7 +720,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Contagens
       const { data: profCounts } = await admin
         .from("profissionais")
         .select("unidade_id");
@@ -709,7 +737,7 @@ Deno.serve(async (req) => {
           pacMap.set(p.unidade_id, (pacMap.get(p.unidade_id) ?? 0) + 1);
       }
 
-      const out = (unidades ?? []).map((u) => {
+      const out = (unidades ?? []).map((u: any) => {
         const g = gestorByUnidade.get(u.id) ?? {};
         return {
           id: u.id,
@@ -719,6 +747,9 @@ Deno.serve(async (req) => {
           pais: u.pais,
           estado: u.estado,
           cidade: u.cidade,
+          contratante_id: u.contratante_id,
+          contratante_nome: u.contratantes?.nome ?? null,
+          contratante_status: u.contratantes?.status ?? null,
           gestor_id: g.gestor_id ?? null,
           gestor_user_id: g.gestor_user_id ?? null,
           gestor_nome: g.gestor_nome ?? null,
@@ -739,25 +770,30 @@ Deno.serve(async (req) => {
       const email = String(body.email ?? "").trim().toLowerCase();
       const cargo = body.cargo ?? null;
       const instituicao = body.instituicao ?? null;
-      const unidadeIds: string[] = Array.isArray(body.unidade_ids)
-        ? body.unidade_ids
+      const contratanteIds: string[] = Array.isArray(body.contratante_ids)
+        ? body.contratante_ids
         : [];
       if (!nome || !email) {
         return jsonResponse({ error: "Nome e e-mail são obrigatórios." }, 400);
       }
-      // valida unidades (array vazio é válido — vínculo é opcional)
-      const { data: existentes } = await admin
-        .from("unidades")
-        .select("id")
-        .in("id", unidadeIds.length ? unidadeIds : ["00000000-0000-0000-0000-000000000000"]);
-      if (unidadeIds.length > 0 && (existentes?.length ?? 0) !== unidadeIds.length) {
-        return jsonResponse(
-          {
-            codigo: "unidade_nao_encontrada",
-            mensagem: "Uma ou mais unidades não existem.",
-          },
-          400,
-        );
+
+      if (contratanteIds.length > 0) {
+        const { data: existentes } = await admin
+          .from("contratantes")
+          .select("id, status")
+          .in("id", contratanteIds);
+        if ((existentes?.length ?? 0) !== contratanteIds.length) {
+          return jsonResponse({
+            codigo: "contratante_inexistente",
+            mensagem: "Um ou mais contratantes não existem.",
+          }, 400);
+        }
+        if ((existentes ?? []).some((c) => c.status !== "ativo")) {
+          return jsonResponse({
+            codigo: "contratante_encerrado",
+            mensagem: "Não é possível vincular gestor geral a contratante encerrado/suspenso.",
+          }, 400);
+        }
       }
 
       const conflito = await verificarEmailEmUso(admin, email);
@@ -772,7 +808,7 @@ Deno.serve(async (req) => {
             perfil: "gestor_geral",
             cargo,
             instituicao,
-            total_unidades: unidadeIds.length,
+            total_contratantes: contratanteIds.length,
           },
           redirectTo: `${APP_URL}/nova-senha?destino=/consolidar`,
         });
@@ -799,16 +835,16 @@ Deno.serve(async (req) => {
         );
       }
 
-      if (unidadeIds.length > 0) {
-        const vinculos = unidadeIds.map((uid) => ({
+      if (contratanteIds.length > 0) {
+        const vinculos = contratanteIds.map((cid) => ({
           gestor_geral_id: gg.id,
-          unidade_id: uid,
+          contratante_id: cid,
         }));
         const { error: errVinc } = await admin
-          .from("gestores_gerais_unidades")
+          .from("gestores_gerais_contratantes")
           .insert(vinculos);
         if (errVinc) {
-          console.error("Erro vínculos:", errVinc);
+          console.error("Erro vínculos contratantes:", errVinc);
           await admin.from("gestores_gerais").delete().eq("id", gg.id);
           await admin.auth.admin.deleteUser(newUserId).catch(() => {});
           return jsonResponse(
@@ -819,17 +855,13 @@ Deno.serve(async (req) => {
       }
 
       await inserirAuditoria(
-        admin,
-        callerUserId,
-        callerEmail,
+        admin, callerUserId, callerEmail,
         "criar_gestor_geral",
-        email,
-        nome,
-        null,
+        email, nome, null,
         {
           gestor_geral_id: gg.id,
           email,
-          total_unidades: unidadeIds.length,
+          total_contratantes: contratanteIds.length,
           cargo,
           instituicao,
         },
@@ -838,7 +870,7 @@ Deno.serve(async (req) => {
       return jsonResponse({
         status: "criado",
         gestor_geral_id: gg.id,
-        unidades_vinculadas: unidadeIds.length,
+        contratantes_vinculados: contratanteIds.length,
       });
     }
 

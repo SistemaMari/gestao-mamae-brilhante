@@ -252,6 +252,60 @@ export type Database = {
           },
         ]
       }
+      contratantes: {
+        Row: {
+          cnpj: string
+          contato_email: string
+          contato_nome: string
+          contato_telefone: string | null
+          created_at: string
+          data_inicio_contrato: string
+          data_termino_contrato: string | null
+          encerrado_em: string | null
+          encerrado_por: string | null
+          id: string
+          motivo_encerramento: string | null
+          nome: string
+          observacoes: string | null
+          razao_social: string | null
+          status: string
+        }
+        Insert: {
+          cnpj: string
+          contato_email: string
+          contato_nome: string
+          contato_telefone?: string | null
+          created_at?: string
+          data_inicio_contrato: string
+          data_termino_contrato?: string | null
+          encerrado_em?: string | null
+          encerrado_por?: string | null
+          id?: string
+          motivo_encerramento?: string | null
+          nome: string
+          observacoes?: string | null
+          razao_social?: string | null
+          status?: string
+        }
+        Update: {
+          cnpj?: string
+          contato_email?: string
+          contato_nome?: string
+          contato_telefone?: string | null
+          created_at?: string
+          data_inicio_contrato?: string
+          data_termino_contrato?: string | null
+          encerrado_em?: string | null
+          encerrado_por?: string | null
+          id?: string
+          motivo_encerramento?: string | null
+          nome?: string
+          observacoes?: string | null
+          razao_social?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       convites: {
         Row: {
           convidado_por: string
@@ -466,6 +520,39 @@ export type Database = {
         }
         Relationships: []
       }
+      gestores_gerais_contratantes: {
+        Row: {
+          contratante_id: string
+          gestor_geral_id: string
+          vinculado_em: string
+        }
+        Insert: {
+          contratante_id: string
+          gestor_geral_id: string
+          vinculado_em?: string
+        }
+        Update: {
+          contratante_id?: string
+          gestor_geral_id?: string
+          vinculado_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gestores_gerais_contratantes_contratante_id_fkey"
+            columns: ["contratante_id"]
+            isOneToOne: false
+            referencedRelation: "contratantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestores_gerais_contratantes_gestor_geral_id_fkey"
+            columns: ["gestor_geral_id"]
+            isOneToOne: false
+            referencedRelation: "gestores_gerais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gestores_gerais_unidades: {
         Row: {
           created_at: string
@@ -559,6 +646,71 @@ export type Database = {
             columns: ["paciente_id"]
             isOneToOne: false
             referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      log_transferencia_unidade: {
+        Row: {
+          contratante_destino_id: string
+          contratante_destino_nome_snapshot: string | null
+          contratante_origem_id: string | null
+          contratante_origem_nome_snapshot: string | null
+          id: string
+          justificativa: string
+          transferido_em: string
+          transferido_por: string
+          unidade_id: string
+        }
+        Insert: {
+          contratante_destino_id: string
+          contratante_destino_nome_snapshot?: string | null
+          contratante_origem_id?: string | null
+          contratante_origem_nome_snapshot?: string | null
+          id?: string
+          justificativa: string
+          transferido_em?: string
+          transferido_por: string
+          unidade_id: string
+        }
+        Update: {
+          contratante_destino_id?: string
+          contratante_destino_nome_snapshot?: string | null
+          contratante_origem_id?: string | null
+          contratante_origem_nome_snapshot?: string | null
+          id?: string
+          justificativa?: string
+          transferido_em?: string
+          transferido_por?: string
+          unidade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "log_transferencia_unidade_contratante_destino_id_fkey"
+            columns: ["contratante_destino_id"]
+            isOneToOne: false
+            referencedRelation: "contratantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "log_transferencia_unidade_contratante_origem_id_fkey"
+            columns: ["contratante_origem_id"]
+            isOneToOne: false
+            referencedRelation: "contratantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "log_transferencia_unidade_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "mv_admin_unidades_resumo"
+            referencedColumns: ["unidade_id"]
+          },
+          {
+            foreignKeyName: "log_transferencia_unidade_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -1134,6 +1286,7 @@ export type Database = {
           ativa: boolean
           cidade: string | null
           cnes: string | null
+          contratante_id: string
           created_at: string
           estado: string | null
           id: string
@@ -1150,6 +1303,7 @@ export type Database = {
           ativa?: boolean
           cidade?: string | null
           cnes?: string | null
+          contratante_id: string
           created_at?: string
           estado?: string | null
           id?: string
@@ -1166,6 +1320,7 @@ export type Database = {
           ativa?: boolean
           cidade?: string | null
           cnes?: string | null
+          contratante_id?: string
           created_at?: string
           estado?: string | null
           id?: string
@@ -1179,6 +1334,13 @@ export type Database = {
           tipo_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "unidades_contratante_id_fkey"
+            columns: ["contratante_id"]
+            isOneToOne: false
+            referencedRelation: "contratantes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "unidades_tipo_id_fkey"
             columns: ["tipo_id"]
