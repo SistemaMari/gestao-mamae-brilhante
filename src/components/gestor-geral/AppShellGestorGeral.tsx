@@ -36,16 +36,19 @@ function GestorGeralSidebar({
   nome,
   detalhe,
   email,
+  basePath,
   onSair,
 }: {
   nome: string;
   detalhe: string;
   email: string;
+  basePath: string;
   onSair: () => void;
 }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
+  const items = buildItems(basePath);
 
   const isActive = (url: string, exact: boolean) =>
     exact ? pathname === url : pathname === url || pathname.startsWith(`${url}/`);
