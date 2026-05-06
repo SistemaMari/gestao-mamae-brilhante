@@ -150,8 +150,13 @@ const App = () => (
             </Route>
 
             {/* Rotas que NÃO usam o shell clínico — com role guards */}
-            <Route path="/gestao" element={<ProtectedRoute allowedProfiles={['gestor', 'admin', 'gestor_geral']}><GestaoPage /></ProtectedRoute>} />
-            <Route path="/gestao/equipe" element={<ProtectedRoute allowedProfiles={['gestor']}><GestaoEquipePage /></ProtectedRoute>} />
+            {/* Gestor de Unidade — shell dedicado */}
+            <Route element={<ProtectedRoute allowedProfiles={['gestor']}><AppShellGestor /></ProtectedRoute>}>
+              <Route path="/gestao" element={<GestaoPage />} />
+              <Route path="/gestao/equipe" element={<GestaoEquipePage />} />
+              <Route path="/gestao/fichas" element={<StubEmConstrucao titulo="Fichas da unidade" />} />
+              <Route path="/gestao/configuracoes" element={<StubEmConstrucao titulo="Configurações" />} />
+            </Route>
             {/* Painel Administrativo (Prompt 22) */}
             <Route element={<ProtectedRoute allowedProfiles={['admin']}><AdminLayout /></ProtectedRoute>}>
               <Route path="/admin" element={<VisaoGeralPage />} />
