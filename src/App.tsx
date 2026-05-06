@@ -70,9 +70,13 @@ const App = () => (
             {/* Vitrine pública (sem login) — acessível por URL direta */}
             <Route path="/vitrine" element={<PreviewHubPage />} />
             <Route path="/vitrine/completar-perfil" element={<PreviewCompletarPerfilPage />} />
-            <Route path="/vitrine/gestao" element={<GestaoPage />} />
+            <Route element={<AppShellGestor />}>
+              <Route path="/vitrine/gestao" element={<GestaoPage />} />
+            </Route>
             <Route path="/vitrine/gestao/equipe" element={<PreviewGestaoEquipePage />} />
-            <Route path="/vitrine/consolidar" element={<ConsolidarPage />} />
+            <Route element={<AppShellGestorGeral />}>
+              <Route path="/vitrine/consolidar" element={<ConsolidarPage />} />
+            </Route>
             <Route path="/vitrine/cadastro-convite" element={<PreviewCadastroConvitePage />} />
             <Route path="/vitrine/ficha-carimbada" element={<FichaCarimbadaDemo />} />
 
