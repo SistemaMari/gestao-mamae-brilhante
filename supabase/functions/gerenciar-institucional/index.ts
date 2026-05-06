@@ -1609,7 +1609,7 @@ Deno.serve(async (req) => {
       const { data: profs, error: errList } = await admin
         .from("profissionais")
         .select(
-          "id, user_id, nome, unidade_id, acesso_revogado, acesso_revogado_em, motivo_revogacao, created_at, unidades(nome)",
+          "id, user_id, nome, unidade_id, acesso_revogado, acesso_revogado_em, motivo_revogacao, created_at, unidades(id, nome, contratante_id, contratantes(id, nome, status))",
         )
         .eq("perfil_institucional", "gestor")
         .order("acesso_revogado", { ascending: true })
