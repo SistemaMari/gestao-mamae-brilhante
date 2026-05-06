@@ -31,8 +31,13 @@ interface FichaResumo {
   profissional_id: string;
   profissional_nome: string;
   data_ultima_consulta: string | null;
+  data_proximo_retorno: string | null;
   created_at: string;
   dmg_gestacao_anterior: boolean | null;
+  dum: string | null;
+  usg_data: string | null;
+  usg_ig_semanas: number | null;
+  usg_ig_dias: number | null;
 }
 
 interface UnidadeOpt { id: string; nome: string; }
