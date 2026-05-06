@@ -1,36 +1,51 @@
 ---
-name: Camada Contratante (Prompt 28.3) — progresso parcial
-description: Schema migration aplicada; Edge Function revertida ao pré-28.3 com default MARI Sandbox. Pendente 28.3a/b/c.
+name: Camada Contratante (Prompt 28.3) — progresso
+description: 28.3 schema + 28.3a Edge Function COMPLETA. Pendente apenas frontend (28.3b/c).
 type: feature
 ---
 
-## Status: schema OK, lógica revertida (aguardando 28.3a/b/c)
+## Status: 28.3 schema OK, 28.3a Edge Function OK. Pendente 28.3b/c (frontend).
 
-### O que JÁ ESTÁ EM PRODUÇÃO (não refazer)
-- Tabela `contratantes` (id, nome, cnpj UNIQUE, razao_social, contato_nome/email/telefone, data_inicio_contrato NOT NULL, data_termino_contrato, status default 'ativo', observacoes, encerrado_em/_por/_motivo).
-- Trigger `validar_datas_contratante` (data_termino > data_inicio).
-- Tabela `gestores_gerais_contratantes` (PK gestor_geral_id+contratante_id, ON DELETE CASCADE).
-- Tabela `log_transferencia_unidade` (auditoria imutável: unidade_id, contratante_origem/destino_id, justificativa, snapshots de nomes, transferido_em/_por).
-- Coluna `unidades.contratante_id UUID NOT NULL` (FK contratantes).
-- Contratante "MARI Sandbox" (id=`feac2ad0-cb91-43c3-a043-094ac0d95d08`, CNPJ `00.000.000/0001-00`, contato SuporteMari@novodmg.com.br, status ativo).
-- Backfill: todas unidades existentes apontam para MARI Sandbox.
-- Backfill: todos `gestores_gerais_unidades` distintos foram replicados em `gestores_gerais_contratantes`.
-- RLS nas 3 novas tabelas (admin gerencia; gestor geral vê seus vínculos; profissional vê contratante via unidade).
+### EM PRODUÇÃO
+- Tabelas: `contratantes`, `gestores_gerais_contratantes`, `log_transferencia_unidade`.
+- `unidades.contratante_id NOT NULL` + FK + trigger `validar_datas_contratante`.
+- MARI Sandbox id=`feac2ad0-cb91-43c3-a043-094ac0d95d08`.
+- RLS nas 3 novas tabelas.
 
-### O que foi REVERTIDO na Edge Function (pré-28.3)
-- `criar_unidade`: aceita `contratante_id` opcional; se ausente, default MARI Sandbox. Sem validação de contratante encerrado/inexistente (volta no 28.3a).
-- `listar_unidades`: mantém retorno de `contratante_id/nome/status` (backward-compatible; frontend atual ignora).
-- `criar_gestor_geral`: voltou a aceitar `unidade_ids[]` populando `gestores_gerais_unidades`. NÃO aceita `contratante_ids[]`.
+### Edge Function `gerenciar-institucional` (28.3a aplicado)
+Ações ajustadas:
+- `criar_unidade`: valida `contratante_id` (existe + ativo). Fallback MARI Sandbox mantido até 28.3b expor Select.
+- `listar_unidades`: retorna `contratante_id`/`contratante_nome`/`contratante_status`. Filtro opcional `contratante_id`.
+- `criar_gestor_geral`: aceita `contratante_ids[]`. Backwards-compat: converte `unidade_ids[]` legado.
+- `listar_gestores_gerais`: retorna `contratantes_vinculados[]`. Mantém `unidades`/`unidades_vinculadas` derivados via contratante (compat).
+- `atualizar_vinculos_gestor_geral`: opera em `gestores_gerais_contratantes`. Alias `atualizar_vinculos_unidades` mantido convertendo unidade→contratante.
+- `listar_profissionais`: retorna `contratante_id`/`contratante_nome`. Filtro opcional `contratante_id`.
 
-### A reaproveitar no 28.3a
-- Validação contratante ativo em `criar_unidade` (código já escrito antes; ver git history).
-- Códigos de erro: `contratante_obrigatorio`, `contratante_inexistente`, `contratante_encerrado`.
-- `criar_gestor_geral` aceitar `contratante_ids[]` ao invés de `unidade_ids[]`.
-- `listar_gestores_gerais` retornar `contratantes_vinculados[]`.
-- `atualizar_vinculos_gestor_geral` sobre `gestores_gerais_contratantes`.
-- 6 novas ações: `listar_contratantes`, `criar_contratante`, `editar_contratante`, `encerrar_contratante`, `reativar_contratante`, `transferir_unidade_de_contratante`.
+Ações novas (6):
+- `listar_contratantes` — retorna lista + counts (unidades, gestores_gerais, profissionais).
+- `criar_contratante` — valida CNPJ (14 dígitos, normaliza com máscara, único), datas, e-mail.
+- `editar_contratante` — UPDATE parcial. CNPJ e status imutáveis nesta ação.
+- `encerrar_contratante` — modos `preview` / `confirmar`. Marca contratante=encerrado, unidades.ativa=false, profissionais.acesso_revogado=true com marker `encerramento_contratante:<id>`. signOut global. Dados clínicos preservados.
+- `reativar_contratante` — reverte. Reativa SOMENTE profissionais cujo `motivo_revogacao` bate com o marker do encerramento (reativação seletiva).
+- `transferir_unidade_de_contratante` — valida destino ativo, ≠origem, justificativa ≥20. Insere log + UPDATE unidade.
 
-### Decisão: dividir 28.3 em 3 sub-prompts
-- **28.3a**: Edge Function completa (todas as 6 novas ações + ajustes em criar_unidade/criar_gestor_geral/listar_*).
-- **28.3b**: Aba Contratantes CRUD (AbaContratantes, ModalCadastrarContratante, ModalEditarContratante).
-- **28.3c**: ModalEncerrar/AlertReativar/ModalTransferir + ajustes nas abas Unidades/Profissionais/GestoresGerais + nova ordem de tabs.
+### Códigos de erro adicionados em `src/lib/mensagensUnicidade.ts`
+`cnpj_duplicado`, `cnpj_invalido`, `contratante_inexistente`, `contratante_encerrado`, `contratante_destino_inativo`, `contratante_destino_igual_origem`, `data_termino_invalida`, `data_inicio_obrigatoria`, `justificativa_curta`, `nome_contratante_obrigatorio`, `contato_email_invalido`.
+
+### Smoke tests (ok)
+- `listar_contratantes` → MARI Sandbox + counts.
+- `listar_gestores_gerais` → `contratantes_vinculados[]` populado, `unidades` compat preservado.
+- `listar_unidades` → `contratante_nome` em todas as 4 unidades.
+- `criar_contratante` → "Unimed RJ Smoke" criado (id `dd75c1f7-b779-4c66-a396-db7ea7848a52`, sem unidades — pode ser deletado manualmente).
+- `cnpj_duplicado` bloqueado.
+- `justificativa_curta` bloqueada na transferência.
+- `encerrar_contratante` modo preview funciona.
+
+### Dívidas técnicas registradas
+- Operações multi-tabela em `encerrar_contratante`/`reativar_contratante` não usam transação real (limitação edge function). Idempotência garantida via marker `encerramento_contratante:<id>`.
+- `MARI Sandbox` fallback em `criar_unidade` continua até 28.3b.
+- Alias `atualizar_vinculos_unidades` continua até 28.3c remover do frontend.
+
+### Próximos sub-prompts
+- **28.3b**: AbaContratantes + ModalCadastrar/Editar; remover fallback MARI Sandbox de `criar_unidade` quando ModalCriarUnidade ganhar Select.
+- **28.3c**: ModalEncerrar/AlertReativar/ModalTransferir + ajustes em AbaUnidades/AbaProfissionais/AbaGestoresGerais + nova ordem de tabs.

@@ -262,9 +262,26 @@ Deno.serve(async (req) => {
       const cidade = body.cidade ?? null;
       const planoCategoria = body.plano ?? "clinica"; // só categoria
       const gestorModo = String(body.gestor_modo ?? "novo");
-      // [28.3 revertido] contratante_id default = MARI Sandbox enquanto Camada Contratante não está exposta no frontend.
+
+      // [28.3a] contratante_id agora é validado quando enviado.
+      // Workaround MARI Sandbox mantido como fallback até o 28.3b expor o Select no frontend.
       const MARI_SANDBOX_ID = "feac2ad0-cb91-43c3-a043-094ac0d95d08";
-      const contratante_id = String(body.contratante_id ?? "").trim() || MARI_SANDBOX_ID;
+      let contratante_id = String(body.contratante_id ?? "").trim();
+      if (contratante_id) {
+        const { data: cont } = await admin
+          .from("contratantes")
+          .select("id, status")
+          .eq("id", contratante_id)
+          .maybeSingle();
+        if (!cont) {
+          return jsonResponse({ codigo: "contratante_inexistente", mensagem: "Contratante não encontrado." }, 400);
+        }
+        if (cont.status !== "ativo") {
+          return jsonResponse({ codigo: "contratante_encerrado", mensagem: "Contratante está encerrado e não pode receber novas unidades." }, 400);
+        }
+      } else {
+        contratante_id = MARI_SANDBOX_ID;
+      }
 
       const planoId = await getPlanoIdInstitucional(admin);
       if (!planoId) {
@@ -748,9 +765,23 @@ Deno.serve(async (req) => {
       const email = String(body.email ?? "").trim().toLowerCase();
       const cargo = body.cargo ?? null;
       const instituicao = body.instituicao ?? null;
-      const unidadeIds: string[] = Array.isArray(body.unidade_ids)
-        ? body.unidade_ids
+
+      // [28.3a] Modelo novo: contratante_ids[]. Backwards-compat: aceita unidade_ids[] legado e converte.
+      let contratanteIds: string[] = Array.isArray(body.contratante_ids)
+        ? body.contratante_ids.filter((x: any) => typeof x === "string" && x)
         : [];
+      const unidadeIdsLegado: string[] = Array.isArray(body.unidade_ids)
+        ? body.unidade_ids.filter((x: any) => typeof x === "string" && x)
+        : [];
+      if (contratanteIds.length === 0 && unidadeIdsLegado.length > 0) {
+        console.warn("[28.3a] criar_gestor_geral recebeu unidade_ids[] legado — convertendo para contratante_ids[].");
+        const { data: uniRows } = await admin
+          .from("unidades")
+          .select("contratante_id")
+          .in("id", unidadeIdsLegado);
+        contratanteIds = Array.from(new Set((uniRows ?? []).map((u: any) => u.contratante_id).filter(Boolean)));
+      }
+
       if (!nome || !email) {
         return jsonResponse({ error: "Nome e e-mail são obrigatórios." }, 400);
       }
@@ -760,6 +791,21 @@ Deno.serve(async (req) => {
         return jsonResponse(erroEmailParaResposta(conflito.perfil), 400);
       }
 
+      // Validar contratantes (existem e ativos)
+      if (contratanteIds.length > 0) {
+        const { data: contRows } = await admin
+          .from("contratantes")
+          .select("id, status")
+          .in("id", contratanteIds);
+        if ((contRows?.length ?? 0) !== contratanteIds.length) {
+          return jsonResponse({ codigo: "contratante_inexistente", mensagem: "Um ou mais contratantes não existem." }, 400);
+        }
+        const encerrados = (contRows ?? []).filter((c: any) => c.status !== "ativo").map((c: any) => c.id);
+        if (encerrados.length > 0) {
+          return jsonResponse({ codigo: "contratante_encerrado", mensagem: "Um ou mais contratantes estão encerrados.", ids: encerrados }, 400);
+        }
+      }
+
       const { data: invited, error: invErr } =
         await admin.auth.admin.inviteUserByEmail(email, {
           data: {
@@ -767,7 +813,7 @@ Deno.serve(async (req) => {
             perfil: "gestor_geral",
             cargo,
             instituicao,
-            total_unidades: unidadeIds.length,
+            total_contratantes: contratanteIds.length,
           },
           redirectTo: `${APP_URL}/nova-senha?destino=/consolidar`,
         });
@@ -794,16 +840,16 @@ Deno.serve(async (req) => {
         );
       }
 
-      if (unidadeIds.length > 0) {
-        const vinculos = unidadeIds.map((uid) => ({
+      if (contratanteIds.length > 0) {
+        const vinculos = contratanteIds.map((cid) => ({
           gestor_geral_id: gg.id,
-          unidade_id: uid,
+          contratante_id: cid,
         }));
         const { error: errVinc } = await admin
-          .from("gestores_gerais_unidades")
+          .from("gestores_gerais_contratantes")
           .insert(vinculos);
         if (errVinc) {
-          console.error("Erro vínculos unidades:", errVinc);
+          console.error("Erro vínculos contratantes:", errVinc);
           await admin.from("gestores_gerais").delete().eq("id", gg.id);
           await admin.auth.admin.deleteUser(newUserId).catch(() => {});
           return jsonResponse(
@@ -820,7 +866,7 @@ Deno.serve(async (req) => {
         {
           gestor_geral_id: gg.id,
           email,
-          total_unidades: unidadeIds.length,
+          total_contratantes: contratanteIds.length,
           cargo,
           instituicao,
         },
@@ -829,7 +875,7 @@ Deno.serve(async (req) => {
       return jsonResponse({
         status: "criado",
         gestor_geral_id: gg.id,
-        unidades_vinculadas: unidadeIds.length,
+        contratantes_vinculados: contratanteIds.length,
       });
     }
 
@@ -844,34 +890,46 @@ Deno.serve(async (req) => {
       const userIds = (ggs ?? []).map((g) => g.user_id).filter(Boolean);
       const emailMap = await getEmailMap(admin, userIds);
 
-      // Vínculos + nomes de unidades
-      const { data: vinc } = await admin
-        .from("gestores_gerais_unidades")
-        .select("gestor_geral_id, unidade_id")
+      // [28.3a] Vínculos com contratantes (modelo novo)
+      const { data: vincC } = await admin
+        .from("gestores_gerais_contratantes")
+        .select("gestor_geral_id, contratante_id")
         .in("gestor_geral_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
 
-      const unidadeIds = Array.from(
-        new Set((vinc ?? []).map((v) => v.unidade_id)),
-      );
-      const { data: unidadesNomes } = await admin
-        .from("unidades")
+      const contratanteIds = Array.from(new Set((vincC ?? []).map((v) => v.contratante_id)));
+      const { data: contratantesRows } = await admin
+        .from("contratantes")
         .select("id, nome")
-        .in("id", unidadeIds.length ? unidadeIds : ["00000000-0000-0000-0000-000000000000"]);
-      const uMap = new Map(
-        (unidadesNomes ?? []).map((u) => [u.id, u.nome] as const),
-      );
+        .in("id", contratanteIds.length ? contratanteIds : ["00000000-0000-0000-0000-000000000000"]);
+      const cMap = new Map((contratantesRows ?? []).map((c) => [c.id, c.nome] as const));
 
-      const vincByGg = new Map<string, { id: string; nome: string }[]>();
-      for (const v of vinc ?? []) {
-        const arr = vincByGg.get(v.gestor_geral_id) ?? [];
-        arr.push({ id: v.unidade_id, nome: uMap.get(v.unidade_id) ?? "" });
-        vincByGg.set(v.gestor_geral_id, arr);
+      const contratantesByGg = new Map<string, { id: string; nome: string }[]>();
+      for (const v of vincC ?? []) {
+        const arr = contratantesByGg.get(v.gestor_geral_id) ?? [];
+        arr.push({ id: v.contratante_id, nome: cMap.get(v.contratante_id) ?? "" });
+        contratantesByGg.set(v.gestor_geral_id, arr);
+      }
+
+      // Compat: também retorna unidades_vinculadas[] derivadas via contratante (frontend antigo continua funcionando)
+      const { data: uniRows } = await admin
+        .from("unidades")
+        .select("id, nome, contratante_id")
+        .in("contratante_id", contratanteIds.length ? contratanteIds : ["00000000-0000-0000-0000-000000000000"]);
+      const uniByContratante = new Map<string, { id: string; nome: string }[]>();
+      for (const u of uniRows ?? []) {
+        const arr = uniByContratante.get(u.contratante_id) ?? [];
+        arr.push({ id: u.id, nome: u.nome });
+        uniByContratante.set(u.contratante_id, arr);
       }
 
       const out = (ggs ?? []).map((g) => {
         const info = emailMap.get(g.user_id);
         const meta = info?.user_metadata ?? {};
-        const unidades = vincByGg.get(g.id) ?? [];
+        const contratantes = contratantesByGg.get(g.id) ?? [];
+        const unidades: { id: string; nome: string }[] = [];
+        for (const c of contratantes) {
+          for (const u of uniByContratante.get(c.id) ?? []) unidades.push(u);
+        }
         return {
           id: g.id,
           user_id: g.user_id,
@@ -880,9 +938,11 @@ Deno.serve(async (req) => {
           cargo: meta.cargo ?? null,
           instituicao: meta.instituicao ?? null,
           convite_pendente: info ? info.last_sign_in_at == null : true,
+          contratantes_vinculados: contratantes,
+          // compat — frontend antigo
           unidades_vinculadas: unidades.length,
-          created_at: g.created_at,
           unidades,
+          created_at: g.created_at,
         };
       });
 
@@ -890,19 +950,27 @@ Deno.serve(async (req) => {
     }
 
     // ============= atualizar_vinculos_gestor_geral =============
-    if (acao === "atualizar_vinculos_gestor_geral") {
+    if (acao === "atualizar_vinculos_gestor_geral" || acao === "atualizar_vinculos_unidades") {
       const ggId = body.gestor_geral_id;
-      const unidadeIds: string[] = Array.isArray(body.unidade_ids)
-        ? body.unidade_ids
+
+      // [28.3a] Modelo novo: contratante_ids[]. Backwards-compat: aceita unidade_ids[] e converte.
+      let contratanteIds: string[] = Array.isArray(body.contratante_ids)
+        ? body.contratante_ids.filter((x: any) => typeof x === "string" && x)
         : [];
+      const unidadeIdsLegado: string[] = Array.isArray(body.unidade_ids)
+        ? body.unidade_ids.filter((x: any) => typeof x === "string" && x)
+        : [];
+      if (contratanteIds.length === 0 && unidadeIdsLegado.length > 0) {
+        console.warn("[28.3a] atualizar_vinculos_gestor_geral recebeu unidade_ids[] legado — convertendo.");
+        const { data: uniRows } = await admin
+          .from("unidades")
+          .select("contratante_id")
+          .in("id", unidadeIdsLegado);
+        contratanteIds = Array.from(new Set((uniRows ?? []).map((u: any) => u.contratante_id).filter(Boolean)));
+      }
+
       if (!ggId) {
-        return jsonResponse(
-          {
-            codigo: "gestor_geral_nao_encontrado",
-            mensagem: "Gestor geral não encontrado.",
-          },
-          400,
-        );
+        return jsonResponse({ codigo: "gestor_geral_nao_encontrado", mensagem: "Gestor geral não encontrado." }, 400);
       }
 
       const { data: gg } = await admin
@@ -911,66 +979,54 @@ Deno.serve(async (req) => {
         .eq("id", ggId)
         .maybeSingle();
       if (!gg) {
-        return jsonResponse(
-          {
-            codigo: "gestor_geral_nao_encontrado",
-            mensagem: "Gestor geral não encontrado.",
-          },
-          400,
-        );
+        return jsonResponse({ codigo: "gestor_geral_nao_encontrado", mensagem: "Gestor geral não encontrado." }, 400);
       }
 
-      if (unidadeIds.length > 0) {
-        const { data: existentes } = await admin
-          .from("unidades")
-          .select("id")
-          .in("id", unidadeIds);
-        if ((existentes?.length ?? 0) !== unidadeIds.length) {
-          return jsonResponse(
-            {
-              codigo: "unidade_nao_encontrada",
-              mensagem: "Uma ou mais unidades não existem.",
-            },
-            400,
-          );
+      if (contratanteIds.length > 0) {
+        const { data: contRows } = await admin
+          .from("contratantes")
+          .select("id, status")
+          .in("id", contratanteIds);
+        if ((contRows?.length ?? 0) !== contratanteIds.length) {
+          return jsonResponse({ codigo: "contratante_inexistente", mensagem: "Um ou mais contratantes não existem." }, 400);
+        }
+        const encerrados = (contRows ?? []).filter((c: any) => c.status !== "ativo").map((c: any) => c.id);
+        if (encerrados.length > 0) {
+          return jsonResponse({ codigo: "contratante_encerrado", mensagem: "Um ou mais contratantes estão encerrados.", ids: encerrados }, 400);
         }
       }
 
       const { data: atuaisRows } = await admin
-        .from("gestores_gerais_unidades")
-        .select("unidade_id")
+        .from("gestores_gerais_contratantes")
+        .select("contratante_id")
         .eq("gestor_geral_id", ggId);
-      const atuais = new Set((atuaisRows ?? []).map((r) => r.unidade_id));
-      const novos = new Set(unidadeIds);
-      const adicionar = unidadeIds.filter((u) => !atuais.has(u));
-      const remover = [...atuais].filter((u) => !novos.has(u));
+      const atuais = new Set((atuaisRows ?? []).map((r) => r.contratante_id));
+      const novos = new Set(contratanteIds);
+      const adicionar = contratanteIds.filter((c) => !atuais.has(c));
+      const remover = [...atuais].filter((c) => !novos.has(c));
 
       if (adicionar.length > 0) {
-        await admin.from("gestores_gerais_unidades").insert(
-          adicionar.map((u) => ({ gestor_geral_id: ggId, unidade_id: u })),
+        await admin.from("gestores_gerais_contratantes").insert(
+          adicionar.map((c) => ({ gestor_geral_id: ggId, contratante_id: c })),
         );
       }
       if (remover.length > 0) {
         await admin
-          .from("gestores_gerais_unidades")
+          .from("gestores_gerais_contratantes")
           .delete()
           .eq("gestor_geral_id", ggId)
-          .in("unidade_id", remover);
+          .in("contratante_id", remover);
       }
 
       await inserirAuditoria(
-        admin,
-        callerUserId,
-        callerEmail,
+        admin, callerUserId, callerEmail,
         "atualizar_vinculos_gestor_geral",
-        callerEmail,
-        null,
-        null,
+        callerEmail, null, null,
         {
           gestor_geral_id: ggId,
           adicionadas: adicionar.length,
           removidas: remover.length,
-          total: unidadeIds.length,
+          total: contratanteIds.length,
         },
       );
 
@@ -978,7 +1034,7 @@ Deno.serve(async (req) => {
         status: "atualizado",
         adicionadas: adicionar.length,
         removidas: remover.length,
-        total: unidadeIds.length,
+        total: contratanteIds.length,
       });
     }
 
@@ -1171,11 +1227,12 @@ Deno.serve(async (req) => {
     // ============= listar_profissionais =============
     if (acao === "listar_profissionais") {
       const filtroUnidade = body.unidade_id ?? null;
+      const filtroContratante = body.contratante_id ?? null;
 
       let q = admin
         .from("profissionais")
         .select(
-          "id, user_id, nome, crm, especialidade, perfil_clinico, perfil_institucional, unidade_id, acesso_revogado, acesso_revogado_em, motivo_revogacao, created_at, unidades(nome)"
+          "id, user_id, nome, crm, especialidade, perfil_clinico, perfil_institucional, unidade_id, acesso_revogado, acesso_revogado_em, motivo_revogacao, created_at, unidades(nome, contratante_id, contratantes(id, nome))"
         )
         .not("unidade_id", "is", null)
         .neq("perfil_institucional", "gestor")
@@ -1208,7 +1265,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      const profissionais = (profs ?? []).map((p: any) => {
+      let profissionais = (profs ?? []).map((p: any) => {
         const auth = emailMap.get(p.user_id);
         const email = auth?.email ?? null;
         return {
@@ -1222,6 +1279,8 @@ Deno.serve(async (req) => {
           perfil_institucional: p.perfil_institucional,
           unidade_id: p.unidade_id,
           unidade_nome: p.unidades?.nome ?? null,
+          contratante_id: p.unidades?.contratante_id ?? null,
+          contratante_nome: p.unidades?.contratantes?.nome ?? null,
           convite_pendente: email
             ? pendentes.has(email.toLowerCase())
             : false,
@@ -1231,6 +1290,10 @@ Deno.serve(async (req) => {
           created_at: p.created_at,
         };
       });
+
+      if (filtroContratante) {
+        profissionais = profissionais.filter((p) => p.contratante_id === filtroContratante);
+      }
 
       return jsonResponse({ status: "ok", profissionais });
     }
@@ -1905,6 +1968,416 @@ Deno.serve(async (req) => {
         emailMap.get(prof.user_id)?.email ?? "", prof.nome, null, { gestor_id },
       );
       return jsonResponse({ status: "reativado" });
+    }
+
+    // ====================================================================
+    // ============= [28.3a] CAMADA CONTRATANTE — 6 ações novas ============
+    // ====================================================================
+
+    // ============= listar_contratantes =============
+    if (acao === "listar_contratantes") {
+      const { data: cs } = await admin
+        .from("contratantes")
+        .select("id, nome, cnpj, razao_social, contato_nome, contato_email, contato_telefone, data_inicio_contrato, data_termino_contrato, status, observacoes, encerrado_em, motivo_encerramento, created_at")
+        .order("created_at", { ascending: false });
+
+      const ids = (cs ?? []).map((c) => c.id);
+
+      const { data: uniRows } = await admin
+        .from("unidades")
+        .select("id, contratante_id")
+        .in("contratante_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+      const uniByCont = new Map<string, string[]>();
+      const uniIds: string[] = [];
+      for (const u of uniRows ?? []) {
+        const arr = uniByCont.get(u.contratante_id) ?? [];
+        arr.push(u.id);
+        uniByCont.set(u.contratante_id, arr);
+        uniIds.push(u.id);
+      }
+
+      const { data: ggRows } = await admin
+        .from("gestores_gerais_contratantes")
+        .select("contratante_id, gestor_geral_id")
+        .in("contratante_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+      const ggByCont = new Map<string, number>();
+      for (const v of ggRows ?? []) {
+        ggByCont.set(v.contratante_id, (ggByCont.get(v.contratante_id) ?? 0) + 1);
+      }
+
+      const { data: profRows } = await admin
+        .from("profissionais")
+        .select("unidade_id")
+        .in("unidade_id", uniIds.length ? uniIds : ["00000000-0000-0000-0000-000000000000"]);
+      const profByUni = new Map<string, number>();
+      for (const p of profRows ?? []) {
+        if (p.unidade_id) profByUni.set(p.unidade_id, (profByUni.get(p.unidade_id) ?? 0) + 1);
+      }
+
+      const out = (cs ?? []).map((c: any) => {
+        const unis = uniByCont.get(c.id) ?? [];
+        let profCount = 0;
+        for (const uid of unis) profCount += profByUni.get(uid) ?? 0;
+        return {
+          ...c,
+          unidades_count: unis.length,
+          gestores_gerais_count: ggByCont.get(c.id) ?? 0,
+          profissionais_count: profCount,
+        };
+      });
+
+      return jsonResponse({ status: "ok", contratantes: out });
+    }
+
+    // ============= criar_contratante =============
+    if (acao === "criar_contratante") {
+      const nome = String(body.nome ?? "").trim();
+      const cnpjRaw = String(body.cnpj ?? "").replace(/\D/g, "");
+      const razao_social = body.razao_social ?? null;
+      const contato_nome = String(body.contato_nome ?? "").trim();
+      const contato_email = String(body.contato_email ?? "").trim().toLowerCase();
+      const contato_telefone = body.contato_telefone ?? null;
+      const data_inicio_contrato = body.data_inicio_contrato ?? null;
+      const data_termino_contrato = body.data_termino_contrato ?? null;
+      const observacoes = body.observacoes ?? null;
+
+      if (!nome || nome.length > 200) {
+        return jsonResponse({ codigo: "nome_contratante_obrigatorio", mensagem: "Nome do contratante é obrigatório." }, 400);
+      }
+      if (cnpjRaw.length !== 14) {
+        return jsonResponse({ codigo: "cnpj_invalido", mensagem: "CNPJ inválido." }, 400);
+      }
+      const cnpj = `${cnpjRaw.slice(0, 2)}.${cnpjRaw.slice(2, 5)}.${cnpjRaw.slice(5, 8)}/${cnpjRaw.slice(8, 12)}-${cnpjRaw.slice(12)}`;
+      if (!contato_nome) {
+        return jsonResponse({ error: "contato_nome obrigatório." }, 400);
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contato_email)) {
+        return jsonResponse({ codigo: "contato_email_invalido", mensagem: "E-mail de contato inválido." }, 400);
+      }
+      if (!data_inicio_contrato) {
+        return jsonResponse({ codigo: "data_inicio_obrigatoria", mensagem: "Data de início do contrato é obrigatória." }, 400);
+      }
+      if (data_termino_contrato && data_termino_contrato <= data_inicio_contrato) {
+        return jsonResponse({ codigo: "data_termino_invalida", mensagem: "Data de término deve ser posterior à data de início." }, 400);
+      }
+
+      const { data: existente } = await admin
+        .from("contratantes")
+        .select("id")
+        .eq("cnpj", cnpj)
+        .maybeSingle();
+      if (existente) {
+        return jsonResponse({ codigo: "cnpj_duplicado", mensagem: "Já existe um contratante com este CNPJ." }, 400);
+      }
+
+      const { data: novo, error: errIns } = await admin
+        .from("contratantes")
+        .insert({
+          nome, cnpj, razao_social,
+          contato_nome, contato_email, contato_telefone,
+          data_inicio_contrato, data_termino_contrato,
+          status: "ativo", observacoes,
+        })
+        .select("id, nome, cnpj")
+        .single();
+      if (errIns || !novo) {
+        console.error("Erro criar contratante:", errIns);
+        return jsonResponse({ error: "Erro ao criar contratante." }, 500);
+      }
+
+      await inserirAuditoria(
+        admin, callerUserId, callerEmail, "criar_contratante",
+        contato_email, nome, null,
+        { contratante_id: novo.id, cnpj: novo.cnpj },
+      );
+      return jsonResponse({ status: "criado", contratante_id: novo.id });
+    }
+
+    // ============= editar_contratante =============
+    if (acao === "editar_contratante") {
+      const contratante_id = String(body.contratante_id ?? "").trim();
+      if (!contratante_id) {
+        return jsonResponse({ codigo: "contratante_inexistente", mensagem: "Contratante não encontrado." }, 400);
+      }
+      const { data: atual } = await admin
+        .from("contratantes")
+        .select("id, data_inicio_contrato, data_termino_contrato")
+        .eq("id", contratante_id)
+        .maybeSingle();
+      if (!atual) {
+        return jsonResponse({ codigo: "contratante_inexistente", mensagem: "Contratante não encontrado." }, 400);
+      }
+
+      const update: Record<string, any> = {};
+      const editaveis = ["nome", "razao_social", "contato_nome", "contato_email", "contato_telefone", "data_inicio_contrato", "data_termino_contrato", "observacoes"];
+      for (const k of editaveis) {
+        if (k in body && body[k] !== undefined) update[k] = body[k];
+      }
+      // CNPJ e status NÃO editáveis aqui
+
+      const inicio = update.data_inicio_contrato ?? atual.data_inicio_contrato;
+      const termino = update.data_termino_contrato ?? atual.data_termino_contrato;
+      if (termino && inicio && termino <= inicio) {
+        return jsonResponse({ codigo: "data_termino_invalida", mensagem: "Data de término deve ser posterior à data de início." }, 400);
+      }
+
+      if (Object.keys(update).length === 0) {
+        return jsonResponse({ status: "nada_a_alterar" });
+      }
+
+      const { error: errUpd } = await admin
+        .from("contratantes")
+        .update(update)
+        .eq("id", contratante_id);
+      if (errUpd) {
+        console.error("Erro editar contratante:", errUpd);
+        return jsonResponse({ error: "Erro ao editar." }, 500);
+      }
+      await inserirAuditoria(
+        admin, callerUserId, callerEmail, "editar_contratante",
+        update.contato_email ?? "", update.nome ?? "", null,
+        { contratante_id, campos: Object.keys(update) },
+      );
+      return jsonResponse({ status: "editado" });
+    }
+
+    // ============= encerrar_contratante =============
+    if (acao === "encerrar_contratante") {
+      const contratante_id = String(body.contratante_id ?? "").trim();
+      const modo = String(body.modo ?? "preview");
+      const motivo = body.motivo ?? null;
+
+      if (!contratante_id) {
+        return jsonResponse({ codigo: "contratante_inexistente", mensagem: "Contratante não encontrado." }, 400);
+      }
+
+      const { data: cont } = await admin
+        .from("contratantes")
+        .select("id, nome, status")
+        .eq("id", contratante_id)
+        .maybeSingle();
+      if (!cont) {
+        return jsonResponse({ codigo: "contratante_inexistente", mensagem: "Contratante não encontrado." }, 400);
+      }
+
+      // Coleta unidades + profissionais afetados
+      const { data: uniRows } = await admin
+        .from("unidades")
+        .select("id, nome, ativa")
+        .eq("contratante_id", contratante_id);
+      const uniIds = (uniRows ?? []).map((u) => u.id);
+
+      const { data: profRows } = await admin
+        .from("profissionais")
+        .select("id, user_id, nome, acesso_revogado")
+        .in("unidade_id", uniIds.length ? uniIds : ["00000000-0000-0000-0000-000000000000"])
+        .eq("acesso_revogado", false);
+
+      if (modo === "preview") {
+        return jsonResponse({
+          status: "preview",
+          contratante_nome: cont.nome,
+          contratante_status_atual: cont.status,
+          unidades_count: uniIds.length,
+          profissionais_a_revogar_count: (profRows ?? []).length,
+          unidades: (uniRows ?? []).map((u) => ({ id: u.id, nome: u.nome })),
+        });
+      }
+
+      if (modo !== "confirmar") {
+        return jsonResponse({ error: "modo deve ser 'preview' ou 'confirmar'." }, 400);
+      }
+      if (cont.status !== "ativo") {
+        return jsonResponse({ codigo: "contratante_encerrado", mensagem: "Contratante já está encerrado." }, 400);
+      }
+
+      const REVOG_MARKER = `encerramento_contratante:${contratante_id}`;
+      const profIds = (profRows ?? []).map((p) => p.id);
+      const profUserIds = (profRows ?? []).map((p) => p.user_id).filter(Boolean);
+
+      // Atualiza contratante
+      await admin
+        .from("contratantes")
+        .update({
+          status: "encerrado",
+          encerrado_em: new Date().toISOString(),
+          encerrado_por: callerUserId,
+          motivo_encerramento: motivo,
+        })
+        .eq("id", contratante_id);
+
+      // Desativa unidades
+      if (uniIds.length > 0) {
+        await admin.from("unidades").update({ ativa: false }).in("id", uniIds);
+      }
+
+      // Revoga acesso dos profissionais (com marcador para reativação seletiva)
+      if (profIds.length > 0) {
+        await admin.from("profissionais").update({
+          acesso_revogado: true,
+          acesso_revogado_em: new Date().toISOString(),
+          acesso_revogado_por: callerUserId,
+          motivo_revogacao: REVOG_MARKER,
+        }).in("id", profIds);
+
+        for (const uid of profUserIds) {
+          await admin.auth.admin.signOut(uid, "global").catch(() => {});
+        }
+      }
+
+      await inserirAuditoria(
+        admin, callerUserId, callerEmail, "encerrar_contratante",
+        "", cont.nome, null,
+        {
+          contratante_id,
+          unidades_marcadas_count: uniIds.length,
+          profissionais_revogados_count: profIds.length,
+          motivo,
+        },
+      );
+
+      return jsonResponse({
+        status: "encerrado",
+        profissionais_revogados_count: profIds.length,
+        unidades_marcadas_count: uniIds.length,
+      });
+    }
+
+    // ============= reativar_contratante =============
+    if (acao === "reativar_contratante") {
+      const contratante_id = String(body.contratante_id ?? "").trim();
+      if (!contratante_id) {
+        return jsonResponse({ codigo: "contratante_inexistente", mensagem: "Contratante não encontrado." }, 400);
+      }
+      const { data: cont } = await admin
+        .from("contratantes")
+        .select("id, nome, status")
+        .eq("id", contratante_id)
+        .maybeSingle();
+      if (!cont) {
+        return jsonResponse({ codigo: "contratante_inexistente", mensagem: "Contratante não encontrado." }, 400);
+      }
+      if (cont.status === "ativo") {
+        return jsonResponse({ error: "Contratante já está ativo." }, 400);
+      }
+
+      const REVOG_MARKER = `encerramento_contratante:${contratante_id}`;
+
+      await admin
+        .from("contratantes")
+        .update({
+          status: "ativo",
+          encerrado_em: null,
+          encerrado_por: null,
+          motivo_encerramento: null,
+        })
+        .eq("id", contratante_id);
+
+      const { data: uniRows } = await admin
+        .from("unidades")
+        .select("id")
+        .eq("contratante_id", contratante_id);
+      const uniIds = (uniRows ?? []).map((u) => u.id);
+      if (uniIds.length > 0) {
+        await admin.from("unidades").update({ ativa: true }).in("id", uniIds);
+      }
+
+      // Reativar APENAS profissionais cujo motivo_revogacao bate com este encerramento
+      const { data: profRows } = await admin
+        .from("profissionais")
+        .select("id")
+        .in("unidade_id", uniIds.length ? uniIds : ["00000000-0000-0000-0000-000000000000"])
+        .eq("motivo_revogacao", REVOG_MARKER);
+      const profIds = (profRows ?? []).map((p) => p.id);
+      if (profIds.length > 0) {
+        await admin.from("profissionais").update({
+          acesso_revogado: false,
+          acesso_revogado_em: null,
+          acesso_revogado_por: null,
+          motivo_revogacao: null,
+        }).in("id", profIds);
+      }
+
+      await inserirAuditoria(
+        admin, callerUserId, callerEmail, "reativar_contratante",
+        "", cont.nome, null,
+        { contratante_id, profissionais_restaurados_count: profIds.length, unidades_reativadas_count: uniIds.length },
+      );
+
+      return jsonResponse({
+        status: "reativado",
+        profissionais_restaurados_count: profIds.length,
+      });
+    }
+
+    // ============= transferir_unidade_de_contratante =============
+    if (acao === "transferir_unidade_de_contratante") {
+      const unidade_id = String(body.unidade_id ?? "").trim();
+      const contratante_destino_id = String(body.contratante_destino_id ?? "").trim();
+      const justificativa = String(body.justificativa ?? "").trim();
+
+      if (!unidade_id || !contratante_destino_id) {
+        return jsonResponse({ error: "unidade_id e contratante_destino_id obrigatórios." }, 400);
+      }
+      if (justificativa.length < 20) {
+        return jsonResponse({ codigo: "justificativa_curta", mensagem: "Justificativa deve ter pelo menos 20 caracteres." }, 400);
+      }
+
+      const { data: unidade } = await admin
+        .from("unidades")
+        .select("id, nome, contratante_id, contratantes(id, nome)")
+        .eq("id", unidade_id)
+        .maybeSingle();
+      if (!unidade) {
+        return jsonResponse({ error: "Unidade não encontrada." }, 404);
+      }
+
+      if (unidade.contratante_id === contratante_destino_id) {
+        return jsonResponse({ codigo: "contratante_destino_igual_origem", mensagem: "Contratante destino é igual ao atual." }, 400);
+      }
+
+      const { data: destino } = await admin
+        .from("contratantes")
+        .select("id, nome, status")
+        .eq("id", contratante_destino_id)
+        .maybeSingle();
+      if (!destino) {
+        return jsonResponse({ codigo: "contratante_inexistente", mensagem: "Contratante destino não encontrado." }, 400);
+      }
+      if (destino.status !== "ativo") {
+        return jsonResponse({ codigo: "contratante_destino_inativo", mensagem: "Contratante destino está encerrado." }, 400);
+      }
+
+      const origemNome = (unidade as any).contratantes?.nome ?? null;
+
+      // Log primeiro (auditoria imutável), depois UPDATE
+      await admin.from("log_transferencia_unidade").insert({
+        unidade_id,
+        contratante_origem_id: unidade.contratante_id,
+        contratante_destino_id,
+        justificativa,
+        transferido_por: callerUserId,
+        contratante_origem_nome_snapshot: origemNome,
+        contratante_destino_nome_snapshot: destino.nome,
+      });
+
+      await admin
+        .from("unidades")
+        .update({ contratante_id: contratante_destino_id })
+        .eq("id", unidade_id);
+
+      await inserirAuditoria(
+        admin, callerUserId, callerEmail, "transferir_unidade_de_contratante",
+        "", unidade.nome, null,
+        { unidade_id, contratante_origem_id: unidade.contratante_id, contratante_destino_id },
+      );
+
+      return jsonResponse({
+        status: "transferido",
+        unidade_nome: unidade.nome,
+        contratante_origem_nome: origemNome,
+        contratante_destino_nome: destino.nome,
+      });
     }
 
     return jsonResponse({ error: "Ação não reconhecida." }, 400);
