@@ -17,11 +17,11 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-const items = [
-  { title: "Painel", path: "/gestao", icon: LayoutDashboard, exact: true },
-  { title: "Equipe", path: "/gestao/equipe", icon: Users, exact: false },
-  { title: "Fichas da unidade", path: "/gestao/fichas", icon: FileText, exact: false },
-  { title: "Configurações", path: "/gestao/configuracoes", icon: Settings, exact: false },
+const buildItems = (base: string) => [
+  { title: "Painel", path: base, icon: LayoutDashboard, exact: true },
+  { title: "Equipe", path: `${base}/equipe`, icon: Users, exact: false },
+  { title: "Fichas da unidade", path: `${base}/fichas`, icon: FileText, exact: false },
+  { title: "Configurações", path: `${base}/configuracoes`, icon: Settings, exact: false },
 ];
 
 function iniciais(nome?: string | null) {
@@ -34,11 +34,11 @@ function iniciais(nome?: string | null) {
     .join("");
 }
 
-function GestorSidebar({ nome, unidade, email, onSair }: { nome: string; unidade: string; email: string; onSair: () => void }) {
+function GestorSidebar({ nome, unidade, email, basePath, onSair }: { nome: string; unidade: string; email: string; basePath: string; onSair: () => void }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
-
+  const items = buildItems(basePath);
   const isActive = (url: string, exact: boolean) =>
     exact ? pathname === url : pathname === url || pathname.startsWith(`${url}/`);
 
@@ -185,6 +185,7 @@ export default function AppShellGestor() {
           nome={nome}
           unidade={unidade}
           email={isVitrine ? "demo@mari.health" : user?.email ?? ""}
+          basePath={isVitrine ? "/vitrine/gestao" : "/gestao"}
           onSair={handleSair}
         />
         <div className="flex-1 flex flex-col min-w-0">

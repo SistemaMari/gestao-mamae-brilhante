@@ -17,9 +17,9 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-const items = [
-  { title: "Consolidador", path: "/consolidar", icon: FileBarChart, exact: true },
-  { title: "Configurações", path: "/consolidar/configuracoes", icon: Settings, exact: false },
+const buildItems = (base: string) => [
+  { title: "Consolidador", path: base, icon: FileBarChart, exact: true },
+  { title: "Configurações", path: `${base}/configuracoes`, icon: Settings, exact: false },
 ];
 
 function iniciais(nome?: string | null) {
@@ -36,16 +36,19 @@ function GestorGeralSidebar({
   nome,
   detalhe,
   email,
+  basePath,
   onSair,
 }: {
   nome: string;
   detalhe: string;
   email: string;
+  basePath: string;
   onSair: () => void;
 }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
+  const items = buildItems(basePath);
 
   const isActive = (url: string, exact: boolean) =>
     exact ? pathname === url : pathname === url || pathname.startsWith(`${url}/`);
@@ -192,6 +195,7 @@ export default function AppShellGestorGeral() {
           nome={nome}
           detalhe={detalhe}
           email={isVitrine ? "demo@mari.health" : user?.email ?? ""}
+          basePath={isVitrine ? "/vitrine/consolidar" : "/consolidar"}
           onSair={handleSair}
         />
         <div className="flex-1 flex flex-col min-w-0">

@@ -72,10 +72,13 @@ const App = () => (
             <Route path="/vitrine/completar-perfil" element={<PreviewCompletarPerfilPage />} />
             <Route element={<AppShellGestor />}>
               <Route path="/vitrine/gestao" element={<GestaoPage />} />
+              <Route path="/vitrine/gestao/equipe" element={<PreviewGestaoEquipePage />} />
+              <Route path="/vitrine/gestao/fichas" element={<StubEmConstrucao titulo="Fichas da unidade" />} />
+              <Route path="/vitrine/gestao/configuracoes" element={<StubEmConstrucao titulo="Configurações" />} />
             </Route>
-            <Route path="/vitrine/gestao/equipe" element={<PreviewGestaoEquipePage />} />
             <Route element={<AppShellGestorGeral />}>
               <Route path="/vitrine/consolidar" element={<ConsolidarPage />} />
+              <Route path="/vitrine/consolidar/configuracoes" element={<StubEmConstrucao titulo="Configurações" />} />
             </Route>
             <Route path="/vitrine/cadastro-convite" element={<PreviewCadastroConvitePage />} />
             <Route path="/vitrine/ficha-carimbada" element={<FichaCarimbadaDemo />} />
