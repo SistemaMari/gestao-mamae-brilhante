@@ -50,8 +50,19 @@ export default function AbaProfissionais() {
   const [reativar, setReativar] = useState<ProfissionalRow | null>(null);
 
   const [filtroUnidade, setFiltroUnidade] = useState<string>("todas");
+  const [filtroContratante, setFiltroContratante] = useState<string>("todos");
   const [filtroStatus, setFiltroStatus] = useState<StatusFiltro>("ativos");
   const [busca, setBusca] = useState("");
+
+  const { data: contratantesOpt = [] } = useQuery({
+    queryKey: ["institucional", "contratantes-ativos"],
+    queryFn: async () => {
+      const { data } = await supabase.functions.invoke("gerenciar-institucional", {
+        body: { acao: "listar_contratantes" },
+      });
+      return ((data?.contratantes ?? []) as ContratanteOpt[]).filter((c) => c.status === "ativo");
+    },
+  });
 
   const { data: unidades } = useQuery({
     queryKey: ["institucional", "unidades"],
