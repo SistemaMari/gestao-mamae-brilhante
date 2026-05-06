@@ -414,6 +414,7 @@ Deno.serve(async (req) => {
           estado,
           cidade,
           ativa: true,
+          contratante_id,
         })
         .select("id, nome")
         .single();
