@@ -50,8 +50,7 @@ export default function ModalTransferirUnidade({ alvo, onClose, onSucesso }: Pro
     });
     setSubmitting(false);
     if (error) {
-      const codigo = await extrairErroEdge(error);
-      if (codigo === "justificativa_curta") return; // já mostra toast inline
+      await extrairErroEdge(error);
       toast.error(FALLBACK_GENERICO);
       return;
     }
