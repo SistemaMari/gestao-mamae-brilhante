@@ -748,30 +748,11 @@ Deno.serve(async (req) => {
       const email = String(body.email ?? "").trim().toLowerCase();
       const cargo = body.cargo ?? null;
       const instituicao = body.instituicao ?? null;
-      const contratanteIds: string[] = Array.isArray(body.contratante_ids)
-        ? body.contratante_ids
+      const unidadeIds: string[] = Array.isArray(body.unidade_ids)
+        ? body.unidade_ids
         : [];
       if (!nome || !email) {
         return jsonResponse({ error: "Nome e e-mail são obrigatórios." }, 400);
-      }
-
-      if (contratanteIds.length > 0) {
-        const { data: existentes } = await admin
-          .from("contratantes")
-          .select("id, status")
-          .in("id", contratanteIds);
-        if ((existentes?.length ?? 0) !== contratanteIds.length) {
-          return jsonResponse({
-            codigo: "contratante_inexistente",
-            mensagem: "Um ou mais contratantes não existem.",
-          }, 400);
-        }
-        if ((existentes ?? []).some((c) => c.status !== "ativo")) {
-          return jsonResponse({
-            codigo: "contratante_encerrado",
-            mensagem: "Não é possível vincular gestor geral a contratante encerrado/suspenso.",
-          }, 400);
-        }
       }
 
       const conflito = await verificarEmailEmUso(admin, email);
@@ -786,7 +767,7 @@ Deno.serve(async (req) => {
             perfil: "gestor_geral",
             cargo,
             instituicao,
-            total_contratantes: contratanteIds.length,
+            total_unidades: unidadeIds.length,
           },
           redirectTo: `${APP_URL}/nova-senha?destino=/consolidar`,
         });
@@ -813,16 +794,16 @@ Deno.serve(async (req) => {
         );
       }
 
-      if (contratanteIds.length > 0) {
-        const vinculos = contratanteIds.map((cid) => ({
+      if (unidadeIds.length > 0) {
+        const vinculos = unidadeIds.map((uid) => ({
           gestor_geral_id: gg.id,
-          contratante_id: cid,
+          unidade_id: uid,
         }));
         const { error: errVinc } = await admin
-          .from("gestores_gerais_contratantes")
+          .from("gestores_gerais_unidades")
           .insert(vinculos);
         if (errVinc) {
-          console.error("Erro vínculos contratantes:", errVinc);
+          console.error("Erro vínculos unidades:", errVinc);
           await admin.from("gestores_gerais").delete().eq("id", gg.id);
           await admin.auth.admin.deleteUser(newUserId).catch(() => {});
           return jsonResponse(
@@ -839,7 +820,7 @@ Deno.serve(async (req) => {
         {
           gestor_geral_id: gg.id,
           email,
-          total_contratantes: contratanteIds.length,
+          total_unidades: unidadeIds.length,
           cargo,
           instituicao,
         },
@@ -848,7 +829,7 @@ Deno.serve(async (req) => {
       return jsonResponse({
         status: "criado",
         gestor_geral_id: gg.id,
-        contratantes_vinculados: contratanteIds.length,
+        unidades_vinculadas: unidadeIds.length,
       });
     }
 
