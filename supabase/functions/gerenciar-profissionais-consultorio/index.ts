@@ -334,7 +334,7 @@ Deno.serve(async (req) => {
         .update({
           acesso_revogado: true,
           acesso_revogado_em: new Date().toISOString(),
-          acesso_revogado_por: callerUserId,
+          acesso_revogado_por: null,
           motivo_revogacao: motivo,
         })
         .eq("id", profissional_id);
