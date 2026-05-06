@@ -399,16 +399,13 @@ export default function GestaoPage() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <AppSidebar />
-      <main className="flex-1 overflow-auto">
-        <div className="px-6 py-8 lg:px-10">
+    <div className="px-6 py-8 lg:px-10">
           {/* Header */}
           <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                 <Building2 className="h-4 w-4" />
-                <span>{unidadeNome || 'Carregando...'}</span>
+                <span>{contextoCarregado ? (unidadeNome || '—') : 'Carregando...'}</span>
               </div>
               <h1 className="font-heading text-2xl font-bold text-foreground">Dashboard de Gestão</h1>
               <p className="mt-1 text-sm text-muted-foreground">Métricas e gestão da unidade</p>
