@@ -352,7 +352,7 @@ Deno.serve(async (req) => {
 
         const { data: unidade, error: errUni } = await admin
           .from("unidades")
-          .insert({ nome, tipo, cnes, pais, estado, cidade, ativa: true })
+          .insert({ nome, tipo, cnes, pais, estado, cidade, ativa: true, contratante_id })
           .select("id, nome")
           .single();
         if (errUni || !unidade) {
