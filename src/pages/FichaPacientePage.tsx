@@ -1201,9 +1201,9 @@ export default function FichaPacientePage() {
       {/* Standalone results removed — results appear only inside history accordion */}
       {/* Cenário 5 (encerramento) renderizado somente dentro da ficha expansível do histórico */}
 
-      {/* Next step button — hidden in print */}
+      {/* Next step button — hidden in print and read-only */}
       <div className="print:hidden">
-        {(() => {
+        {!isReadOnly && (() => {
           if (showRetorno1 || showFichaAC || showFichaBD || showGtt || showRegistroParto) return null;
           if (paciente.status_ficha === 'dmg_afastado' || paciente.status_ficha === 'resultado_parto') return null;
 
