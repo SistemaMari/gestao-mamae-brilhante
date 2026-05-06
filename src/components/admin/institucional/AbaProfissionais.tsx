@@ -27,12 +27,17 @@ export interface ProfissionalRow {
   perfil_clinico: string | null;
   unidade_id: string;
   unidade_nome: string | null;
+  contratante_id?: string | null;
+  contratante_nome?: string | null;
   convite_pendente: boolean;
   acesso_revogado: boolean;
   acesso_revogado_em: string | null;
   motivo_revogacao: string | null;
   created_at: string;
 }
+
+interface ContratanteOpt { id: string; nome: string; status: string; }
+const MARI_SANDBOX_NOME = "MARI Sandbox";
 
 type StatusFiltro = "todos" | "ativos" | "pendente" | "revogado";
 
