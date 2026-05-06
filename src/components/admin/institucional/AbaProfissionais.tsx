@@ -181,8 +181,8 @@ export default function AbaProfissionais() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-[#5B3A8E]">
-              {["Nome", "E-mail", "CRM", "Perfil clínico", "Unidade", "Status", "Ações"].map((h, i) => (
-                <TableHead key={h} className={`bg-[#5B3A8E] font-[Sora] text-white ${i === 6 ? "text-right" : ""}`}>
+              {["Nome", "E-mail", "CRM", "Perfil clínico", "Unidade", "Contratante", "Status", "Ações"].map((h, i) => (
+                <TableHead key={h} className={`bg-[#5B3A8E] font-[Sora] text-white ${i === 7 ? "text-right" : ""}`}>
                   {h}
                 </TableHead>
               ))}
