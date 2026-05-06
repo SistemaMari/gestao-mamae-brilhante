@@ -166,7 +166,12 @@ const App = () => (
               <Route path="/admin/institucionais" element={<InstitucionaisPage />} />
               <Route path="/admin/profissionais" element={<ProfissionaisConsultorioPage />} />
             </Route>
-            <Route path="/consolidar" element={<ProtectedRoute allowedProfiles={['admin', 'gestor_geral']}><ConsolidarPage /></ProtectedRoute>} />
+            {/* Gestor Geral — shell dedicado. /consolidar é exclusivo de gestor_geral.
+                Dívida técnica: criar /admin/consolidar futuramente para suporte/debug do admin. */}
+            <Route element={<ProtectedRoute allowedProfiles={['gestor_geral']}><AppShellGestorGeral /></ProtectedRoute>}>
+              <Route path="/consolidar" element={<ConsolidarPage />} />
+              <Route path="/consolidar/configuracoes" element={<StubEmConstrucao titulo="Configurações" />} />
+            </Route>
 
             <Route path="*" element={<NotFound />} />
           </Routes>
