@@ -462,77 +462,77 @@ export default function GestaoPage() {
               <PacientesPorProfissional fichas={fichas} />
             </div>
 
-            {/* Fichas */}
+            {/* Fichas — resumo executivo (5 mais urgentes) */}
             <div id="fichas-section" className="mb-8 rounded-xl border border-border bg-card p-5">
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mb-4 flex items-center justify-between">
                 <h2 className="font-heading text-lg font-semibold text-foreground">Fichas da unidade</h2>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                    <SelectTrigger className="w-[180px] h-9">
-                      <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos os status</SelectItem>
-                      <SelectItem value="aguardando_gj">Aguardando GJ</SelectItem>
-                      <SelectItem value="em_acompanhamento">Em acompanhamento</SelectItem>
-                      <SelectItem value="alta">Alta</SelectItem>
-                      <SelectItem value="concluido">Concluído</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button variant="outline" size="sm" onClick={exportCSV} disabled={fichasFiltradas.length === 0}>
-                    <Download className="h-3.5 w-3.5" />
-                    CSV
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={exportXLSX} disabled={fichasFiltradas.length === 0}>
-                    <FileSpreadsheet className="h-3.5 w-3.5" />
-                    Excel
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={exportJSON} disabled={fichasFiltradas.length === 0}>
-                    <Download className="h-3.5 w-3.5" />
-                    JSON
-                  </Button>
-                </div>
               </div>
 
-              {fichasFiltradas.length === 0 ? (
+              {fichas.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <FileText className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                  <p className="text-sm text-muted-foreground">Nenhuma ficha encontrada</p>
+                  <p className="text-sm text-muted-foreground">Nenhuma ficha cadastrada nesta unidade ainda.</p>
                 </div>
               ) : (
-                <div className="overflow-hidden rounded-lg border border-border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Paciente</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Profissional</TableHead>
-                        <TableHead>Última consulta</TableHead>
-                        <TableHead>Criada em</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {fichasFiltradas.map(f => (
-                        <TableRow key={f.id}>
-                          <TableCell className="font-medium">{f.nome}</TableCell>
-                          <TableCell>{getStatusBadge(f.status_ficha)}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{f.profissional_nome}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {f.data_ultima_consulta ? new Date(f.data_ultima_consulta).toLocaleDateString('pt-BR') : '—'}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {new Date(f.created_at).toLocaleDateString('pt-BR')}
-                          </TableCell>
+                <>
+                  <div className="overflow-hidden rounded-lg border border-border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Paciente</TableHead>
+                          <TableHead>IG</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Profissional</TableHead>
+                          <TableHead>Última consulta</TableHead>
+                          <TableHead>Próxima consulta</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {fichasResumo.map(f => {
+                          const cfg = STATUS_CONFIG[f.status_ficha];
+                          return (
+                            <TableRow
+                              key={f.id}
+                              className="cursor-pointer"
+                              onClick={() => navigate(`${basePath}/fichas/${f.id}`)}
+                            >
+                              <TableCell className="font-medium">{f.nome}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">{calcIdadeGestacional(f)}</TableCell>
+                              <TableCell>
+                                {cfg ? (
+                                  <Badge className={`${cfg.color} text-white border-0`}>{cfg.label}</Badge>
+                                ) : (
+                                  <Badge variant="outline">{f.status_ficha}</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">{f.profissional_nome}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {f.data_ultima_consulta ? new Date(f.data_ultima_consulta).toLocaleDateString('pt-BR') : '—'}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {f.data_proximo_retorno ? new Date(f.data_proximo_retorno).toLocaleDateString('pt-BR') : '—'}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {fichas.length > 5 && (
+                    <div className="mt-3 flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`${basePath}/fichas`)}
+                        className="text-[#7C4DBA] hover:text-[#7E69AB] hover:bg-[#E8E0FF]"
+                      >
+                        Ver todas as fichas ({fichas.length}) <ArrowRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
-              <p className="mt-2 text-xs text-muted-foreground">
-                {fichasFiltradas.length} de {fichas.length} fichas exibidas
-              </p>
             </div>
 
             {/* Atividade recente */}
