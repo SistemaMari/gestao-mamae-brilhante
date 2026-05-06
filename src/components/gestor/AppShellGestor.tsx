@@ -131,11 +131,14 @@ function GestorSidebar({ nome, unidade, email, onSair }: { nome: string; unidade
 export default function AppShellGestor() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [carregando, setCarregando] = useState(true);
-  const [nome, setNome] = useState("");
-  const [unidade, setUnidade] = useState("");
+  const { pathname } = useLocation();
+  const isVitrine = pathname.startsWith("/vitrine");
+  const [carregando, setCarregando] = useState(!isVitrine);
+  const [nome, setNome] = useState(isVitrine ? "Dra. Demonstração" : "");
+  const [unidade, setUnidade] = useState(isVitrine ? "Hospital Demo MARI" : "");
 
   useEffect(() => {
+    if (isVitrine) return;
     let cancelado = false;
     (async () => {
       if (!user?.id) {
@@ -156,9 +159,13 @@ export default function AppShellGestor() {
     return () => {
       cancelado = true;
     };
-  }, [user?.id, navigate]);
+  }, [user?.id, navigate, isVitrine]);
 
   const handleSair = async () => {
+    if (isVitrine) {
+      navigate("/vitrine", { replace: true });
+      return;
+    }
     await supabase.auth.signOut();
     navigate("/login", { replace: true });
   };
@@ -174,7 +181,12 @@ export default function AppShellGestor() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-[#F8FAFC]">
-        <GestorSidebar nome={nome} unidade={unidade} email={user?.email ?? ""} onSair={handleSair} />
+        <GestorSidebar
+          nome={nome}
+          unidade={unidade}
+          email={isVitrine ? "demo@mari.health" : user?.email ?? ""}
+          onSair={handleSair}
+        />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="flex h-14 items-center gap-3 border-b border-[#E2E8F0] bg-white px-4">
             <SidebarTrigger className="text-[#64748B]" />
