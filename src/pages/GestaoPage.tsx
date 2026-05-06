@@ -380,25 +380,20 @@ export default function GestaoPage() {
 
   if (contextoCarregado && gestorSemUnidade) {
     return (
-      <div className="flex h-screen bg-background">
-        <AppSidebar />
-        <main className="flex-1 overflow-auto">
-          <div className="flex min-h-full items-center justify-center px-6 py-12">
-            <div className="max-w-xl rounded-xl border border-amber-300 bg-amber-50 p-8 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-200">
-                <Building2 className="h-6 w-6 text-amber-900" />
-              </div>
-              <h1 className="font-heading text-xl font-semibold text-amber-950">
-                Você ainda não está vinculado a uma unidade
-              </h1>
-              <p className="mt-3 text-sm text-amber-900">
-                Sua conta de gestor está ativa, mas ainda não foi associada a nenhuma unidade.
-                Aguarde a vinculação por um administrador. Assim que estiver vinculado, esta tela
-                exibirá automaticamente o painel de gestão da unidade.
-              </p>
-            </div>
+      <div className="flex min-h-full items-center justify-center px-6 py-12">
+        <div className="max-w-xl rounded-xl border border-amber-300 bg-amber-50 p-8 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-200">
+            <Building2 className="h-6 w-6 text-amber-900" />
           </div>
-        </main>
+          <h1 className="font-heading text-xl font-semibold text-amber-950">
+            Você ainda não está vinculado a uma unidade
+          </h1>
+          <p className="mt-3 text-sm text-amber-900">
+            Sua conta de gestor está ativa, mas ainda não foi associada a nenhuma unidade.
+            Aguarde a vinculação por um administrador. Assim que estiver vinculado, esta tela
+            exibirá automaticamente o painel de gestão da unidade.
+          </p>
+        </div>
       </div>
     );
   }
