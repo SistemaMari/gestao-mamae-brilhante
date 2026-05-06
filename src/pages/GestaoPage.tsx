@@ -270,98 +270,21 @@ export default function GestaoPage() {
     setLoading(false);
   };
 
-  const fichasFiltradas = useMemo(() => {
-    if (filtroStatus === 'todos') return fichas;
-    return fichas.filter(f => f.status_ficha === filtroStatus);
-  }, [fichas, filtroStatus]);
+  // Resumo (5 fichas mais urgentes para o Painel)
+  const fichasResumo = useMemo(() => {
+    const sorted = [...fichas].sort((a, b) => {
+      // data_proximo_retorno ASC NULLS LAST
+      if (!a.data_proximo_retorno && !b.data_proximo_retorno) return 0;
+      if (!a.data_proximo_retorno) return 1;
+      if (!b.data_proximo_retorno) return -1;
+      return a.data_proximo_retorno.localeCompare(b.data_proximo_retorno);
+    });
+    return sorted.slice(0, 5);
+  }, [fichas]);
 
   const totalFichas = fichas.length;
   const fichasComDmg = fichas.filter(f => f.dmg_gestacao_anterior).length;
-  const fichasAtivas = fichas.filter(f => ['aguardando_gj', 'em_acompanhamento'].includes(f.status_ficha)).length;
-
-  const exportCSV = () => {
-    const headers = ['Nome', 'Status', 'Profissional', 'Última Consulta', 'Criada em'];
-    const rows = fichasFiltradas.map(f => [
-      f.nome,
-      traduzirStatus(f.status_ficha),
-      f.profissional_nome,
-      f.data_ultima_consulta ? new Date(f.data_ultima_consulta).toLocaleDateString('pt-BR') : '—',
-      new Date(f.created_at).toLocaleDateString('pt-BR'),
-    ]);
-    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-    downloadFile(csv, 'fichas_unidade.csv', 'text/csv');
-    toast.success('CSV exportado!');
-  };
-
-  const exportJSON = () => {
-    const data = fichasFiltradas.map(f => ({
-      nome: f.nome,
-      status: traduzirStatus(f.status_ficha),
-      profissional: f.profissional_nome,
-      ultima_consulta: f.data_ultima_consulta,
-      criada_em: f.created_at,
-    }));
-    downloadFile(JSON.stringify(data, null, 2), 'fichas_unidade.json', 'application/json');
-    toast.success('JSON exportado!');
-  };
-
-  const exportXLSX = () => {
-    const inicioStr = periodoInicio ? format(periodoInicio, 'dd/MM/yyyy') : '—';
-    const fimStr = periodoFim ? format(periodoFim, 'dd/MM/yyyy') : '—';
-
-    // Aba 1 — Resumo
-    const resumoRows = [
-      ['Relatório de Gestão — Unidade'],
-      ['Unidade', unidadeNome],
-      ['Período', `${inicioStr} até ${fimStr}`],
-      ['Gerado em', new Date().toLocaleString('pt-BR')],
-      [],
-      ['Indicador', 'Valor'],
-      ['Profissionais ativos', totalProfissionais],
-      ['Convites pendentes', convitesPendentes],
-      ['Fichas no período', totalFichas],
-      ['Fichas ativas', fichasAtivas],
-      ['DMG em gestação anterior', fichasComDmg],
-      ['Pacientes em insulina', pacientesEmInsulina],
-      ['Laudos gerados', totalLaudos],
-      ['Taxa DMG (%)', totalFichas > 0 ? Number(((fichasComDmg / totalFichas) * 100).toFixed(1)) : 0],
-    ];
-    const wsResumo = XLSX.utils.aoa_to_sheet(resumoRows);
-    wsResumo['!cols'] = [{ wch: 32 }, { wch: 28 }];
-
-    // Aba 2 — Fichas (respeita filtro de status)
-    const fichasHeader = ['Paciente', 'Status', 'Profissional', 'Última consulta', 'Criada em', 'DMG anterior'];
-    const fichasRows = fichasFiltradas.map(f => [
-      f.nome,
-      traduzirStatus(f.status_ficha),
-      f.profissional_nome,
-      f.data_ultima_consulta ? new Date(f.data_ultima_consulta).toLocaleDateString('pt-BR') : '—',
-      new Date(f.created_at).toLocaleDateString('pt-BR'),
-      f.dmg_gestacao_anterior ? 'Sim' : 'Não',
-    ]);
-    const wsFichas = XLSX.utils.aoa_to_sheet([fichasHeader, ...fichasRows]);
-    wsFichas['!cols'] = [{ wch: 32 }, { wch: 22 }, { wch: 28 }, { wch: 16 }, { wch: 14 }, { wch: 14 }];
-
-    // Aba 3 — Atividade recente
-    const atvHeader = ['Tipo', 'Descrição', 'Profissional', 'Data'];
-    const atvRows = atividades.map(a => [
-      a.tipo,
-      a.descricao,
-      a.profissional_nome,
-      new Date(a.data).toLocaleDateString('pt-BR'),
-    ]);
-    const wsAtv = XLSX.utils.aoa_to_sheet([atvHeader, ...atvRows]);
-    wsAtv['!cols'] = [{ wch: 12 }, { wch: 36 }, { wch: 28 }, { wch: 14 }];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
-    XLSX.utils.book_append_sheet(wb, wsFichas, 'Fichas');
-    XLSX.utils.book_append_sheet(wb, wsAtv, 'Atividade');
-
-    const filename = `relatorio-${(unidadeNome || 'unidade').replace(/\s+/g, '-')}-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
-    XLSX.writeFile(wb, filename);
-    toast.success('Excel exportado!');
-  };
+  const fichasAtivas = fichas.filter(f => ['aguardando_gj', 'aguardando_gtt', 'dmg_confirmado'].includes(f.status_ficha)).length;
 
   const exportPDF = async () => {
     if (isVitrine) {
@@ -380,8 +303,6 @@ export default function GestaoPage() {
         periodoInicio: inicioStr,
         periodoFim: fimStr,
         metricasResumo: {
-          // Schema 18A — 21 chaves (campos não calculados pelo frontend ficam 0;
-          // o backend automático preenche todos via gerar-relatorios-mensais)
           unidade_nome: unidadeNome,
           total_gestantes: totalFichas,
           total_dmg_confirmado: fichasComDmg,
@@ -416,38 +337,6 @@ export default function GestaoPage() {
     }
   };
 
-  const downloadFile = (content: string, filename: string, type: string) => {
-    const blob = new Blob([content], { type });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const traduzirStatus = (status: string) => {
-    const map: Record<string, string> = {
-      aguardando_gj: 'Aguardando GJ',
-      em_acompanhamento: 'Em acompanhamento',
-      alta: 'Alta',
-      concluido: 'Concluído',
-    };
-    return map[status] || status;
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'em_acompanhamento':
-        return <Badge className="bg-primary/10 text-primary border-primary/20">Em acompanhamento</Badge>;
-      case 'alta':
-        return <Badge className="bg-secondary/20 text-secondary-foreground border-secondary/30">Alta</Badge>;
-      case 'concluido':
-        return <Badge className="bg-muted text-muted-foreground border-muted">Concluído</Badge>;
-      default:
-        return <Badge variant="outline">{traduzirStatus(status)}</Badge>;
-    }
-  };
 
   if (contextoCarregado && gestorSemUnidade) {
     return (
