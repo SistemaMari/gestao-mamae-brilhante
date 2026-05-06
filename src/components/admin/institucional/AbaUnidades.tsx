@@ -134,13 +134,13 @@ export default function AbaUnidades({ onIrParaContratantes }: { onIrParaContrata
           </TableHeader>
           <TableBody>
             {isLoading && [0, 1, 2].map((i) => (
-              <TableRow key={i}><TableCell colSpan={8}><Skeleton className="h-6 w-full" /></TableCell></TableRow>
+              <TableRow key={i}><TableCell colSpan={9}><Skeleton className="h-6 w-full" /></TableCell></TableRow>
             ))}
             {!isLoading && isError && (
-              <TableRow><TableCell colSpan={8} className="text-center text-destructive">Erro ao carregar unidades.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-destructive">Erro ao carregar unidades.</TableCell></TableRow>
             )}
             {!isLoading && !isError && unidades.length === 0 && (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Nenhuma unidade encontrada.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Nenhuma unidade encontrada.</TableCell></TableRow>
             )}
             {unidades.map((u, idx) => {
               const emAberto = !u.gestor_id;
@@ -191,7 +191,7 @@ export default function AbaUnidades({ onIrParaContratantes }: { onIrParaContrata
                 </TableRow>
                 {expanded === u.id && (
                   <TableRow>
-                    <TableCell colSpan={8} className="p-0">
+                    <TableCell colSpan={9} className="p-0">
                       <LinhaUnidadeExpandida
                         unidadeId={u.id}
                         cnes={u.cnes ?? null}
