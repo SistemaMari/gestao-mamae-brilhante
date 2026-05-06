@@ -185,6 +185,7 @@ export default function AppShellGestor() {
           nome={nome}
           unidade={unidade}
           email={isVitrine ? "demo@mari.health" : user?.email ?? ""}
+          basePath={isVitrine ? "/vitrine/gestao" : "/gestao"}
           onSair={handleSair}
         />
         <div className="flex-1 flex flex-col min-w-0">
