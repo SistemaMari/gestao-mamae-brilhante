@@ -25,7 +25,12 @@ export interface UnidadeRow extends UnidadeEditavel {
   pacientes_count: number;
   created_at: string;
   plano?: string | null;
+  contratante_id?: string | null;
+  contratante_nome?: string | null;
 }
+
+interface ContratanteOpt { id: string; nome: string; status: string; }
+const MARI_SANDBOX_NOME = "MARI Sandbox";
 
 type StatusGestorFiltro = "todos" | "com_gestor" | "em_aberto";
 
