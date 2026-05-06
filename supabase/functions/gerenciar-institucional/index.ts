@@ -263,11 +263,12 @@ Deno.serve(async (req) => {
       const planoCategoria = body.plano ?? "clinica"; // só categoria
       const gestorModo = String(body.gestor_modo ?? "novo");
 
-      // [28.3a] contratante_id agora é validado quando enviado.
-      // Workaround MARI Sandbox mantido como fallback até o 28.3b expor o Select no frontend.
-      const MARI_SANDBOX_ID = "feac2ad0-cb91-43c3-a043-094ac0d95d08";
-      let contratante_id = String(body.contratante_id ?? "").trim();
-      if (contratante_id) {
+      // [28.3b] contratante_id é obrigatório. Workaround MARI Sandbox removido.
+      const contratante_id = String(body.contratante_id ?? "").trim();
+      if (!contratante_id) {
+        return jsonResponse({ codigo: "contratante_obrigatorio", mensagem: "O contratante é obrigatório para criar uma unidade." }, 400);
+      }
+      {
         const { data: cont } = await admin
           .from("contratantes")
           .select("id, status")
@@ -279,8 +280,6 @@ Deno.serve(async (req) => {
         if (cont.status !== "ativo") {
           return jsonResponse({ codigo: "contratante_encerrado", mensagem: "Contratante está encerrado e não pode receber novas unidades." }, 400);
         }
-      } else {
-        contratante_id = MARI_SANDBOX_ID;
       }
 
       const planoId = await getPlanoIdInstitucional(admin);
