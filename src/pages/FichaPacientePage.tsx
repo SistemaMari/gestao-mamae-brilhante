@@ -563,7 +563,7 @@ export default function FichaPacientePage() {
                 {status.label}
               </Badge>
             )}
-            {!editing && (
+            {!editing && !isReadOnly && (
               <Button
                 variant="outline"
                 size="sm"
