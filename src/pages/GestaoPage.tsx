@@ -609,8 +609,6 @@ export default function GestaoPage() {
               )}
             </div>
           </div>
-        </div>
-      </main>
     </div>
   );
 }
