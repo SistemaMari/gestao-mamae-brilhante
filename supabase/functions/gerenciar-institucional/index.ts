@@ -262,9 +262,26 @@ Deno.serve(async (req) => {
       const cidade = body.cidade ?? null;
       const planoCategoria = body.plano ?? "clinica"; // só categoria
       const gestorModo = String(body.gestor_modo ?? "novo");
-      // [28.3 revertido] contratante_id default = MARI Sandbox enquanto Camada Contratante não está exposta no frontend.
+
+      // [28.3a] contratante_id agora é validado quando enviado.
+      // Workaround MARI Sandbox mantido como fallback até o 28.3b expor o Select no frontend.
       const MARI_SANDBOX_ID = "feac2ad0-cb91-43c3-a043-094ac0d95d08";
-      const contratante_id = String(body.contratante_id ?? "").trim() || MARI_SANDBOX_ID;
+      let contratante_id = String(body.contratante_id ?? "").trim();
+      if (contratante_id) {
+        const { data: cont } = await admin
+          .from("contratantes")
+          .select("id, status")
+          .eq("id", contratante_id)
+          .maybeSingle();
+        if (!cont) {
+          return jsonResponse({ codigo: "contratante_inexistente", mensagem: "Contratante não encontrado." }, 400);
+        }
+        if (cont.status !== "ativo") {
+          return jsonResponse({ codigo: "contratante_encerrado", mensagem: "Contratante está encerrado e não pode receber novas unidades." }, 400);
+        }
+      } else {
+        contratante_id = MARI_SANDBOX_ID;
+      }
 
       const planoId = await getPlanoIdInstitucional(admin);
       if (!planoId) {
