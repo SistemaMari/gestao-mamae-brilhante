@@ -950,19 +950,27 @@ Deno.serve(async (req) => {
     }
 
     // ============= atualizar_vinculos_gestor_geral =============
-    if (acao === "atualizar_vinculos_gestor_geral") {
+    if (acao === "atualizar_vinculos_gestor_geral" || acao === "atualizar_vinculos_unidades") {
       const ggId = body.gestor_geral_id;
-      const unidadeIds: string[] = Array.isArray(body.unidade_ids)
-        ? body.unidade_ids
+
+      // [28.3a] Modelo novo: contratante_ids[]. Backwards-compat: aceita unidade_ids[] e converte.
+      let contratanteIds: string[] = Array.isArray(body.contratante_ids)
+        ? body.contratante_ids.filter((x: any) => typeof x === "string" && x)
         : [];
+      const unidadeIdsLegado: string[] = Array.isArray(body.unidade_ids)
+        ? body.unidade_ids.filter((x: any) => typeof x === "string" && x)
+        : [];
+      if (contratanteIds.length === 0 && unidadeIdsLegado.length > 0) {
+        console.warn("[28.3a] atualizar_vinculos_gestor_geral recebeu unidade_ids[] legado — convertendo.");
+        const { data: uniRows } = await admin
+          .from("unidades")
+          .select("contratante_id")
+          .in("id", unidadeIdsLegado);
+        contratanteIds = Array.from(new Set((uniRows ?? []).map((u: any) => u.contratante_id).filter(Boolean)));
+      }
+
       if (!ggId) {
-        return jsonResponse(
-          {
-            codigo: "gestor_geral_nao_encontrado",
-            mensagem: "Gestor geral não encontrado.",
-          },
-          400,
-        );
+        return jsonResponse({ codigo: "gestor_geral_nao_encontrado", mensagem: "Gestor geral não encontrado." }, 400);
       }
 
       const { data: gg } = await admin
@@ -971,66 +979,54 @@ Deno.serve(async (req) => {
         .eq("id", ggId)
         .maybeSingle();
       if (!gg) {
-        return jsonResponse(
-          {
-            codigo: "gestor_geral_nao_encontrado",
-            mensagem: "Gestor geral não encontrado.",
-          },
-          400,
-        );
+        return jsonResponse({ codigo: "gestor_geral_nao_encontrado", mensagem: "Gestor geral não encontrado." }, 400);
       }
 
-      if (unidadeIds.length > 0) {
-        const { data: existentes } = await admin
-          .from("unidades")
-          .select("id")
-          .in("id", unidadeIds);
-        if ((existentes?.length ?? 0) !== unidadeIds.length) {
-          return jsonResponse(
-            {
-              codigo: "unidade_nao_encontrada",
-              mensagem: "Uma ou mais unidades não existem.",
-            },
-            400,
-          );
+      if (contratanteIds.length > 0) {
+        const { data: contRows } = await admin
+          .from("contratantes")
+          .select("id, status")
+          .in("id", contratanteIds);
+        if ((contRows?.length ?? 0) !== contratanteIds.length) {
+          return jsonResponse({ codigo: "contratante_inexistente", mensagem: "Um ou mais contratantes não existem." }, 400);
+        }
+        const encerrados = (contRows ?? []).filter((c: any) => c.status !== "ativo").map((c: any) => c.id);
+        if (encerrados.length > 0) {
+          return jsonResponse({ codigo: "contratante_encerrado", mensagem: "Um ou mais contratantes estão encerrados.", ids: encerrados }, 400);
         }
       }
 
       const { data: atuaisRows } = await admin
-        .from("gestores_gerais_unidades")
-        .select("unidade_id")
+        .from("gestores_gerais_contratantes")
+        .select("contratante_id")
         .eq("gestor_geral_id", ggId);
-      const atuais = new Set((atuaisRows ?? []).map((r) => r.unidade_id));
-      const novos = new Set(unidadeIds);
-      const adicionar = unidadeIds.filter((u) => !atuais.has(u));
-      const remover = [...atuais].filter((u) => !novos.has(u));
+      const atuais = new Set((atuaisRows ?? []).map((r) => r.contratante_id));
+      const novos = new Set(contratanteIds);
+      const adicionar = contratanteIds.filter((c) => !atuais.has(c));
+      const remover = [...atuais].filter((c) => !novos.has(c));
 
       if (adicionar.length > 0) {
-        await admin.from("gestores_gerais_unidades").insert(
-          adicionar.map((u) => ({ gestor_geral_id: ggId, unidade_id: u })),
+        await admin.from("gestores_gerais_contratantes").insert(
+          adicionar.map((c) => ({ gestor_geral_id: ggId, contratante_id: c })),
         );
       }
       if (remover.length > 0) {
         await admin
-          .from("gestores_gerais_unidades")
+          .from("gestores_gerais_contratantes")
           .delete()
           .eq("gestor_geral_id", ggId)
-          .in("unidade_id", remover);
+          .in("contratante_id", remover);
       }
 
       await inserirAuditoria(
-        admin,
-        callerUserId,
-        callerEmail,
+        admin, callerUserId, callerEmail,
         "atualizar_vinculos_gestor_geral",
-        callerEmail,
-        null,
-        null,
+        callerEmail, null, null,
         {
           gestor_geral_id: ggId,
           adicionadas: adicionar.length,
           removidas: remover.length,
-          total: unidadeIds.length,
+          total: contratanteIds.length,
         },
       );
 
@@ -1038,7 +1034,7 @@ Deno.serve(async (req) => {
         status: "atualizado",
         adicionadas: adicionar.length,
         removidas: remover.length,
-        total: unidadeIds.length,
+        total: contratanteIds.length,
       });
     }
 
