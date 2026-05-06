@@ -163,7 +163,8 @@ const App = () => (
             <Route element={<ProtectedRoute allowedProfiles={['gestor']}><AppShellGestor /></ProtectedRoute>}>
               <Route path="/gestao" element={<GestaoPage />} />
               <Route path="/gestao/equipe" element={<GestaoEquipePage />} />
-              <Route path="/gestao/fichas" element={<StubEmConstrucao titulo="Fichas da unidade" />} />
+              <Route path="/gestao/fichas" element={<FichasUnidadePage />} />
+              <Route path="/gestao/fichas/:id" element={<PacientePage />} />
               <Route path="/gestao/configuracoes" element={<StubEmConstrucao titulo="Configurações" />} />
             </Route>
             {/* Painel Administrativo (Prompt 22) */}
