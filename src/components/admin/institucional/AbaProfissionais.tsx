@@ -213,6 +213,13 @@ export default function AbaProfissionais() {
                 <TableCell>{p.perfil_clinico ? PERFIL_CLINICO_LABEL[p.perfil_clinico] ?? p.perfil_clinico : "—"}</TableCell>
                 <TableCell>{p.unidade_nome ?? "—"}</TableCell>
                 <TableCell>
+                  {p.contratante_nome === MARI_SANDBOX_NOME ? (
+                    <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">⚙ Sandbox</Badge>
+                  ) : (
+                    p.contratante_nome ?? "—"
+                  )}
+                </TableCell>
+                <TableCell>
                   {p.acesso_revogado ? (
                     <Badge variant="destructive">Revogado</Badge>
                   ) : p.convite_pendente ? (
