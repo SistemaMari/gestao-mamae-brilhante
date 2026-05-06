@@ -262,31 +262,9 @@ Deno.serve(async (req) => {
       const cidade = body.cidade ?? null;
       const planoCategoria = body.plano ?? "clinica"; // só categoria
       const gestorModo = String(body.gestor_modo ?? "novo");
-      const contratante_id = String(body.contratante_id ?? "").trim();
-
-      if (!contratante_id) {
-        return jsonResponse({
-          codigo: "contratante_obrigatorio",
-          mensagem: "Selecione um contratante para a unidade.",
-        }, 400);
-      }
-      const { data: contr } = await admin
-        .from("contratantes")
-        .select("id, status")
-        .eq("id", contratante_id)
-        .maybeSingle();
-      if (!contr) {
-        return jsonResponse({
-          codigo: "contratante_inexistente",
-          mensagem: "Contratante não encontrado.",
-        }, 400);
-      }
-      if (contr.status !== "ativo") {
-        return jsonResponse({
-          codigo: "contratante_encerrado",
-          mensagem: "Não é possível criar unidade vinculada a contratante encerrado/suspenso.",
-        }, 400);
-      }
+      // [28.3 revertido] contratante_id default = MARI Sandbox enquanto Camada Contratante não está exposta no frontend.
+      const MARI_SANDBOX_ID = "feac2ad0-cb91-43c3-a043-094ac0d95d08";
+      const contratante_id = String(body.contratante_id ?? "").trim() || MARI_SANDBOX_ID;
 
       const planoId = await getPlanoIdInstitucional(admin);
       if (!planoId) {
