@@ -25,7 +25,12 @@ export interface UnidadeRow extends UnidadeEditavel {
   pacientes_count: number;
   created_at: string;
   plano?: string | null;
+  contratante_id?: string | null;
+  contratante_nome?: string | null;
 }
+
+interface ContratanteOpt { id: string; nome: string; status: string; }
+const MARI_SANDBOX_NOME = "MARI Sandbox";
 
 type StatusGestorFiltro = "todos" | "com_gestor" | "em_aberto";
 
@@ -39,6 +44,17 @@ export default function AbaUnidades({ onIrParaContratantes }: { onIrParaContrata
   const [desvincular, setDesvincular] = useState<{ gestor_id: string; gestor_nome: string; unidade_nome: string } | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [filtroGestor, setFiltroGestor] = useState<StatusGestorFiltro>("todos");
+  const [filtroContratante, setFiltroContratante] = useState<string>("todos");
+
+  const { data: contratantesOpt = [] } = useQuery({
+    queryKey: ["institucional", "contratantes-ativos"],
+    queryFn: async () => {
+      const { data } = await supabase.functions.invoke("gerenciar-institucional", {
+        body: { acao: "listar_contratantes" },
+      });
+      return ((data?.contratantes ?? []) as ContratanteOpt[]).filter((c) => c.status === "ativo");
+    },
+  });
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["institucional", "unidades"],
@@ -65,8 +81,9 @@ export default function AbaUnidades({ onIrParaContratantes }: { onIrParaContrata
     let r = data ?? [];
     if (filtroGestor === "com_gestor") r = r.filter((u) => !!u.gestor_id);
     if (filtroGestor === "em_aberto") r = r.filter((u) => !u.gestor_id);
+    if (filtroContratante !== "todos") r = r.filter((u) => u.contratante_id === filtroContratante);
     return r;
-  }, [data, filtroGestor]);
+  }, [data, filtroGestor, filtroContratante]);
 
   return (
     <div className="space-y-4">
@@ -83,6 +100,18 @@ export default function AbaUnidades({ onIrParaContratantes }: { onIrParaContrata
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Contratante</label>
+            <Select value={filtroContratante} onValueChange={setFiltroContratante}>
+              <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os contratantes</SelectItem>
+                {contratantesOpt.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <p className="text-sm text-muted-foreground pb-2">
             {isLoading ? "Carregando…" : `${unidades.length} unidade${unidades.length === 1 ? "" : "s"}`}
           </p>
@@ -96,8 +125,8 @@ export default function AbaUnidades({ onIrParaContratantes }: { onIrParaContrata
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-[#5B3A8E]">
-              {["Nome", "Tipo", "Cidade", "Gestor", "Profis.", "Pacient.", "Desde", "Ações"].map((h, i) => (
-                <TableHead key={h} className={`bg-[#5B3A8E] font-[Sora] text-white ${i === 7 ? "text-right" : ""}`}>
+              {["Nome", "Tipo", "Cidade", "Contratante", "Gestor", "Profis.", "Pacient.", "Desde", "Ações"].map((h, i) => (
+                <TableHead key={h} className={`bg-[#5B3A8E] font-[Sora] text-white ${i === 8 ? "text-right" : ""}`}>
                   {h}
                 </TableHead>
               ))}
@@ -105,13 +134,13 @@ export default function AbaUnidades({ onIrParaContratantes }: { onIrParaContrata
           </TableHeader>
           <TableBody>
             {isLoading && [0, 1, 2].map((i) => (
-              <TableRow key={i}><TableCell colSpan={8}><Skeleton className="h-6 w-full" /></TableCell></TableRow>
+              <TableRow key={i}><TableCell colSpan={9}><Skeleton className="h-6 w-full" /></TableCell></TableRow>
             ))}
             {!isLoading && isError && (
-              <TableRow><TableCell colSpan={8} className="text-center text-destructive">Erro ao carregar unidades.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-destructive">Erro ao carregar unidades.</TableCell></TableRow>
             )}
             {!isLoading && !isError && unidades.length === 0 && (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Nenhuma unidade encontrada.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Nenhuma unidade encontrada.</TableCell></TableRow>
             )}
             {unidades.map((u, idx) => {
               const emAberto = !u.gestor_id;
@@ -124,6 +153,13 @@ export default function AbaUnidades({ onIrParaContratantes }: { onIrParaContrata
                   <TableCell className="font-medium">{u.nome}</TableCell>
                   <TableCell>{u.tipo || "—"}</TableCell>
                   <TableCell>{u.cidade || "—"}</TableCell>
+                  <TableCell onClick={(e) => { e.stopPropagation(); onIrParaContratantes?.(); }} className={onIrParaContratantes ? "cursor-pointer hover:underline" : ""}>
+                    {u.contratante_nome === MARI_SANDBOX_NOME ? (
+                      <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">⚙ Sandbox</Badge>
+                    ) : (
+                      u.contratante_nome ?? "—"
+                    )}
+                  </TableCell>
                   <TableCell>
                     {emAberto ? (
                       <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">⚠ Sem gestor — em aberto</Badge>
@@ -162,7 +198,7 @@ export default function AbaUnidades({ onIrParaContratantes }: { onIrParaContrata
                 </TableRow>
                 {expanded === u.id && (
                   <TableRow>
-                    <TableCell colSpan={8} className="p-0">
+                    <TableCell colSpan={9} className="p-0">
                       <LinhaUnidadeExpandida
                         unidadeId={u.id}
                         cnes={u.cnes ?? null}

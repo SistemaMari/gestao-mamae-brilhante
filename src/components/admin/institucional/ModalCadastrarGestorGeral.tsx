@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import MultiSelectUnidades, { type UnidadeOption } from "./MultiSelectUnidades";
+import MultiSelectContratantes, { type ContratanteOption } from "./MultiSelectContratantes";
 import AvisoUnicidadeEmail from "./AvisoUnicidadeEmail";
 import { MENSAGENS_UNICIDADE, FALLBACK_GENERICO, extrairErroEdge } from "@/lib/mensagensUnicidade";
 
@@ -26,24 +26,25 @@ export default function ModalCadastrarGestorGeral({ open, onOpenChange, onSucess
   const [email, setEmail] = useState("");
   const [cargo, setCargo] = useState("");
   const [instituicao, setInstituicao] = useState("");
-  const [unidadeIds, setUnidadeIds] = useState<string[]>([]);
+  const [contratanteIds, setContratanteIds] = useState<string[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const { data: unidades } = useQuery({
-    queryKey: ["institucional", "unidades"],
+  const { data: contratantes } = useQuery({
+    queryKey: ["institucional", "contratantes-ativos-modal"],
     queryFn: async () => {
       const { data } = await supabase.functions.invoke("gerenciar-institucional", {
-        body: { acao: "listar_unidades" },
+        body: { acao: "listar_contratantes" },
       });
-      return (data?.unidades ?? []) as UnidadeOption[];
+      return ((data?.contratantes ?? []) as ContratanteOption[])
+        .filter((c) => c.status === "ativo" && c.nome !== "MARI Sandbox");
     },
     enabled: open,
   });
 
   function reset() {
     setNome(""); setEmail(""); setCargo(""); setInstituicao("");
-    setUnidadeIds([]); setErro(null); setSubmitting(false);
+    setContratanteIds([]); setErro(null); setSubmitting(false);
   }
   function handleOpenChange(v: boolean) { if (!v) reset(); onOpenChange(v); }
 
@@ -60,7 +61,7 @@ export default function ModalCadastrarGestorGeral({ open, onOpenChange, onSucess
         email: email.trim().toLowerCase(),
         cargo: cargo.trim() || null,
         instituicao: instituicao.trim() || null,
-        unidade_ids: unidadeIds,
+        contratante_ids: contratanteIds,
       },
     });
     if (error) {
@@ -70,10 +71,10 @@ export default function ModalCadastrarGestorGeral({ open, onOpenChange, onSucess
       handleOpenChange(false); toast.error(FALLBACK_GENERICO); return;
     }
     setSubmitting(false);
-    if (unidadeIds.length > 0) {
-      toast.success(`Gestor geral cadastrado! E-mail enviado. ${unidadeIds.length} unidade${unidadeIds.length === 1 ? "" : "s"} vinculada${unidadeIds.length === 1 ? "" : "s"}.`);
+    if (contratanteIds.length > 0) {
+      toast.success(`Gestor geral cadastrado! E-mail enviado. ${contratanteIds.length} contratante${contratanteIds.length === 1 ? "" : "s"} vinculado${contratanteIds.length === 1 ? "" : "s"}.`);
     } else {
-      toast.success("Gestor geral cadastrado! E-mail enviado. Vincule unidades quando estiver pronto.");
+      toast.success("Gestor geral cadastrado! E-mail enviado. Vincule contratantes quando estiver pronto.");
     }
     handleOpenChange(false); onSucesso();
   }
@@ -103,15 +104,15 @@ export default function ModalCadastrarGestorGeral({ open, onOpenChange, onSucess
             <Input value={instituicao} onChange={(e) => setInstituicao(e.target.value)} disabled={submitting} />
           </div>
           <div className="space-y-1.5">
-            <Label>Unidades vinculadas (opcional)</Label>
-            <MultiSelectUnidades
-              unidades={unidades ?? []}
-              selecionadas={unidadeIds}
-              onChange={setUnidadeIds}
+            <Label>Contratantes vinculados (opcional)</Label>
+            <MultiSelectContratantes
+              contratantes={contratantes ?? []}
+              selecionadas={contratanteIds}
+              onChange={setContratanteIds}
               disabled={submitting}
             />
             <p className="text-xs text-muted-foreground">
-              Você pode cadastrar o gestor sem vincular unidades agora e fazer isso depois pelo botão Editar.
+              Você pode cadastrar o gestor sem vincular contratantes agora e fazer isso depois pelo botão Editar.
             </p>
           </div>
 

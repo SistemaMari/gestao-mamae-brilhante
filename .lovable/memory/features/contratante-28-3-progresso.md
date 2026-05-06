@@ -63,3 +63,18 @@ Ações novas (6):
 ### PENDENTE 28.3c (CRITICO — não esquecer)
 - Botões **Encerrar** e **Reativar** em `AbaContratantes.tsx` estão como stub `disabled` com tooltip "Em breve — 28.3c". Implementar `ModalEncerrarContratante` + `AlertReativarContratante` chamando `encerrar_contratante`/`reativar_contratante` (já existem na Edge Function).
 - ModalTransferirUnidade + ajustes em AbaUnidades/AbaProfissionais (coluna Contratante) + AbaGestoresGerais (vínculo por contratante).
+
+### 28.3c-1 APLICADO
+- AbaUnidades: nova coluna "Contratante" entre Cidade e Gestor + filtro Select; MARI Sandbox como badge cinza ⚙ Sandbox; click na célula vai para aba Contratantes (stub).
+- AbaProfissionais: nova coluna "Contratante" entre Unidade e Status + filtro Select; profissionais sem contratante exibem "—" e somem ao filtrar contratante específico.
+- AbaGestoresGerais: coluna "Unidades" → "Contratantes" usando `contratantes_vinculados[]`; tooltip lista até 10 nomes + "…".
+- ModalCadastrarGestorGeral: troca para `MultiSelectContratantes` + envia `contratante_ids` (campo legado `unidade_ids` removido).
+- ModalEditarVinculos: usa `contratantes_vinculados` + carrega ativos+encerrados, encerrados só visíveis se já estavam vinculados (prop `desabilitarEncerrados`).
+- Novo componente `MultiSelectContratantes.tsx` (duplicado de MultiSelectUnidades).
+- BUG FIX `AbaGestoresUnidade`: filtro 'Ativos' agora inclui convite pendente; só revogados ficam excluídos.
+
+### PENDENTE 28.3c-2
+- Botões Encerrar/Reativar contratante (modais com preview/cascata) — stubs ainda em AbaContratantes.
+- Modal Transferir Unidade entre contratantes (UI usa `transferir_unidade_de_contratante` que já existe no backend).
+- Botão "Transferir contratante" na linha expandida de Unidade.
+- Housekeeping: remover `MultiSelectUnidades.tsx` legado e ação backend `atualizar_vinculos_unidades` (alias).

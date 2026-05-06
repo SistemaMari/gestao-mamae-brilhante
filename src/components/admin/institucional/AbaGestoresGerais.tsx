@@ -19,8 +19,10 @@ interface GestorGeralRow {
   cargo: string | null;
   instituicao: string | null;
   convite_pendente: boolean | null;
-  unidades_vinculadas: number;
-  unidades: { id: string; nome: string }[];
+  contratantes_vinculados: { id: string; nome: string }[];
+  // legacy compat (não usado mais na UI, mas evita quebra se backend retornar)
+  unidades_vinculadas?: number;
+  unidades?: { id: string; nome: string }[];
 }
 
 export default function AbaGestoresGerais() {
@@ -63,7 +65,7 @@ export default function AbaGestoresGerais() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-[#5B3A8E]">
-                {["Nome", "Instituição", "Unidades", "Ações"].map((h, i) => (
+                {["Nome", "Instituição", "Contratantes", "Ações"].map((h, i) => (
                   <TableHead key={h} className={`bg-[#5B3A8E] font-[Sora] text-white ${i === 3 ? "text-right" : ""}`}>
                     {h}
                   </TableHead>
@@ -90,12 +92,15 @@ export default function AbaGestoresGerais() {
                   <TableCell>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="cursor-help underline decoration-dotted">{g.unidades_vinculadas}</span>
+                        <span className="cursor-help underline decoration-dotted">
+                          {g.contratantes_vinculados?.length ?? 0} contratante{(g.contratantes_vinculados?.length ?? 0) === 1 ? "" : "s"}
+                        </span>
                       </TooltipTrigger>
                       <TooltipContent>
-                        {g.unidades.length === 0
-                          ? "Sem unidades vinculadas"
-                          : g.unidades.map((u) => u.nome).join(", ")}
+                        {!g.contratantes_vinculados?.length
+                          ? "Sem contratantes vinculados"
+                          : g.contratantes_vinculados.slice(0, 10).map((c) => c.nome).join(", ") +
+                            (g.contratantes_vinculados.length > 10 ? "…" : "")}
                       </TooltipContent>
                     </Tooltip>
                   </TableCell>
