@@ -458,7 +458,6 @@ export default function GestaoEquipePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      </main>
     </div>
   );
 }
