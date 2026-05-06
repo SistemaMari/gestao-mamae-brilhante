@@ -73,7 +73,7 @@ export default function SelectContratante({
         <SelectValue placeholder={isLoading ? "Carregando…" : placeholder} />
       </SelectTrigger>
       <SelectContent>
-        {data.map((c) => (
+        {filtered.map((c) => (
           <SelectItem key={c.id} value={c.id}>
             {c.nome}
             {c.status !== "ativo" ? ` (${c.status})` : ""}
