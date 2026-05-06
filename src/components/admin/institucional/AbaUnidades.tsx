@@ -81,8 +81,9 @@ export default function AbaUnidades({ onIrParaContratantes }: { onIrParaContrata
     let r = data ?? [];
     if (filtroGestor === "com_gestor") r = r.filter((u) => !!u.gestor_id);
     if (filtroGestor === "em_aberto") r = r.filter((u) => !u.gestor_id);
+    if (filtroContratante !== "todos") r = r.filter((u) => u.contratante_id === filtroContratante);
     return r;
-  }, [data, filtroGestor]);
+  }, [data, filtroGestor, filtroContratante]);
 
   return (
     <div className="space-y-4">
