@@ -100,6 +100,18 @@ export default function AbaUnidades({ onIrParaContratantes }: { onIrParaContrata
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Contratante</label>
+            <Select value={filtroContratante} onValueChange={setFiltroContratante}>
+              <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os contratantes</SelectItem>
+                {contratantesOpt.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <p className="text-sm text-muted-foreground pb-2">
             {isLoading ? "Carregando…" : `${unidades.length} unidade${unidades.length === 1 ? "" : "s"}`}
           </p>
