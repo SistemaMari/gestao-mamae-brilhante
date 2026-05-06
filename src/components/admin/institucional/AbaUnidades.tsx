@@ -44,8 +44,17 @@ export default function AbaUnidades({ onIrParaContratantes }: { onIrParaContrata
   const [desvincular, setDesvincular] = useState<{ gestor_id: string; gestor_nome: string; unidade_nome: string } | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [filtroGestor, setFiltroGestor] = useState<StatusGestorFiltro>("todos");
+  const [filtroContratante, setFiltroContratante] = useState<string>("todos");
 
-  const { data, isLoading, isError } = useQuery({
+  const { data: contratantesOpt = [] } = useQuery({
+    queryKey: ["institucional", "contratantes-ativos"],
+    queryFn: async () => {
+      const { data } = await supabase.functions.invoke("gerenciar-institucional", {
+        body: { acao: "listar_contratantes" },
+      });
+      return ((data?.contratantes ?? []) as ContratanteOpt[]).filter((c) => c.status === "ativo");
+    },
+  });
     queryKey: ["institucional", "unidades"],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("gerenciar-institucional", {
