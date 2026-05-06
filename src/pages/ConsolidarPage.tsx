@@ -725,8 +725,6 @@ export default function ConsolidarPage() {
               )}
             </div>
           </section>
-        </div>
-      </main>
     </div>
   );
 }
