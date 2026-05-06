@@ -27,6 +27,9 @@ import CompletarPerfilPage from "./pages/CompletarPerfilPage";
 import GestaoEquipePage from "./pages/GestaoEquipePage";
 import CadastroConvitePage from "./pages/CadastroConvitePage";
 
+import AppShellGestor from "@/components/gestor/AppShellGestor";
+import AppShellGestorGeral from "@/components/gestor-geral/AppShellGestorGeral";
+import StubEmConstrucao from "@/components/StubEmConstrucao";
 import OnboardingPage from "./pages/OnboardingPage";
 import PacientePage from "./pages/PacientePage";
 import MeusCursosPage from "./pages/MeusCursosPage";
@@ -147,8 +150,13 @@ const App = () => (
             </Route>
 
             {/* Rotas que NÃO usam o shell clínico — com role guards */}
-            <Route path="/gestao" element={<ProtectedRoute allowedProfiles={['gestor', 'admin', 'gestor_geral']}><GestaoPage /></ProtectedRoute>} />
-            <Route path="/gestao/equipe" element={<ProtectedRoute allowedProfiles={['gestor']}><GestaoEquipePage /></ProtectedRoute>} />
+            {/* Gestor de Unidade — shell dedicado */}
+            <Route element={<ProtectedRoute allowedProfiles={['gestor']}><AppShellGestor /></ProtectedRoute>}>
+              <Route path="/gestao" element={<GestaoPage />} />
+              <Route path="/gestao/equipe" element={<GestaoEquipePage />} />
+              <Route path="/gestao/fichas" element={<StubEmConstrucao titulo="Fichas da unidade" />} />
+              <Route path="/gestao/configuracoes" element={<StubEmConstrucao titulo="Configurações" />} />
+            </Route>
             {/* Painel Administrativo (Prompt 22) */}
             <Route element={<ProtectedRoute allowedProfiles={['admin']}><AdminLayout /></ProtectedRoute>}>
               <Route path="/admin" element={<VisaoGeralPage />} />
@@ -158,7 +166,12 @@ const App = () => (
               <Route path="/admin/institucionais" element={<InstitucionaisPage />} />
               <Route path="/admin/profissionais" element={<ProfissionaisConsultorioPage />} />
             </Route>
-            <Route path="/consolidar" element={<ProtectedRoute allowedProfiles={['admin', 'gestor_geral']}><ConsolidarPage /></ProtectedRoute>} />
+            {/* Gestor Geral — shell dedicado. /consolidar é exclusivo de gestor_geral.
+                Dívida técnica: criar /admin/consolidar futuramente para suporte/debug do admin. */}
+            <Route element={<ProtectedRoute allowedProfiles={['gestor_geral']}><AppShellGestorGeral /></ProtectedRoute>}>
+              <Route path="/consolidar" element={<ConsolidarPage />} />
+              <Route path="/consolidar/configuracoes" element={<StubEmConstrucao titulo="Configurações" />} />
+            </Route>
 
             <Route path="*" element={<NotFound />} />
           </Routes>

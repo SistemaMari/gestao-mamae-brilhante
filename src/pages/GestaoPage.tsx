@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import AppSidebar from '@/components/AppSidebar';
 import StatCard from '@/components/StatCard';
 import { Users, FileText, UserPlus, ArrowRight, Building2, Clock, Download, Filter, Activity, Syringe, HeartPulse, FileDown, FileSpreadsheet } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -380,40 +379,32 @@ export default function GestaoPage() {
 
   if (contextoCarregado && gestorSemUnidade) {
     return (
-      <div className="flex h-screen bg-background">
-        <AppSidebar />
-        <main className="flex-1 overflow-auto">
-          <div className="flex min-h-full items-center justify-center px-6 py-12">
-            <div className="max-w-xl rounded-xl border border-amber-300 bg-amber-50 p-8 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-200">
-                <Building2 className="h-6 w-6 text-amber-900" />
-              </div>
-              <h1 className="font-heading text-xl font-semibold text-amber-950">
-                Você ainda não está vinculado a uma unidade
-              </h1>
-              <p className="mt-3 text-sm text-amber-900">
-                Sua conta de gestor está ativa, mas ainda não foi associada a nenhuma unidade.
-                Aguarde a vinculação por um administrador. Assim que estiver vinculado, esta tela
-                exibirá automaticamente o painel de gestão da unidade.
-              </p>
-            </div>
+      <div className="flex min-h-full items-center justify-center px-6 py-12">
+        <div className="max-w-xl rounded-xl border border-amber-300 bg-amber-50 p-8 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-200">
+            <Building2 className="h-6 w-6 text-amber-900" />
           </div>
-        </main>
+          <h1 className="font-heading text-xl font-semibold text-amber-950">
+            Você ainda não está vinculado a uma unidade
+          </h1>
+          <p className="mt-3 text-sm text-amber-900">
+            Sua conta de gestor está ativa, mas ainda não foi associada a nenhuma unidade.
+            Aguarde a vinculação por um administrador. Assim que estiver vinculado, esta tela
+            exibirá automaticamente o painel de gestão da unidade.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <AppSidebar />
-      <main className="flex-1 overflow-auto">
-        <div className="px-6 py-8 lg:px-10">
+    <div className="px-6 py-8 lg:px-10">
           {/* Header */}
           <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                 <Building2 className="h-4 w-4" />
-                <span>{unidadeNome || 'Carregando...'}</span>
+                <span>{contextoCarregado ? (unidadeNome || '—') : 'Carregando...'}</span>
               </div>
               <h1 className="font-heading text-2xl font-bold text-foreground">Dashboard de Gestão</h1>
               <p className="mt-1 text-sm text-muted-foreground">Métricas e gestão da unidade</p>
@@ -617,8 +608,6 @@ export default function GestaoPage() {
               )}
             </div>
           </div>
-        </div>
-      </main>
     </div>
   );
 }
