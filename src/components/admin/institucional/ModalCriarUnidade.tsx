@@ -39,9 +39,11 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSucesso: () => void;
+  onIrParaContratantes?: () => void;
 }
 
-export default function ModalCriarUnidade({ open, onOpenChange, onSucesso }: Props) {
+export default function ModalCriarUnidade({ open, onOpenChange, onSucesso, onIrParaContratantes }: Props) {
+  const [contratanteId, setContratanteId] = useState("");
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState("UBS");
   const [cnes, setCnes] = useState("");
