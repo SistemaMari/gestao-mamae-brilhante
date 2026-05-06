@@ -228,15 +228,20 @@ export default function GestaoPage() {
     });
     setPacientesEmInsulina(pacientesInsulina.size);
 
-    const fichasList: FichaResumo[] = (fichasRes.data || []).map(f => ({
+    const fichasList: FichaResumo[] = (fichasRes.data || []).map((f: any) => ({
       id: f.id,
       nome: f.nome,
       status_ficha: f.status_ficha,
       profissional_id: f.profissional_id,
       profissional_nome: (profissionaisMap.get(f.profissional_id) || 'Desconhecido') as string,
       data_ultima_consulta: f.data_ultima_consulta,
+      data_proximo_retorno: f.data_proximo_retorno,
       created_at: f.created_at,
       dmg_gestacao_anterior: f.dmg_gestacao_anterior,
+      dum: f.dum,
+      usg_data: f.usg_data,
+      usg_ig_semanas: f.usg_ig_semanas,
+      usg_ig_dias: f.usg_ig_dias,
     }));
     setFichas(fichasList);
 
