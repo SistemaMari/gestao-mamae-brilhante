@@ -367,7 +367,9 @@ export default function FichasUnidadePage() {
                 <TableCell colSpan={6} className="text-center py-12">
                   <FileText className="h-10 w-10 text-muted-foreground/30 mb-3 mx-auto" />
                   <p className="text-sm text-muted-foreground">
-                    {fichas.length === 0
+                    {filtroAtivo
+                      ? 'Sem pacientes neste gargalo no momento.'
+                      : fichas.length === 0
                       ? 'Nenhuma ficha cadastrada nesta unidade ainda.'
                       : 'Nenhuma paciente encontrada com esse nome. Tente outra busca.'}
                   </p>
