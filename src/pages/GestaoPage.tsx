@@ -5,10 +5,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Building2,
-  Clock,
   FileText,
   Users,
-  Activity,
 } from 'lucide-react';
 import {
   Select,
@@ -17,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { format } from 'date-fns';
 import BlocoOperacao from '@/components/gestao/BlocoOperacao';
 import BlocoPerfilClinico from '@/components/gestao/BlocoPerfilClinico';
 import BlocoGargalos from '@/components/gestao/BlocoGargalos';
@@ -34,14 +31,6 @@ import type {
   PainelGargalos,
   PainelTendencia,
 } from '@/lib/painelEstrategicoTypes';
-
-interface AtividadeRecente {
-  id: string;
-  tipo: 'consulta' | 'laudo';
-  descricao: string;
-  profissional_nome: string;
-  data: string;
-}
 
 interface UnidadeOpt {
   id: string;
