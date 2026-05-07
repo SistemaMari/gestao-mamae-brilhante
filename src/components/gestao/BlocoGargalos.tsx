@@ -48,6 +48,7 @@ export default function BlocoGargalos({ data, loading, error }: Props) {
 
   const itens: Array<{
     key: string;
+    filtroParam: 'sem_gj_primeira' | 'atrasadas_gtt' | 'sem_retorno';
     titulo: string;
     descricao: string;
     severidade: Severidade;
@@ -55,6 +56,7 @@ export default function BlocoGargalos({ data, loading, error }: Props) {
   }> = [
     {
       key: 'sem_gj',
+      filtroParam: 'sem_gj_primeira',
       titulo: 'Sem GJ na primeira consulta',
       descricao: 'Pacientes com atendimento mas sem glicemia de jejum registrada.',
       severidade: 'amarelo',
@@ -62,6 +64,7 @@ export default function BlocoGargalos({ data, loading, error }: Props) {
     },
     {
       key: 'gtt',
+      filtroParam: 'atrasadas_gtt',
       titulo: 'GTT em atraso',
       descricao: 'IG ≥ 28 semanas sem TTOG registrado.',
       severidade: 'laranja',
@@ -69,6 +72,7 @@ export default function BlocoGargalos({ data, loading, error }: Props) {
     },
     {
       key: 'sem_retorno',
+      filtroParam: 'sem_retorno',
       titulo: 'DMG confirmado sem retorno',
       descricao: 'Sem registro de atendimento há mais de 14 dias.',
       severidade: 'vermelho',
@@ -130,7 +134,10 @@ export default function BlocoGargalos({ data, loading, error }: Props) {
                 <p className="mt-1 text-xs text-muted-foreground">{it.descricao}</p>
                 {tem && (
                   <button
-                    onClick={() => navigate(`${basePath}/fichas`)}
+                    onClick={() => {
+                      const ids = it.data.paciente_ids.join(',');
+                      navigate(`${basePath}/fichas?filtro=${it.filtroParam}&ids=${ids}`);
+                    }}
                     className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                   >
                     Ver pacientes <ArrowRight className="h-3 w-3" />

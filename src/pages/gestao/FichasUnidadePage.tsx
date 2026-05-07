@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, FileDown, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, FileDown, FileText, ChevronLeft, ChevronRight, AlertTriangle, AlertCircle, AlertOctagon, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
@@ -91,6 +91,38 @@ export default function FichasUnidadePage() {
   const [buscaDebounced, setBuscaDebounced] = useState('');
   const [page, setPage] = useState(1);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filtroParam = searchParams.get('filtro');
+  const idsParam = searchParams.get('ids');
+  const FILTRO_VALIDOS = ['sem_gj_primeira', 'atrasadas_gtt', 'sem_retorno'] as const;
+  type FiltroKey = typeof FILTRO_VALIDOS[number];
+  const filtroAtivo: FiltroKey | null =
+    filtroParam && (FILTRO_VALIDOS as readonly string[]).includes(filtroParam)
+      ? (filtroParam as FiltroKey)
+      : null;
+  const idsFiltro = useMemo(() => {
+    if (!filtroAtivo || idsParam == null) return null;
+    return new Set(idsParam.split(',').map(s => s.trim()).filter(Boolean));
+  }, [filtroAtivo, idsParam]);
+
+  const FILTRO_META: Record<FiltroKey, { titulo: string; cor: 'amarelo' | 'laranja' | 'vermelho'; Icon: typeof AlertTriangle }> = {
+    sem_gj_primeira: { titulo: 'Sem GJ na primeira consulta', cor: 'amarelo', Icon: AlertTriangle },
+    atrasadas_gtt: { titulo: 'GTT em atraso', cor: 'laranja', Icon: AlertCircle },
+    sem_retorno: { titulo: 'DMG confirmado sem retorno', cor: 'vermelho', Icon: AlertOctagon },
+  };
+  const CHIP_STYLES: Record<'amarelo' | 'laranja' | 'vermelho', string> = {
+    amarelo: 'bg-yellow-50 border-yellow-200 text-yellow-900',
+    laranja: 'bg-orange-50 border-orange-200 text-orange-900',
+    vermelho: 'bg-red-50 border-red-200 text-red-900',
+  };
+
+  const limparFiltroGargalo = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('filtro');
+    next.delete('ids');
+    setSearchParams(next, { replace: true });
+  };
+
   // debounce 300ms
   useEffect(() => {
     const t = setTimeout(() => setBuscaDebounced(busca), 300);
@@ -148,10 +180,12 @@ export default function FichasUnidadePage() {
   }, [isVitrine, user]);
 
   const filtradas = useMemo(() => {
-    if (!buscaDebounced.trim()) return fichas;
+    let base = fichas;
+    if (idsFiltro) base = base.filter(f => idsFiltro.has(f.id));
+    if (!buscaDebounced.trim()) return base;
     const q = stripAccents(buscaDebounced.trim());
-    return fichas.filter(f => stripAccents(f.nome).includes(q));
-  }, [fichas, buscaDebounced]);
+    return base.filter(f => stripAccents(f.nome).includes(q));
+  }, [fichas, buscaDebounced, idsFiltro]);
 
   const totalPages = Math.max(1, Math.ceil(filtradas.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
@@ -286,6 +320,29 @@ export default function FichasUnidadePage() {
         </div>
       </div>
 
+      {filtroAtivo && (() => {
+        const meta = FILTRO_META[filtroAtivo];
+        const count = filtradas.length;
+        const Icon = meta.Icon;
+        return (
+          <div className="mb-4">
+            <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm ${CHIP_STYLES[meta.cor]}`}>
+              <Icon className="h-4 w-4" />
+              <span className="font-medium">{meta.titulo}</span>
+              <span className="font-normal">· {count} {count === 1 ? 'paciente' : 'pacientes'}</span>
+              <button
+                type="button"
+                aria-label="Limpar filtro de gargalo"
+                onClick={limparFiltroGargalo}
+                className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-black/5"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="overflow-hidden rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
@@ -310,7 +367,9 @@ export default function FichasUnidadePage() {
                 <TableCell colSpan={6} className="text-center py-12">
                   <FileText className="h-10 w-10 text-muted-foreground/30 mb-3 mx-auto" />
                   <p className="text-sm text-muted-foreground">
-                    {fichas.length === 0
+                    {filtroAtivo
+                      ? 'Sem pacientes neste gargalo no momento.'
+                      : fichas.length === 0
                       ? 'Nenhuma ficha cadastrada nesta unidade ainda.'
                       : 'Nenhuma paciente encontrada com esse nome. Tente outra busca.'}
                   </p>

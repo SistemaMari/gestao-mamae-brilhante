@@ -5,10 +5,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Building2,
-  Clock,
   FileText,
   Users,
-  Activity,
 } from 'lucide-react';
 import {
   Select,
@@ -17,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { format } from 'date-fns';
 import BlocoOperacao from '@/components/gestao/BlocoOperacao';
 import BlocoPerfilClinico from '@/components/gestao/BlocoPerfilClinico';
 import BlocoGargalos from '@/components/gestao/BlocoGargalos';
@@ -34,14 +31,6 @@ import type {
   PainelGargalos,
   PainelTendencia,
 } from '@/lib/painelEstrategicoTypes';
-
-interface AtividadeRecente {
-  id: string;
-  tipo: 'consulta' | 'laudo';
-  descricao: string;
-  profissional_nome: string;
-  data: string;
-}
 
 interface UnidadeOpt {
   id: string;
@@ -78,17 +67,6 @@ export default function GestaoPage() {
   );
   const [loadingBlocos, setLoadingBlocos] = useState(!isVitrine);
   const [erroBlocos, setErroBlocos] = useState<string | null>(null);
-
-  const [atividades, setAtividades] = useState<AtividadeRecente[]>(
-    isVitrine
-      ? [
-          { id: 'a1', tipo: 'laudo', descricao: 'Laudo gerado', profissional_nome: 'Dra. Ana Souza', data: new Date(Date.now() - 2 * 86400000).toISOString() },
-          { id: 'a2', tipo: 'consulta', descricao: 'Primeira consulta registrada', profissional_nome: 'Dr. Carlos Lima', data: new Date(Date.now() - 3 * 86400000).toISOString() },
-          { id: 'a3', tipo: 'laudo', descricao: 'Laudo gerado', profissional_nome: 'Dra. Bia Mello', data: new Date(Date.now() - 4 * 86400000).toISOString() },
-          { id: 'a4', tipo: 'consulta', descricao: 'Retorno registrado', profissional_nome: 'Dra. Ana Souza', data: new Date(Date.now() - 6 * 86400000).toISOString() },
-        ]
-      : [],
-  );
 
   useEffect(() => {
     if (isVitrine) return;
@@ -164,49 +142,6 @@ export default function GestaoPage() {
         setTendencia(teRes.data as unknown as PainelTendencia);
       }
 
-      const { data: profs } = await supabase
-        .from('profissionais')
-        .select('id, nome')
-        .eq('unidade_id', unidadeId);
-      const profMap = new Map((profs || []).map(p => [p.id, p.nome]));
-      const profIds = (profs || []).map(p => p.id);
-      if (profIds.length > 0) {
-        const [consRes, lauRes] = await Promise.all([
-          supabase
-            .from('consultas')
-            .select('id, data, profissional_id, tipo')
-            .in('profissional_id', profIds)
-            .order('data', { ascending: false })
-            .limit(10),
-          supabase
-            .from('laudos')
-            .select('id, created_at, profissional_id, status')
-            .in('profissional_id', profIds)
-            .order('created_at', { ascending: false })
-            .limit(10),
-        ]);
-        const acts: AtividadeRecente[] = [];
-        (consRes.data || []).forEach(c => {
-          acts.push({
-            id: c.id,
-            tipo: 'consulta',
-            descricao: `${c.tipo === 'consulta_1' ? 'Primeira consulta' : 'Retorno'} registrado`,
-            profissional_nome: (profMap.get(c.profissional_id) || 'Desconhecido') as string,
-            data: c.data,
-          });
-        });
-        (lauRes.data || []).forEach(l => {
-          acts.push({
-            id: l.id,
-            tipo: 'laudo',
-            descricao: `Laudo ${l.status === 'gerado' ? 'gerado' : 'pendente'}`,
-            profissional_nome: (profMap.get(l.profissional_id) || 'Desconhecido') as string,
-            data: l.created_at,
-          });
-        });
-        acts.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
-        setAtividades(acts.slice(0, 10));
-      }
     } finally {
       setLoadingBlocos(false);
     }
@@ -315,50 +250,6 @@ export default function GestaoPage() {
           </div>
         </div>
 
-        {/* Atividade recente */}
-        <div className="rounded-xl border border-border bg-card p-5">
-          <h2 className="mb-4 font-heading text-lg font-semibold text-foreground">
-            Atividade recente
-          </h2>
-          {atividades.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Clock className="mb-3 h-10 w-10 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">Nenhuma atividade registrada</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {atividades.map(a => (
-                <div
-                  key={a.id}
-                  className="flex items-center gap-3 rounded-lg border border-border p-3"
-                >
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                      a.tipo === 'consulta' ? 'bg-primary/10' : 'bg-secondary/20'
-                    }`}
-                  >
-                    {a.tipo === 'consulta' ? (
-                      <FileText className="h-4 w-4 text-primary" />
-                    ) : (
-                      <Activity className="h-4 w-4 text-secondary-foreground" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {a.descricao}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{a.profissional_nome}</p>
-                  </div>
-                  <span className="whitespace-nowrap text-xs text-muted-foreground">
-                    {new Date(format(new Date(a.data), 'yyyy-MM-dd')).toLocaleDateString(
-                      'pt-BR',
-                    )}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

@@ -18,6 +18,9 @@ import {
 import { toast } from 'sonner';
 import { ArrowLeft, Plus, RefreshCw, Trash2, Loader2, Users, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import DistribuicaoProfissionais from '@/components/gestao/DistribuicaoProfissionais';
+import AtividadeRecente, { type AtividadeItem } from '@/components/gestao/AtividadeRecente';
+import type { PainelOperacao } from '@/lib/painelEstrategicoTypes';
 
 interface Membro {
   id: string;
@@ -50,6 +53,9 @@ export default function GestaoEquipePage() {
   // Modal de remoção
   const [removeTarget, setRemoveTarget] = useState<Membro | null>(null);
   const [removing, setRemoving] = useState(false);
+
+  const [distribuicao, setDistribuicao] = useState<PainelOperacao['distribuicao_profissionais']>([]);
+  const [atividades, setAtividades] = useState<AtividadeItem[]>([]);
 
   const fetchEquipe = async () => {
     if (!user) return;
@@ -110,6 +116,56 @@ export default function GestaoEquipePage() {
     }));
 
     setMembros([...ativos, ...conviteMembros]);
+
+    // Distribuição (RPC do painel)
+    const opRes = await supabase.rpc('get_painel_operacao', { p_unidade_id: prof.unidade_id });
+    if (!opRes.error && opRes.data) {
+      const op = opRes.data as unknown as PainelOperacao;
+      setDistribuicao(op.distribuicao_profissionais || []);
+    }
+
+    // Atividade recente
+    const profMap = new Map((profissionais || []).map(p => [p.id, p.nome]));
+    profMap.set(prof.id, ''); // self may exist; fill later if needed
+    const profIds = (profissionais || []).map(p => p.id);
+    if (profIds.length > 0) {
+      const [consRes, lauRes] = await Promise.all([
+        supabase
+          .from('consultas')
+          .select('id, data, profissional_id, tipo')
+          .in('profissional_id', profIds)
+          .order('data', { ascending: false })
+          .limit(10),
+        supabase
+          .from('laudos')
+          .select('id, created_at, profissional_id, status')
+          .in('profissional_id', profIds)
+          .order('created_at', { ascending: false })
+          .limit(10),
+      ]);
+      const acts: AtividadeItem[] = [];
+      (consRes.data || []).forEach((c: any) => {
+        acts.push({
+          id: c.id,
+          tipo: 'consulta',
+          descricao: `${c.tipo === 'consulta_1' ? 'Primeira consulta' : 'Retorno'} registrado`,
+          profissional_nome: (profMap.get(c.profissional_id) || 'Desconhecido') as string,
+          data: c.data,
+        });
+      });
+      (lauRes.data || []).forEach((l: any) => {
+        acts.push({
+          id: l.id,
+          tipo: 'laudo',
+          descricao: `Laudo ${l.status === 'gerado' ? 'gerado' : 'pendente'}`,
+          profissional_nome: (profMap.get(l.profissional_id) || 'Desconhecido') as string,
+          data: l.created_at,
+        });
+      });
+      acts.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+      setAtividades(acts.slice(0, 10));
+    }
+
     setLoading(false);
   };
 
@@ -339,6 +395,13 @@ export default function GestaoEquipePage() {
                 ))}
               </TableBody>
             </Table>
+          </div>
+        )}
+
+        {!loading && (
+          <div className="mt-8 space-y-6">
+            <DistribuicaoProfissionais distribuicao={distribuicao} />
+            <AtividadeRecente atividades={atividades} />
           </div>
         )}
       </div>
