@@ -180,10 +180,12 @@ export default function FichasUnidadePage() {
   }, [isVitrine, user]);
 
   const filtradas = useMemo(() => {
-    if (!buscaDebounced.trim()) return fichas;
+    let base = fichas;
+    if (idsFiltro) base = base.filter(f => idsFiltro.has(f.id));
+    if (!buscaDebounced.trim()) return base;
     const q = stripAccents(buscaDebounced.trim());
-    return fichas.filter(f => stripAccents(f.nome).includes(q));
-  }, [fichas, buscaDebounced]);
+    return base.filter(f => stripAccents(f.nome).includes(q));
+  }, [fichas, buscaDebounced, idsFiltro]);
 
   const totalPages = Math.max(1, Math.ceil(filtradas.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
