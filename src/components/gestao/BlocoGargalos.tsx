@@ -134,7 +134,10 @@ export default function BlocoGargalos({ data, loading, error }: Props) {
                 <p className="mt-1 text-xs text-muted-foreground">{it.descricao}</p>
                 {tem && (
                   <button
-                    onClick={() => navigate(`${basePath}/fichas`)}
+                    onClick={() => {
+                      const ids = it.data.paciente_ids.join(',');
+                      navigate(`${basePath}/fichas?filtro=${it.filtroParam}&ids=${ids}`);
+                    }}
                     className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                   >
                     Ver pacientes <ArrowRight className="h-3 w-3" />
