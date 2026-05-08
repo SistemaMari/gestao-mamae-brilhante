@@ -18,9 +18,10 @@ import {
 import { toast } from 'sonner';
 import { ArrowLeft, Plus, RefreshCw, Trash2, Loader2, Users, Info, UserPlus, MailWarning, FileCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import DistribuicaoProfissionais from '@/components/gestao/DistribuicaoProfissionais';
-import AtividadeRecente, { type AtividadeItem } from '@/components/gestao/AtividadeRecente';
 import CardResumoEquipe from '@/components/gestao/CardResumoEquipe';
+import ComposicaoClinica, { type ProfissionalEquipe } from '@/components/gestao/ComposicaoClinica';
+import PerformanceIndividual, { type ProfPerformance } from '@/components/gestao/PerformanceIndividual';
+import IndicadoresFluxo, { type Sobrecarregado } from '@/components/gestao/IndicadoresFluxo';
 import type { PainelOperacao } from '@/lib/painelEstrategicoTypes';
 
 interface Membro {
@@ -55,21 +56,31 @@ export default function GestaoEquipePage() {
   const [removeTarget, setRemoveTarget] = useState<Membro | null>(null);
   const [removing, setRemoving] = useState(false);
 
-  const [distribuicao, setDistribuicao] = useState<PainelOperacao['distribuicao_profissionais']>([]);
-  const [atividades, setAtividades] = useState<AtividadeItem[]>([]);
-
-  // Cards de resumo
+  // Bloco 1 — cards de resumo
   const [totalAtivos, setTotalAtivos] = useState<number | null>(null);
   const [totalPendentes, setTotalPendentes] = useState<number | null>(null);
   const [totalExpirados, setTotalExpirados] = useState<number | null>(null);
   const [totalLaudos, setTotalLaudos] = useState<number | null>(null);
   const [errosCards, setErrosCards] = useState({ ativos: false, pendentes: false, expirados: false, laudos: false });
 
+  // Bloco 2 — composição
+  const [profissionaisEquipe, setProfissionaisEquipe] = useState<ProfissionalEquipe[]>([]);
+  const [erroComposicao, setErroComposicao] = useState(false);
+
+  // Bloco 3 — performance
+  const [performance, setPerformance] = useState<ProfPerformance[]>([]);
+  const [erroPerformance, setErroPerformance] = useState(false);
+
+  // Bloco 4 — indicadores de fluxo
+  const [tempoMedioDias, setTempoMedioDias] = useState<number | null>(null);
+  const [sobrecarregados, setSobrecarregados] = useState<Sobrecarregado[]>([]);
+  const [erroTempo, setErroTempo] = useState(false);
+  const [erroSobrecarga, setErroSobrecarga] = useState(false);
+
   const fetchEquipe = async () => {
     if (!user) return;
     setLoading(true);
 
-    // Get gestor's unit
     const { data: prof } = await supabase
       .from('profissionais')
       .select('id, unidade_id')
@@ -84,7 +95,6 @@ export default function GestaoEquipePage() {
     setUnidadeId(prof.unidade_id);
     setProfissionalId(prof.id);
 
-    // Get unit name
     const { data: unidade } = await supabase
       .from('unidades')
       .select('nome')
@@ -92,23 +102,23 @@ export default function GestaoEquipePage() {
       .maybeSingle();
     setUnidadeNome(unidade?.nome || '');
 
-    // Get active members (via view segura — sem campos sensíveis)
+    // Equipe (via view segura)
     const profRes = await supabase
       .from('equipe_unidade_view' as any)
-      .select('id, nome, crm, especialidade, created_at')
+      .select('id, nome, crm, especialidade, perfil_clinico, created_at')
       .eq('unidade_id', prof.unidade_id);
     const profissionais = ((profRes.data ?? []) as unknown) as Array<{
-      id: string; nome: string; crm: string | null; especialidade: string | null; created_at: string;
+      id: string; nome: string; crm: string | null; especialidade: string | null;
+      perfil_clinico: string | null; created_at: string;
     }>;
 
     const ativos: Membro[] = (profissionais || [])
-      .filter(p => p.id !== prof.id) // exclude self
+      .filter(p => p.id !== prof.id)
       .map(p => ({
-        ...p,
-        tipo: 'ativo' as const,
+        id: p.id, nome: p.nome, crm: p.crm, especialidade: p.especialidade,
+        created_at: p.created_at, tipo: 'ativo' as const,
       }));
 
-    // Get pending/expired invites
     const { data: convites } = await supabase
       .from('convites')
       .select('id, email_convidado, status, created_at, expires_at')
@@ -127,92 +137,127 @@ export default function GestaoEquipePage() {
     }));
 
     setMembros([...ativos, ...conviteMembros]);
+    setProfissionaisEquipe(
+      (profissionais || []).map(p => ({
+        id: p.id, nome: p.nome, especialidade: p.especialidade, perfil_clinico: p.perfil_clinico,
+      }))
+    );
 
-    // Card 1: profissionais ativos (inclui self)
-    try {
-      setTotalAtivos(profissionais.length);
-    } catch (e) {
-      console.error('[card ativos]', e);
-      setErrosCards(prev => ({ ...prev, ativos: true }));
-    }
+    // Card 1
+    try { setTotalAtivos(profissionais.length); }
+    catch (e) { console.error(e); setErrosCards(p => ({ ...p, ativos: true })); }
 
-    // Cards 2 e 3: convites pendentes/expirados (a partir dos convites já buscados)
+    // Cards 2/3
     try {
       const agora = new Date();
-      const pendentes = (convites || []).filter(
-        c => c.status === 'pendente' && new Date(c.expires_at) > agora
-      ).length;
-      const expirados = (convites || []).filter(
-        c => c.status === 'pendente' && new Date(c.expires_at) <= agora
-      ).length;
-      setTotalPendentes(pendentes);
-      setTotalExpirados(expirados);
-    } catch (e) {
-      console.error('[cards convites]', e);
-      setErrosCards(prev => ({ ...prev, pendentes: true, expirados: true }));
-    }
+      const pend = (convites || []).filter(c => c.status === 'pendente' && new Date(c.expires_at) > agora).length;
+      const exp = (convites || []).filter(c => c.status === 'pendente' && new Date(c.expires_at) <= agora).length;
+      setTotalPendentes(pend); setTotalExpirados(exp);
+    } catch (e) { console.error(e); setErrosCards(p => ({ ...p, pendentes: true, expirados: true })); }
 
-    // Card 4: laudos da equipe (JOIN via paciente respeita RLS)
+    // Card 4 + Bloco 3 (laudos por prof) + Bloco 4 esquerdo (tempo médio)
+    let laudosDaUnidade: Array<{ profissional_id: string; paciente_id: string; created_at: string }> = [];
     try {
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from('laudos')
-        .select('id, pacientes!inner(unidade_id)', { count: 'exact', head: true })
+        .select('profissional_id, paciente_id, created_at, pacientes!inner(unidade_id)')
         .eq('pacientes.unidade_id', prof.unidade_id);
       if (error) throw error;
-      setTotalLaudos(count ?? 0);
+      laudosDaUnidade = (data || []) as any;
+      setTotalLaudos(laudosDaUnidade.length);
     } catch (e) {
       console.error('[card laudos]', e);
-      setErrosCards(prev => ({ ...prev, laudos: true }));
+      setErrosCards(p => ({ ...p, laudos: true }));
+      setErroPerformance(true);
+      setErroTempo(true);
     }
 
-    // Distribuição (RPC do painel)
-    const opRes = await supabase.rpc('get_painel_operacao', { p_unidade_id: prof.unidade_id });
-    if (!opRes.error && opRes.data) {
-      const op = opRes.data as unknown as PainelOperacao;
-      setDistribuicao(op.distribuicao_profissionais || []);
+    // RPC operação (distribuição de pacientes ativas)
+    let distribuicao: PainelOperacao['distribuicao_profissionais'] = [];
+    try {
+      const opRes = await supabase.rpc('get_painel_operacao', { p_unidade_id: prof.unidade_id });
+      if (!opRes.error && opRes.data) {
+        const op = opRes.data as unknown as PainelOperacao;
+        distribuicao = op.distribuicao_profissionais || [];
+      }
+    } catch (e) {
+      console.error('[op]', e);
+      setErroSobrecarga(true);
     }
 
-    // Atividade recente
-    const profMap = new Map((profissionais || []).map(p => [p.id, p.nome]));
-    profMap.set(prof.id, ''); // self may exist; fill later if needed
-    const profIds = (profissionais || []).map(p => p.id);
-    if (profIds.length > 0) {
-      const [consRes, lauRes] = await Promise.all([
-        supabase
+    // Bloco 3 — performance
+    try {
+      const laudosPorProf = new Map<string, number>();
+      laudosDaUnidade.forEach(l => {
+        laudosPorProf.set(l.profissional_id, (laudosPorProf.get(l.profissional_id) || 0) + 1);
+      });
+      const pacPorProf = new Map<string, number>();
+      distribuicao.forEach(d => pacPorProf.set(d.profissional_id, d.total_pacientes_ativos));
+      const perf: ProfPerformance[] = (profissionais || []).map(p => ({
+        id: p.id,
+        nome: p.nome,
+        crm: p.crm,
+        laudos: laudosPorProf.get(p.id) || 0,
+        pacientes: pacPorProf.get(p.id) || 0,
+      }));
+      setPerformance(perf);
+    } catch (e) { console.error('[performance]', e); setErroPerformance(true); }
+
+    // Bloco 4 esquerdo — tempo médio até 1º laudo (filtro: 1º laudo nos últimos 90 dias)
+    try {
+      // primeiro laudo por paciente
+      const primeiroLaudo = new Map<string, Date>();
+      laudosDaUnidade.forEach(l => {
+        const d = new Date(l.created_at);
+        const cur = primeiroLaudo.get(l.paciente_id);
+        if (!cur || d < cur) primeiroLaudo.set(l.paciente_id, d);
+      });
+      const noventaDias = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const pacientesElegiveis = Array.from(primeiroLaudo.entries())
+        .filter(([, d]) => d >= noventaDias)
+        .map(([pid, d]) => ({ pid, dataLaudo: d }));
+
+      if (pacientesElegiveis.length === 0) {
+        setTempoMedioDias(null);
+      } else {
+        const ids = pacientesElegiveis.map(p => p.pid);
+        const { data: cons, error } = await supabase
           .from('consultas')
-          .select('id, data, profissional_id, tipo')
-          .in('profissional_id', profIds)
-          .order('data', { ascending: false })
-          .limit(10),
-        supabase
-          .from('laudos')
-          .select('id, created_at, profissional_id, status')
-          .in('profissional_id', profIds)
-          .order('created_at', { ascending: false })
-          .limit(10),
-      ]);
-      const acts: AtividadeItem[] = [];
-      (consRes.data || []).forEach((c: any) => {
-        acts.push({
-          id: c.id,
-          tipo: 'consulta',
-          descricao: `${c.tipo === 'consulta_1' ? 'Primeira consulta' : 'Retorno'} registrado`,
-          profissional_nome: (profMap.get(c.profissional_id) || 'Desconhecido') as string,
-          data: c.data,
+          .select('paciente_id, data')
+          .in('paciente_id', ids);
+        if (error) throw error;
+        const primeiraCons = new Map<string, Date>();
+        (cons || []).forEach(c => {
+          const d = new Date(c.data);
+          const cur = primeiraCons.get(c.paciente_id);
+          if (!cur || d < cur) primeiraCons.set(c.paciente_id, d);
         });
-      });
-      (lauRes.data || []).forEach((l: any) => {
-        acts.push({
-          id: l.id,
-          tipo: 'laudo',
-          descricao: `Laudo ${l.status === 'gerado' ? 'gerado' : 'pendente'}`,
-          profissional_nome: (profMap.get(l.profissional_id) || 'Desconhecido') as string,
-          data: l.created_at,
+        const deltas: number[] = [];
+        pacientesElegiveis.forEach(({ pid, dataLaudo }) => {
+          const pc = primeiraCons.get(pid);
+          if (pc) {
+            const delta = Math.round((dataLaudo.getTime() - pc.getTime()) / (24 * 60 * 60 * 1000));
+            if (delta >= 0) deltas.push(delta);
+          }
         });
-      });
-      acts.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
-      setAtividades(acts.slice(0, 10));
-    }
+        if (deltas.length === 0) setTempoMedioDias(null);
+        else setTempoMedioDias(deltas.reduce((a, b) => a + b, 0) / deltas.length);
+      }
+    } catch (e) { console.error('[tempo medio]', e); setErroTempo(true); }
+
+    // Bloco 4 direito — sobrecarga
+    try {
+      const ativosDist = distribuicao.filter(d => d.total_pacientes_ativos > 0);
+      if (ativosDist.length === 0) {
+        setSobrecarregados([]);
+      } else {
+        const media = ativosDist.reduce((s, d) => s + d.total_pacientes_ativos, 0) / ativosDist.length;
+        const sob = ativosDist
+          .filter(d => d.total_pacientes_ativos > 2 * media)
+          .map(d => ({ nome: d.nome, pacientes: d.total_pacientes_ativos }));
+        setSobrecarregados(sob);
+      }
+    } catch (e) { console.error('[sobrecarga]', e); setErroSobrecarga(true); }
 
     setLoading(false);
   };
@@ -274,29 +319,20 @@ export default function GestaoEquipePage() {
 
   const handleReenviar = async (email: string) => {
     if (!unidadeId || !user) return;
-
-    // Expire old invite and send new one
     try {
       const res = await supabase.functions.invoke('enviar-convite', {
         body: { unidade_id: unidadeId, email_convidado: email, convidado_por: user.id },
       });
-
-      // If pending, we force resend by expiring old one first
-      // For now, the edge function handles this — just mark old as expired and create new
       if (res.data?.status === 'convite_pendente') {
-        // Mark old invite as expired
         await supabase
           .from('convites')
           .update({ status: 'expirado' } as any)
           .eq('email_convidado', email)
           .eq('unidade_id', unidadeId)
           .eq('status', 'pendente');
-
-        // Retry
         const res2 = await supabase.functions.invoke('enviar-convite', {
           body: { unidade_id: unidadeId, email_convidado: email, convidado_por: user.id },
         });
-
         if (res2.data?.status === 'enviado') {
           toast.success(`Convite reenviado para ${email}!`);
           fetchEquipe();
@@ -313,12 +349,10 @@ export default function GestaoEquipePage() {
   const handleRemover = async () => {
     if (!removeTarget || !unidadeId || !user) return;
     setRemoving(true);
-
     try {
       const res = await supabase.functions.invoke('remover-profissional', {
         body: { profissional_id: removeTarget.id, unidade_id: unidadeId, gestor_id: user.id },
       });
-
       if (res.data?.status === 'removido') {
         toast.success(res.data.mensagem);
         setRemoveTarget(null);
@@ -329,7 +363,6 @@ export default function GestaoEquipePage() {
     } catch {
       toast.error('Erro ao remover profissional.');
     }
-
     setRemoving(false);
   };
 
@@ -346,7 +379,7 @@ export default function GestaoEquipePage() {
 
   return (
     <div className="px-6 py-8 lg:px-10">
-        <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-5xl">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -367,7 +400,7 @@ export default function GestaoEquipePage() {
           </Button>
         </div>
 
-        {/* Cards de resumo */}
+        {/* Bloco 1 — cards de resumo */}
         <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           <CardResumoEquipe
             titulo="Profissionais ativos"
@@ -407,7 +440,37 @@ export default function GestaoEquipePage() {
           />
         </div>
 
-        {/* Table */}
+        {/* Bloco 2 — composição clínica */}
+        <div className="mb-4">
+          <ComposicaoClinica
+            profissionais={profissionaisEquipe}
+            loading={loading}
+            erro={erroComposicao}
+          />
+        </div>
+
+        {/* Bloco 3 — performance individual */}
+        <div className="mb-4">
+          <PerformanceIndividual
+            profissionais={performance}
+            loading={loading}
+            erro={erroPerformance}
+          />
+        </div>
+
+        {/* Bloco 4 — indicadores de fluxo */}
+        <div className="mb-8">
+          <IndicadoresFluxo
+            tempoMedioDias={tempoMedioDias}
+            sobrecarregados={sobrecarregados}
+            loading={loading}
+            erroTempo={erroTempo}
+            erroSobrecarga={erroSobrecarga}
+          />
+        </div>
+
+        {/* Tabela — rodapé */}
+        <h2 className="mb-3 font-heading text-lg font-semibold text-foreground">Equipe da unidade</h2>
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -485,13 +548,6 @@ export default function GestaoEquipePage() {
             </Table>
           </div>
         )}
-
-        {!loading && (
-          <div className="mt-8 space-y-6">
-            <DistribuicaoProfissionais distribuicao={distribuicao} />
-            <AtividadeRecente atividades={atividades} />
-          </div>
-        )}
       </div>
 
       {/* Modal de Convite */}
@@ -532,7 +588,6 @@ export default function GestaoEquipePage() {
               />
             </div>
 
-            {/* Aviso fixo de unicidade — sempre visível */}
             <div
               className="flex items-start gap-2 rounded-md p-3 text-xs leading-relaxed"
               style={{ backgroundColor: '#F5F3FA', color: '#4B3F66' }}
@@ -547,7 +602,6 @@ export default function GestaoEquipePage() {
               </span>
             </div>
 
-            {/* Mensagem de erro / status retornado */}
             {inviteError && (
               <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                 <p>{inviteError}</p>
@@ -585,7 +639,6 @@ export default function GestaoEquipePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Remoção */}
       <AlertDialog open={!!removeTarget} onOpenChange={() => setRemoveTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
