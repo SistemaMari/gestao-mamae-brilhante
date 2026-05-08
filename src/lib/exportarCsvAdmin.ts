@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { fetchAdminView, type AdminViewSlug } from "@/lib/adminMetrics";
+import { todayLocalISO } from "@/lib/dateUtils";
 
 export interface ExportarCsvParams {
   queryClient: QueryClient;
@@ -77,7 +78,7 @@ export async function exportarCsvAdmin({
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = nomeArquivo ?? `${view}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = nomeArquivo ?? `${view}_${todayLocalISO()}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

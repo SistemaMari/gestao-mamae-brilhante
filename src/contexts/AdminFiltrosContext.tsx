@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { formatDateISO } from "@/lib/dateUtils";
 
 export type TipoConta = "todos" | "consultorio" | "institucional";
 export type MomentoDiagnostico =
@@ -26,8 +27,8 @@ function defaultsIniciais(): AdminFiltros {
   const inicio = new Date();
   inicio.setMonth(inicio.getMonth() - 6);
   return {
-    periodo_inicio: inicio.toISOString().slice(0, 10),
-    periodo_fim: fim.toISOString().slice(0, 10),
+    periodo_inicio: formatDateISO(inicio),
+    periodo_fim: formatDateISO(fim),
     pais: "todos",
     estado: "todos",
     cidade: "todos",
