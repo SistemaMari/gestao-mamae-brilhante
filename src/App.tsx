@@ -78,7 +78,7 @@ const App = () => (
               <Route path="/vitrine/gestao/equipe" element={<PreviewGestaoEquipePage />} />
               <Route path="/vitrine/gestao/fichas" element={<FichasUnidadePage />} />
               <Route path="/vitrine/gestao/fichas/:id" element={<PacientePage />} />
-              <Route path="/vitrine/gestao/configuracoes" element={<StubEmConstrucao titulo="Configurações" />} />
+              <Route path="/vitrine/gestao/configuracoes" element={<ConfiguracoesPage />} />
             </Route>
             <Route element={<AppShellGestorGeral />}>
               <Route path="/vitrine/consolidar" element={<ConsolidarPage />} />
