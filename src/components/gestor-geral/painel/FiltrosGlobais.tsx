@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { parseDateLocal } from "@/lib/dateUtils";
 import {
   calcularPeriodo,
   useFiltrosGestorGeral,
