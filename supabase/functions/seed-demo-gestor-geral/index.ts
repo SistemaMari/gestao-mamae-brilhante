@@ -153,6 +153,18 @@ Deno.serve(async (req) => {
 
   const log: string[] = [];
 
+  // Buscar plano inicial (FK obrigatória em profissionais.plano_id)
+  const { data: planoInicial } = await supabase
+    .from("planos").select("id").eq("slug", "inicial").maybeSingle();
+  const planoInicialId = planoInicial?.id;
+  if (!planoInicialId) {
+    return new Response(
+      JSON.stringify({ error: "plano 'inicial' não encontrado" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+
   try {
     // ---------- 1. Gestor Geral ----------
     const gestorEmail = "gestorgeral.demo@mari.health";
