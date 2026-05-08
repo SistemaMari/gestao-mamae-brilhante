@@ -47,6 +47,7 @@ import PreviewAppShell from "./components/PreviewAppShell";
 import PreviewAdminLayout from "./pages/admin/PreviewAdminLayout";
 import ComponentesDemoPage from "./pages/_dev/ComponentesDemoPage";
 import FichaCarimbadaDemo from "./pages/_dev/FichaCarimbadaDemo";
+import PocPdfGraficoPage from "./pages/_dev/PocPdfGraficoPage";
 
 const queryClient = new QueryClient();
 
@@ -182,6 +183,9 @@ const App = () => (
               <Route path="/consolidar" element={<ConsolidarPage />} />
               <Route path="/consolidar/configuracoes" element={<StubEmConstrucao titulo="Configurações" />} />
             </Route>
+
+            {/* POC dev — Etapa 0 PDF gráfico */}
+            <Route path="/dev/poc-pdf-grafico" element={<PocPdfGraficoPage />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
