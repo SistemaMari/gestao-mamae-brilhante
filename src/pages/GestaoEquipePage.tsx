@@ -16,10 +16,11 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, RefreshCw, Trash2, Loader2, Users, Info } from 'lucide-react';
+import { ArrowLeft, Plus, RefreshCw, Trash2, Loader2, Users, Info, UserPlus, MailWarning, FileCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DistribuicaoProfissionais from '@/components/gestao/DistribuicaoProfissionais';
 import AtividadeRecente, { type AtividadeItem } from '@/components/gestao/AtividadeRecente';
+import CardResumoEquipe from '@/components/gestao/CardResumoEquipe';
 import type { PainelOperacao } from '@/lib/painelEstrategicoTypes';
 
 interface Membro {
@@ -56,6 +57,13 @@ export default function GestaoEquipePage() {
 
   const [distribuicao, setDistribuicao] = useState<PainelOperacao['distribuicao_profissionais']>([]);
   const [atividades, setAtividades] = useState<AtividadeItem[]>([]);
+
+  // Cards de resumo
+  const [totalAtivos, setTotalAtivos] = useState<number | null>(null);
+  const [totalPendentes, setTotalPendentes] = useState<number | null>(null);
+  const [totalExpirados, setTotalExpirados] = useState<number | null>(null);
+  const [totalLaudos, setTotalLaudos] = useState<number | null>(null);
+  const [errosCards, setErrosCards] = useState({ ativos: false, pendentes: false, expirados: false, laudos: false });
 
   const fetchEquipe = async () => {
     if (!user) return;
@@ -119,6 +127,43 @@ export default function GestaoEquipePage() {
     }));
 
     setMembros([...ativos, ...conviteMembros]);
+
+    // Card 1: profissionais ativos (inclui self)
+    try {
+      setTotalAtivos(profissionais.length);
+    } catch (e) {
+      console.error('[card ativos]', e);
+      setErrosCards(prev => ({ ...prev, ativos: true }));
+    }
+
+    // Cards 2 e 3: convites pendentes/expirados (a partir dos convites já buscados)
+    try {
+      const agora = new Date();
+      const pendentes = (convites || []).filter(
+        c => c.status === 'pendente' && new Date(c.expires_at) > agora
+      ).length;
+      const expirados = (convites || []).filter(
+        c => c.status === 'pendente' && new Date(c.expires_at) <= agora
+      ).length;
+      setTotalPendentes(pendentes);
+      setTotalExpirados(expirados);
+    } catch (e) {
+      console.error('[cards convites]', e);
+      setErrosCards(prev => ({ ...prev, pendentes: true, expirados: true }));
+    }
+
+    // Card 4: laudos da equipe (JOIN via paciente respeita RLS)
+    try {
+      const { count, error } = await supabase
+        .from('laudos')
+        .select('id, pacientes!inner(unidade_id)', { count: 'exact', head: true })
+        .eq('pacientes.unidade_id', prof.unidade_id);
+      if (error) throw error;
+      setTotalLaudos(count ?? 0);
+    } catch (e) {
+      console.error('[card laudos]', e);
+      setErrosCards(prev => ({ ...prev, laudos: true }));
+    }
 
     // Distribuição (RPC do painel)
     const opRes = await supabase.rpc('get_painel_operacao', { p_unidade_id: prof.unidade_id });
@@ -320,6 +365,46 @@ export default function GestaoEquipePage() {
             <Plus className="h-4 w-4" />
             Convidar profissional
           </Button>
+        </div>
+
+        {/* Cards de resumo */}
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <CardResumoEquipe
+            titulo="Profissionais ativos"
+            valor={totalAtivos}
+            sublabel="incluindo você"
+            tooltip="Total de profissionais ativos vinculados à sua unidade, incluindo você. Profissionais com acesso revogado não são contabilizados."
+            icon={Users}
+            loading={loading}
+            erro={errosCards.ativos}
+          />
+          <CardResumoEquipe
+            titulo="Convites pendentes"
+            valor={totalPendentes}
+            sublabel="aguardando aceite"
+            tooltip="Convites enviados que ainda não foram aceitos pelo profissional convidado e estão dentro do prazo de validade."
+            icon={UserPlus}
+            loading={loading}
+            erro={errosCards.pendentes}
+          />
+          <CardResumoEquipe
+            titulo="Convites expirados"
+            valor={totalExpirados}
+            sublabel="reenviar disponível"
+            tooltip="Convites cujo prazo de aceitação já expirou. Você pode reenviar o convite a partir da lista de convites pendentes."
+            icon={MailWarning}
+            loading={loading}
+            erro={errosCards.expirados}
+          />
+          <CardResumoEquipe
+            titulo="Laudos gerados pela equipe"
+            valor={totalLaudos}
+            sublabel="total histórico"
+            tooltip="Total de laudos de DMG já emitidos pela equipe da sua unidade desde o início. Para laudos recentes, veja o painel principal."
+            icon={FileCheck}
+            loading={loading}
+            erro={errosCards.laudos}
+          />
         </div>
 
         {/* Table */}
