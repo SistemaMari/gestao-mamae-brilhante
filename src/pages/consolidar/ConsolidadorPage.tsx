@@ -135,8 +135,8 @@ function BlocoPerfilClinicoConsolidado() {
           Falha ao carregar perfil clínico.
         </div>
       ) : isLoading || !data ? (
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="grid gap-3 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-24 rounded-xl" />
           ))}
         </div>
