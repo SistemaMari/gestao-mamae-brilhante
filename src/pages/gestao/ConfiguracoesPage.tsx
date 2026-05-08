@@ -119,7 +119,7 @@ export default function ConfiguracoesPage() {
         try {
           const { data, error } = await supabase
             .from('unidades')
-            .select('nome, tipo, cnes, cidade, estado, contratante_id, contratantes:contratante_id(nome, cnpj)')
+            .select('nome, tipo, cnes, cidade, estado, contratante_id, contratantes_inexistente:contratante_id(nome, cnpj)')
             .eq('id', unidadeId)
             .maybeSingle();
           if (error) throw error;
