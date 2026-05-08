@@ -84,11 +84,14 @@ export default function GestaoEquipePage() {
       .maybeSingle();
     setUnidadeNome(unidade?.nome || '');
 
-    // Get active members
-    const { data: profissionais } = await supabase
-      .from('profissionais')
+    // Get active members (via view segura — sem campos sensíveis)
+    const profRes = await supabase
+      .from('equipe_unidade_view' as any)
       .select('id, nome, crm, especialidade, created_at')
       .eq('unidade_id', prof.unidade_id);
+    const profissionais = ((profRes.data ?? []) as unknown) as Array<{
+      id: string; nome: string; crm: string | null; especialidade: string | null; created_at: string;
+    }>;
 
     const ativos: Membro[] = (profissionais || [])
       .filter(p => p.id !== prof.id) // exclude self
