@@ -295,6 +295,9 @@ export async function exportarPainelPdf(
 
     const filename = `painel-${slugify(input.unidadeNome)}-${geradoEm.toISOString().slice(0, 10)}.pdf`;
     const blob = pdf.output('blob');
+    // Expor para QA
+    const b64 = pdf.output('datauristring').replace(/^data:.*?;base64,/, '');
+    (window as unknown as Record<string, unknown>).__painelPdfB64 = b64;
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
