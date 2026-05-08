@@ -687,27 +687,57 @@ export default function DiagnosticosPage() {
       {/* 13–14. Quebras regionais */}
       <div className="space-y-6">
         <SecaoTitulo>Quebra por região</SecaoTitulo>
-        <TabelaRegional
-          titulo="Por estado"
-          cabecalhos={["Estado", "Gestantes", "DMG", "Taxa de DMG"]}
-          linhas={regionalFiltrado.por_estado.map((r) => [r.estado, r.gestantes, r.dmg, `${r.taxa_dmg}%`])}
+        <TabelaOrdenavel
+          titulo="Taxa de DMG por estado"
+          colunas={[
+            { key: "estado", label: "Estado" },
+            { key: "gestantes", label: "Gestantes", numerica: true },
+            { key: "dmg", label: "DMG", numerica: true },
+            { key: "taxa_dmg", label: "Taxa de DMG", numerica: true, format: (v) => `${v}%` },
+          ]}
+          linhas={regionalFiltrado.por_estado as unknown as Array<Record<string, unknown>>}
           vazioMsg="Sem dados regionais ainda."
         />
-        <TabelaRegional
-          titulo="Top 20 cidades"
-          cabecalhos={["Cidade", "Estado", "Gestantes", "DMG", "Taxa de DMG"]}
-          linhas={regionalFiltrado.por_cidade.map((r) => [
-            r.cidade, r.estado, r.gestantes, r.dmg, `${r.taxa_dmg}%`,
-          ])}
-          vazioMsg="Sem dados de cidade ainda."
+        <TabelaOrdenavel
+          titulo="Top 20 cidades (mín. 10 pacientes)"
+          colunas={[
+            { key: "cidade", label: "Cidade" },
+            { key: "estado", label: "Estado" },
+            { key: "gestantes", label: "Gestantes", numerica: true },
+            { key: "dmg", label: "DMG", numerica: true },
+            { key: "taxa_dmg", label: "Taxa de DMG", numerica: true, format: (v) => `${v}%` },
+          ]}
+          linhas={
+            regionalFiltrado.por_cidade
+              .filter((c) => c.gestantes >= 10)
+              .slice(0, 20) as unknown as Array<Record<string, unknown>>
+          }
+          vazioMsg="Sem cidades com 10+ pacientes ainda."
         />
-        <TabelaRegional
-          titulo="Por unidade"
-          cabecalhos={["Unidade", "Cidade", "Estado", "Gestantes", "DMG", "Taxa de DMG"]}
-          linhas={regionalFiltrado.por_unidade.map((r) => [
-            r.unidade, r.cidade, r.estado, r.gestantes, r.dmg, `${r.taxa_dmg}%`,
-          ])}
+        <TabelaOrdenavel
+          titulo="Métricas por unidade"
+          colunas={[
+            { key: "unidade", label: "Unidade" },
+            { key: "cidade", label: "Cidade" },
+            { key: "estado", label: "Estado" },
+            { key: "gestantes", label: "Gestantes", numerica: true },
+            { key: "dmg", label: "DMG", numerica: true },
+            { key: "taxa_dmg", label: "Taxa de DMG", numerica: true, format: (v) => `${v}%` },
+          ]}
+          linhas={regionalFiltrado.por_unidade as unknown as Array<Record<string, unknown>>}
           vazioMsg="Nenhuma unidade com pacientes vinculadas."
+          expandivel
+          renderDetalhe={(row) => {
+            const r = row as { unidade: string; cidade: string; estado: string; gestantes: number; dmg: number; taxa_dmg: number };
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm" style={{ fontFamily: FONT_CORPO, color: "#475569" }}>
+                <div><span className="block text-xs uppercase tracking-wide text-[#7E69AB]">Localização</span>{r.cidade} / {r.estado}</div>
+                <div><span className="block text-xs uppercase tracking-wide text-[#7E69AB]">Gestantes</span>{r.gestantes}</div>
+                <div><span className="block text-xs uppercase tracking-wide text-[#7E69AB]">DMG</span>{r.dmg} ({r.taxa_dmg}%)</div>
+                <div><span className="block text-xs uppercase tracking-wide text-[#7E69AB]">Sem DMG</span>{Math.max(0, r.gestantes - r.dmg)}</div>
+              </div>
+            );
+          }}
         />
       </div>
     </div>
