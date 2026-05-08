@@ -457,13 +457,22 @@ export default function FichasUnidadePage() {
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12">
                   <FileText className="h-10 w-10 text-muted-foreground/30 mb-3 mx-auto" />
-                  <p className="text-sm text-muted-foreground">
-                    {filtroAtivo
-                      ? 'Sem pacientes neste gargalo no momento.'
-                      : fichas.length === 0
-                      ? 'Nenhuma ficha cadastrada nesta unidade ainda.'
-                      : 'Nenhuma paciente encontrada com esse nome. Tente outra busca.'}
-                  </p>
+                  {(statusFiltro || buscaDebounced.trim()) && fichas.length > 0 ? (
+                    <>
+                      <p className="text-sm text-muted-foreground">Nenhuma ficha corresponde aos filtros aplicados.</p>
+                      <Button variant="outline" size="sm" className="mt-4" onClick={limparTodosFiltros}>
+                        Limpar filtros
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {filtroAtivo
+                        ? 'Sem pacientes neste gargalo no momento.'
+                        : fichas.length === 0
+                        ? 'Nenhuma ficha cadastrada nesta unidade ainda.'
+                        : 'Nenhuma paciente encontrada com esse nome. Tente outra busca.'}
+                    </p>
+                  )}
                 </TableCell>
               </TableRow>
             ) : (
