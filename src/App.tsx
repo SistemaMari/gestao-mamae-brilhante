@@ -194,8 +194,15 @@ const App = () => (
             {/* Gestor Geral — shell dedicado. /consolidar é exclusivo de gestor_geral.
                 Dívida técnica: criar /admin/consolidar futuramente para suporte/debug do admin. */}
             <Route element={<ProtectedRoute allowedProfiles={['gestor_geral']}><AppShellGestorGeral /></ProtectedRoute>}>
-              <Route path="/consolidar" element={<ConsolidarPage />} />
-              <Route path="/consolidar/configuracoes" element={<StubEmConstrucao titulo="Configurações" />} />
+              <Route element={<ConsolidarLayout />}>
+                <Route path="/consolidar" element={<Navigate to="/consolidar/visao-geral" replace />} />
+                <Route path="/consolidar/visao-geral" element={<VisaoGeralRedePage />} />
+                <Route path="/consolidar/consolidador" element={<ConsolidadorPage />} />
+                <Route path="/consolidar/diagnostico" element={<DiagnosticoPage />} />
+                <Route path="/consolidar/comparador" element={<ComparadorPage />} />
+                <Route path="/consolidar/configuracoes" element={<ConfiguracoesGestorGeralPage />} />
+              </Route>
+              <Route path="/consolidar/unidade/:unidadeId" element={<UnidadeDrillDownPage />} />
             </Route>
 
             {/* POC dev — Etapa 0 PDF gráfico */}
