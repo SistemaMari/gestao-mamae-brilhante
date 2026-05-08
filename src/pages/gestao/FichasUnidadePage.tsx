@@ -67,7 +67,7 @@ function buildVitrineFichas(): Ficha[] {
   }))];
   return all.map((f, i) => {
     const totalDias = f.semWeeks * 7 + f.semDays;
-    const dum = new Date(today - totalDias * day).toISOString().slice(0, 10);
+    const dum = formatDateISO(new Date(today - totalDias * day));
     const proxDate = f.prox >= 0 ? new Date(today + f.prox * day) : new Date(today - Math.abs(f.prox) * day);
     return {
       // primeiras 10 fichas mapeiam para pacientes demo navegáveis
@@ -76,8 +76,8 @@ function buildVitrineFichas(): Ficha[] {
       status_ficha: f.status_ficha,
       profissional_id: `p-${f.prof}`,
       profissional_nome: f.prof,
-      data_ultima_consulta: new Date(today - f.ult * day).toISOString().slice(0, 10),
-      data_proximo_retorno: proxDate.toISOString().slice(0, 10),
+      data_ultima_consulta: formatDateISO(new Date(today - f.ult * day)),
+      data_proximo_retorno: formatDateISO(proxDate),
       created_at: new Date(today - (f.ult + 30) * day).toISOString(),
       dum,
       usg_data: null,
