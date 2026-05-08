@@ -1713,6 +1713,10 @@ export type Database = {
         Returns: boolean
       }
       get_painel_gargalos: { Args: { p_unidade_id: string }; Returns: Json }
+      get_painel_gargalos_detalhado: {
+        Args: { p_limit?: number; p_unidade_id: string }
+        Returns: Json
+      }
       get_painel_operacao: { Args: { p_unidade_id: string }; Returns: Json }
       get_painel_perfil_clinico: {
         Args: { p_unidade_id: string }
