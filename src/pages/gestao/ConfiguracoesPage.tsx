@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Building2, Users, ArrowRight, CalendarCheck, Check, Clock, LifeBuoy } from 'lucide-react';
+import { Building2, Users, ArrowRight, CalendarCheck, Check, Clock, LifeBuoy, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -146,6 +146,7 @@ export default function ConfiguracoesPage() {
   const [equipe, setEquipe] = useState<EquipeData>({ total: 0, ultimaInclusao: null });
   const [gestorNome, setGestorNome] = useState<string | null>(null);
   const [gestorEmail, setGestorEmail] = useState<string | null>(null);
+  const [statusMesAnterior, setStatusMesAnterior] = useState<'loading' | 'gerado' | 'aguardando' | 'falha'>('loading');
 
   useEffect(() => {
     if (isVitrine) {
@@ -157,6 +158,7 @@ export default function ConfiguracoesPage() {
       });
       setGestorNome('Dr. Gestor Demo');
       setGestorEmail('gestor.demo@novodmg.com.br');
+      setStatusMesAnterior('gerado');
       setLoading(false);
       return;
     }
@@ -255,6 +257,32 @@ export default function ConfiguracoesPage() {
         } catch (eqErr) {
           console.warn('[ConfiguracoesPage] erro ao carregar equipe:', eqErr);
         }
+
+        // Card 3 — status do relatório automático do mês anterior
+        try {
+          const hoje = new Date();
+          const inicioMesAnt = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+          const isoMesAnt = `${inicioMesAnt.getFullYear()}-${String(inicioMesAnt.getMonth() + 1).padStart(2, '0')}-01`;
+          const { data: rel, error: relErr } = await supabase
+            .from('relatorios_unidade')
+            .select('id')
+            .eq('unidade_id', unidadeId)
+            .eq('origem', 'automatico')
+            .eq('periodo_inicio', isoMesAnt)
+            .limit(1)
+            .maybeSingle();
+          if (relErr) throw relErr;
+          if (rel) {
+            setStatusMesAnterior('gerado');
+          } else if (hoje.getDate() === 1) {
+            setStatusMesAnterior('aguardando');
+          } else {
+            setStatusMesAnterior('falha');
+          }
+        } catch (relErr) {
+          console.warn('[ConfiguracoesPage] erro ao consultar relatório do mês anterior:', relErr);
+          setStatusMesAnterior(new Date().getDate() === 1 ? 'aguardando' : 'falha');
+        }
       } finally {
         setLoading(false);
       }
@@ -270,18 +298,15 @@ export default function ConfiguracoesPage() {
     return '—';
   })();
 
-  // Cronograma de relatórios — 3 meses anteriores + mês corrente (próximo).
-  // Borda do dia 1: se hoje for dia 1, "próximo" = dia 1 do mês corrente (a geração ainda ocorre/ocorreu hoje).
-  const cronograma = useMemo(() => {
+  // Card 3 — duas linhas: mês anterior (com status real) + próximo (cronograma puro).
+  // Borda do dia 1: se hoje for dia 1, "próximo" = dia 1 do mês corrente.
+  const { labelMesAnterior, labelProximo } = useMemo(() => {
     const hoje = new Date();
     const base = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    return [-3, -2, -1, 0].map((off) => {
-      const d = new Date(base.getFullYear(), base.getMonth() + off, 1);
-      return {
-        label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }),
-        proximo: off === 0,
-      };
-    });
+    const ant = new Date(base.getFullYear(), base.getMonth() - 1, 1);
+    const fmt = (d: Date) =>
+      d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    return { labelMesAnterior: fmt(ant), labelProximo: fmt(base) };
   }, []);
 
   return (
@@ -381,25 +406,46 @@ export default function ConfiguracoesPage() {
             />
 
             <ul className="space-y-3">
-              {cronograma.map((item) => (
-                <li key={item.label} className="flex items-center gap-3 text-sm">
-                  {item.proximo ? (
-                    <Clock className="h-4 w-4 shrink-0 text-[#9b87f5]" />
-                  ) : (
+              {/* Mês anterior — com status real */}
+              <li className="flex items-center gap-3 text-sm">
+                {statusMesAnterior === 'loading' ? (
+                  <>
+                    <SkeletonLine className="h-4 w-4 shrink-0 rounded-full" />
+                    <SkeletonLine className="h-4 w-64" />
+                  </>
+                ) : statusMesAnterior === 'gerado' ? (
+                  <>
                     <Check className="h-4 w-4 shrink-0 text-green-600" />
-                  )}
-                  <span
-                    className={
-                      item.proximo
-                        ? 'font-semibold text-[#5B3A8C]'
-                        : 'text-[#475569]'
-                    }
-                  >
-                    {item.label}
-                    {item.proximo && <span className="ml-1 font-semibold">(próximo)</span>}
-                  </span>
-                </li>
-              ))}
+                    <span className="text-[#475569]">
+                      {labelMesAnterior} <span className="text-[#64748B]">— Gerado</span>
+                    </span>
+                  </>
+                ) : statusMesAnterior === 'aguardando' ? (
+                  <>
+                    <Clock className="h-4 w-4 shrink-0 text-[#9b87f5]" />
+                    <span className="text-[#475569]">
+                      {labelMesAnterior}{' '}
+                      <span className="text-[#64748B]">— Aguardando geração — prevista para hoje 03:00</span>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-[#D97706]" />
+                    <span className="text-[#475569]">
+                      {labelMesAnterior}{' '}
+                      <span className="font-semibold text-[#B45309]">— Não gerado — contate o suporte</span>
+                    </span>
+                  </>
+                )}
+              </li>
+
+              {/* Próximo — cronograma puro */}
+              <li className="flex items-center gap-3 text-sm">
+                <Clock className="h-4 w-4 shrink-0 text-[#9b87f5]" />
+                <span className="font-semibold text-[#5B3A8C]">
+                  {labelProximo} <span className="font-semibold">(próximo)</span>
+                </span>
+              </li>
             </ul>
 
             <p className="mt-5 text-xs text-[#64748B]">
