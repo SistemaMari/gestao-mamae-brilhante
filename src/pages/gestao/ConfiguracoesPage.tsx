@@ -158,6 +158,7 @@ export default function ConfiguracoesPage() {
       });
       setGestorNome('Dr. Gestor Demo');
       setGestorEmail('gestor.demo@novodmg.com.br');
+      setStatusMesAnterior('gerado');
       setLoading(false);
       return;
     }
