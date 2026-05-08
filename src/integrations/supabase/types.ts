@@ -363,6 +363,13 @@ export type Database = {
             foreignKeyName: "convites_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
+            referencedRelation: "mv_metricas_unidade"
+            referencedColumns: ["unidade_id"]
+          },
+          {
+            foreignKeyName: "convites_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
             referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
@@ -612,6 +619,13 @@ export type Database = {
             foreignKeyName: "gestores_gerais_unidades_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
+            referencedRelation: "mv_metricas_unidade"
+            referencedColumns: ["unidade_id"]
+          },
+          {
+            foreignKeyName: "gestores_gerais_unidades_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
             referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
@@ -818,6 +832,13 @@ export type Database = {
             foreignKeyName: "log_transferencia_unidade_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
+            referencedRelation: "mv_metricas_unidade"
+            referencedColumns: ["unidade_id"]
+          },
+          {
+            foreignKeyName: "log_transferencia_unidade_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
             referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
@@ -919,6 +940,13 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "mv_admin_unidades_resumo"
+            referencedColumns: ["unidade_id"]
+          },
+          {
+            foreignKeyName: "pacientes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "mv_metricas_unidade"
             referencedColumns: ["unidade_id"]
           },
           {
@@ -1268,6 +1296,13 @@ export type Database = {
             foreignKeyName: "profissionais_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
+            referencedRelation: "mv_metricas_unidade"
+            referencedColumns: ["unidade_id"]
+          },
+          {
+            foreignKeyName: "profissionais_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
             referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
@@ -1340,6 +1375,13 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "mv_admin_unidades_resumo"
+            referencedColumns: ["unidade_id"]
+          },
+          {
+            foreignKeyName: "registros_atendimento_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "mv_metricas_unidade"
             referencedColumns: ["unidade_id"]
           },
           {
@@ -1590,6 +1632,13 @@ export type Database = {
             foreignKeyName: "profissionais_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
+            referencedRelation: "mv_metricas_unidade"
+            referencedColumns: ["unidade_id"]
+          },
+          {
+            foreignKeyName: "profissionais_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
             referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
@@ -1678,6 +1727,23 @@ export type Database = {
         }
         Relationships: []
       }
+      mv_metricas_unidade: {
+        Row: {
+          exames_realizados: number | null
+          laudos_dmg_positivo: number | null
+          laudos_emitidos: number | null
+          mes_referencia: string | null
+          pacientes_ativos: number | null
+          pacientes_cadastrados: number | null
+          partos_registrados: number | null
+          profissionais_ativos: number | null
+          refreshed_at: string | null
+          ultima_atividade: string | null
+          unidade_id: string | null
+          unidade_nome: string | null
+        }
+        Relationships: []
+      }
       mv_profissionais_ativos_30d: {
         Row: {
           profissional_id: string | null
@@ -1712,6 +1778,26 @@ export type Database = {
         Args: { _unidade_id: string; _user_id: string }
         Returns: boolean
       }
+      get_alertas_gestor_geral: {
+        Args: { p_unidades?: string[] }
+        Returns: {
+          alerta_id: string
+          detalhe_numerico: number
+          mensagem: string
+          severidade: string
+          tipo: string
+          unidade_id: string
+          unidade_nome: string
+        }[]
+      }
+      get_metricas_consolidadas_gestor_geral: {
+        Args: {
+          p_data_fim: string
+          p_data_inicio: string
+          p_unidades?: string[]
+        }
+        Returns: Json
+      }
       get_painel_gargalos: { Args: { p_unidade_id: string }; Returns: Json }
       get_painel_gargalos_detalhado: {
         Args: { p_limit?: number; p_unidade_id: string }
@@ -1723,6 +1809,24 @@ export type Database = {
         Returns: Json
       }
       get_painel_tendencia: { Args: { p_unidade_id: string }; Returns: Json }
+      get_ranking_unidades_gestor_geral: {
+        Args: {
+          p_data_fim: string
+          p_data_inicio: string
+          p_unidades?: string[]
+        }
+        Returns: {
+          dias_sem_atividade: number
+          laudos_emitidos: number
+          pacientes_ativos: number
+          status_operacional: string
+          taxa_dmg_positivo_pct: number
+          tempo_medio_fechamento_dias: number
+          ultima_atividade: string
+          unidade_id: string
+          unidade_nome: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1738,6 +1842,7 @@ export type Database = {
         Returns: boolean
       }
       pode_gerar_laudo: { Args: { p_profissional_id: string }; Returns: Json }
+      refresh_mv_metricas_unidade_manual: { Args: never; Returns: Json }
     }
     Enums: {
       app_role:
