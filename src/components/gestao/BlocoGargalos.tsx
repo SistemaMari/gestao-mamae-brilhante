@@ -133,7 +133,7 @@ export default function BlocoGargalos({ data, loading, error, hideVerPacientesLi
                   <CardInfoTooltip text={TOOLTIPS[it.key]} />
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{it.descricao}</p>
-                {tem && (
+                {tem && !hideVerPacientesLink && (
                   <button
                     onClick={() => {
                       const ids = it.data.paciente_ids.join(',');
