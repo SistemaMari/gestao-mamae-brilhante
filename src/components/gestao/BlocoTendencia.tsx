@@ -30,7 +30,7 @@ export default function BlocoTendencia({ data, loading, error }: Props) {
   const semDados = data.every(d => d.total_gestantes === 0 && d.total_dmg_confirmadas === 0);
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-3" data-pdf-section="tendencia">
       <div className="flex items-center gap-2">
         <h2 className="font-heading text-lg font-semibold text-foreground">
           Tendência da unidade
