@@ -105,6 +105,7 @@ const UNIDADES: UnidadeSpec[] = [
     nome: "UBS Demo Lapa",
     criadaDiasAtras: 70,
     status: "inativa",
+    gestor: { email: "gestor.lapa.demo@mari.health", nome: "Dra. Carla Lapa", crm: "CRM-SP G-30000" },
     profissionais: [
       { email: "prof.lapa1.demo@mari.health", nome: "Dra. Demo Lapa 1", crm: "CRM-SP D-30001" },
     ],
