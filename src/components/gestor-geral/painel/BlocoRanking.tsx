@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { RankingUnidade } from "@/hooks/usePainelGestorGeral";
 import { fmtNum, fmtPct, humanizeUltimaAtividade } from "./utils/formatters";
+import TooltipInfo from "@/components/gestor-geral/TooltipInfo";
 
 interface Props {
   data: RankingUnidade[] | undefined;
