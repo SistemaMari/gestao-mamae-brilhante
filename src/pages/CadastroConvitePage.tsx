@@ -25,7 +25,6 @@ export default function CadastroConvitePage() {
 
   const [status, setStatus] = useState<ConviteStatus>('loading');
   const [convite, setConvite] = useState<ConviteData | null>(null);
-  const [existingUserId, setExistingUserId] = useState<string | null>(null);
 
   // Form fields
   const [nome, setNome] = useState('');
@@ -36,7 +35,6 @@ export default function CadastroConvitePage() {
   const [idioma, setIdioma] = useState('pt-BR');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [vinculando, setVinculando] = useState(false);
 
   // Countdown after success
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -127,9 +125,8 @@ export default function CadastroConvitePage() {
         toast.success('Conta criada com sucesso!');
         setCountdown(3);
       } else if (data?.status === 'email_existente') {
-        // The user already has an account — they need to log in first, then
-        // the vincular-profissional function will use their JWT to link them.
-        setExistingUserId('existing'); // sentinel, no longer used as id
+        // E-mail já tem conta no MARI. Fluxo de vinculação foi descontinuado:
+        // cada e-mail = um único modelo (consultório OU institucional).
         setStatus('email_existente');
       } else {
         toast.error(data?.mensagem || 'Erro ao criar conta.');
@@ -139,36 +136,6 @@ export default function CadastroConvitePage() {
     }
 
     setSubmitting(false);
-  };
-
-  const handleVincular = async () => {
-    if (!convite) return;
-
-    // The user must be logged in for the edge function to identify them via JWT.
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) {
-      toast.info('Faça login para vincular sua conta a esta unidade.');
-      navigate(`/login?next=/convite/${convite.token}`);
-      return;
-    }
-
-    setVinculando(true);
-    try {
-      const res = await supabase.functions.invoke('vincular-profissional', {
-        body: { token: convite.token },
-      });
-
-      if (res.data?.status === 'sucesso') {
-        toast.success('Vinculação realizada com sucesso!');
-        setCountdown(3);
-      } else {
-        toast.error(res.data?.mensagem || 'Erro ao vincular.');
-      }
-    } catch {
-      toast.error('Erro ao vincular.');
-    }
-
-    setVinculando(false);
   };
 
   // Status screens
