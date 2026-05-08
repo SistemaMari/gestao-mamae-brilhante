@@ -294,7 +294,7 @@ Deno.serve(async (req) => {
           nome: p.nome,
           crm: p.crm,
           especialidade: "Ginecologia e Obstetrícia",
-          plano: "inicial",
+          plano: "free",
           plano_id: planoInicialId,
           plano_status: "ativo",
           laudos_limite: 200,
