@@ -317,9 +317,16 @@ export async function exportarPainelPdf(
     const sections = ['operacao', 'perfil', 'gargalos', 'tendencia', 'equipe'];
     for (const sec of sections) {
       const node = reactHost.querySelector(`[data-pdf-section="${sec}"]`) as HTMLElement | null;
-      if (!node) continue;
-      const c = await captureToCanvas(node);
-      addCanvasPaginated(pdf, c);
+      if (!node) {
+        console.warn(`[exportarPainelPdf] seção "${sec}" não renderizou no host React`);
+        continue;
+      }
+      try {
+        const c = await captureToCanvas(node);
+        addCanvasPaginated(pdf, c);
+      } catch (err) {
+        console.error(`[exportarPainelPdf] falha ao capturar seção "${sec}":`, err);
+      }
     }
 
     // Apêndice
