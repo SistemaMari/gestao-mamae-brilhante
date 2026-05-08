@@ -16,6 +16,7 @@ import { mockTendencia } from '@/lib/mockPainelEstrategico';
 export default function PocPdfGraficoPage() {
   const captureRef = useRef<HTMLDivElement>(null);
   const [canvasDataUrl, setCanvasDataUrl] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<string>('idle');
   const [tempoMs, setTempoMs] = useState<number | null>(null);
   const [fontsCarregadas, setFontsCarregadas] = useState<{
@@ -78,11 +79,7 @@ export default function PocPdfGraficoPage() {
 
     const blob = pdf.output('blob');
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'poc-pdf-grafico.pdf';
-    a.click();
-    URL.revokeObjectURL(url);
+    setPdfUrl(url);
 
     const t1 = performance.now();
     setTempoMs(Math.round(t1 - t0));
@@ -190,6 +187,29 @@ export default function PocPdfGraficoPage() {
               alt="canvas capturado"
               style={{ width: '100%', border: '1px solid #E2E8F0' }}
             />
+          </section>
+        )}
+
+        {pdfUrl && (
+          <section className="rounded-xl border bg-white p-5">
+            <h3
+              style={{ fontFamily: 'Sora, sans-serif' }}
+              className="mb-3 text-lg font-semibold"
+            >
+              PDF gerado (preview inline)
+            </h3>
+            <iframe
+              src={pdfUrl}
+              title="poc-pdf"
+              style={{ width: '100%', height: 900, border: '1px solid #E2E8F0' }}
+            />
+            <a
+              href={pdfUrl}
+              download="poc-pdf-grafico.pdf"
+              className="mt-2 inline-block text-sm text-[#7C4DBA] underline"
+            >
+              Baixar PDF
+            </a>
           </section>
         )}
       </div>
