@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useReadOnly } from '@/contexts/ReadOnlyContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -41,21 +42,27 @@ interface UnidadeOpt {
   nome: string;
 }
 
-export default function GestaoPage() {
+interface GestaoPageProps {
+  forcedUnidadeId?: string;
+}
+
+export default function GestaoPage({ forcedUnidadeId }: GestaoPageProps = {}) {
   const { user } = useAuth();
+  const { readonly } = useReadOnly();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isVitrine = pathname.startsWith('/vitrine');
   const basePath = isVitrine ? '/vitrine/gestao' : '/gestao';
+  const isForced = !!forcedUnidadeId;
 
   const [unidadeNome, setUnidadeNome] = useState(isVitrine ? 'Hospital Demo MARI' : '');
   const [unidadeId, setUnidadeId] = useState<string | null>(
-    isVitrine ? 'vitrine-unidade' : null,
+    forcedUnidadeId ?? (isVitrine ? 'vitrine-unidade' : null),
   );
   const [isGestorGeral, setIsGestorGeral] = useState(false);
   const [unidadesDisponiveis, setUnidadesDisponiveis] = useState<UnidadeOpt[]>([]);
   const [gestorSemUnidade, setGestorSemUnidade] = useState(false);
-  const [contextoCarregado, setContextoCarregado] = useState(isVitrine);
+  const [contextoCarregado, setContextoCarregado] = useState(isVitrine || isForced);
 
   const [operacao, setOperacao] = useState<PainelOperacao | null>(
     isVitrine ? mockOperacao : null,
@@ -74,9 +81,10 @@ export default function GestaoPage() {
 
   useEffect(() => {
     if (isVitrine) return;
+    if (isForced) return;
     if (!user) return;
     initContext();
-  }, [user, isVitrine]);
+  }, [user, isVitrine, isForced]);
 
   useEffect(() => {
     if (isVitrine) return;
