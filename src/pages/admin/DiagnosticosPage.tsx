@@ -247,17 +247,57 @@ function FunilTratamento({ funil }: { funil: Metricas["funil"] }) {
   );
 }
 
-function TabelaRegional({
+type Coluna = {
+  key: string;
+  label: string;
+  numerica?: boolean;
+  format?: (v: unknown, row: Record<string, unknown>) => React.ReactNode;
+};
+
+function TabelaOrdenavel({
   titulo,
-  cabecalhos,
+  colunas,
   linhas,
   vazioMsg,
+  expandivel,
+  renderDetalhe,
 }: {
   titulo: string;
-  cabecalhos: string[];
-  linhas: Array<Array<string | number>>;
+  colunas: Coluna[];
+  linhas: Array<Record<string, unknown>>;
   vazioMsg: string;
+  expandivel?: boolean;
+  renderDetalhe?: (row: Record<string, unknown>) => React.ReactNode;
 }) {
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [expanded, setExpanded] = useState<number | null>(null);
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return linhas;
+    return [...linhas].sort((a, b) => {
+      const va = a[sortKey];
+      const vb = b[sortKey];
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "number" && typeof vb === "number") {
+        return sortDir === "asc" ? va - vb : vb - va;
+      }
+      return sortDir === "asc"
+        ? String(va).localeCompare(String(vb), "pt-BR")
+        : String(vb).localeCompare(String(va), "pt-BR");
+    });
+  }, [linhas, sortKey, sortDir]);
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
+
   return (
     <CardContainer>
       <h4
@@ -266,7 +306,7 @@ function TabelaRegional({
       >
         {titulo}
       </h4>
-      {linhas.length === 0 ? (
+      {sorted.length === 0 ? (
         <p className="text-sm" style={{ color: COR_CINZA, fontFamily: FONT_CORPO }}>
           {vazioMsg}
         </p>
@@ -275,34 +315,65 @@ function TabelaRegional({
           <table className="w-full text-sm" style={{ fontFamily: FONT_CORPO }}>
             <thead>
               <tr style={{ background: "#5B2C9C" }}>
-                {cabecalhos.map((c) => (
-                  <th
-                    key={c}
-                    className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide"
-                    style={{ color: "#FFFFFF" }}
-                  >
-                    {c}
-                  </th>
-                ))}
+                {expandivel && <th className="w-8 px-2 py-2" />}
+                {colunas.map((c) => {
+                  const ativo = sortKey === c.key;
+                  const Icone = !ativo ? ArrowUpDown : sortDir === "asc" ? ArrowUp : ArrowDown;
+                  return (
+                    <th
+                      key={c.key}
+                      onClick={() => handleSort(c.key)}
+                      className="cursor-pointer select-none px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide hover:bg-[#6B3CB0]"
+                      style={{ color: "#FFFFFF" }}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {c.label}
+                        <Icone className="h-3 w-3 opacity-80" />
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
-              {linhas.map((linha, idx) => (
-                <tr
-                  key={idx}
-                  style={{ background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}
-                >
-                  {linha.map((celula, j) => (
-                    <td
-                      key={j}
-                      className="px-3 py-2"
-                      style={{ color: "#1E293B", borderTop: "1px solid #E2E8F0" }}
+              {sorted.map((linha, idx) => {
+                const isOpen = expanded === idx;
+                return (
+                  <Fragment key={idx}>
+                    <tr
+                      onClick={() => expandivel && setExpanded(isOpen ? null : idx)}
+                      style={{ background: idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC" }}
+                      className={expandivel ? "cursor-pointer hover:bg-[#F1F0FB]" : ""}
                     >
-                      {celula}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+                      {expandivel && (
+                        <td className="px-2 py-2" style={{ borderTop: "1px solid #E2E8F0" }}>
+                          {isOpen ? (
+                            <ChevronDown className="h-4 w-4" style={{ color: COR_LILAS }} />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" style={{ color: COR_CINZA }} />
+                          )}
+                        </td>
+                      )}
+                      {colunas.map((c) => (
+                        <td
+                          key={c.key}
+                          className="px-3 py-2"
+                          style={{ color: "#1E293B", borderTop: "1px solid #E2E8F0" }}
+                        >
+                          {c.format ? c.format(linha[c.key], linha) : String(linha[c.key] ?? "—")}
+                        </td>
+                      ))}
+                    </tr>
+                    {expandivel && isOpen && renderDetalhe && (
+                      <tr style={{ background: "#F1F0FB" }}>
+                        <td colSpan={colunas.length + 1} className="px-4 py-3" style={{ borderTop: "1px solid #D6BCFA" }}>
+                          {renderDetalhe(linha)}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
