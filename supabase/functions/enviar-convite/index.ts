@@ -164,10 +164,10 @@ Deno.serve(async (req) => {
       .single();
 
     console.log(
-      `[CONVITE] (${fluxo}) Email would be sent to ${email_convidado} for unit ${unidade?.nome}`
+      `[CONVITE] Email would be sent to ${email_convidado} for unit ${unidade?.nome}`
     );
 
-    return json({ status: "enviado", fluxo });
+    return json({ status: "enviado" });
   } catch (err) {
     console.error("[enviar-convite] unexpected error:", err);
     return json({ status: "erro", mensagem: "Erro interno. Tente novamente." }, 500);
