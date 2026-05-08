@@ -233,7 +233,7 @@ export default function FichasUnidadePage() {
   const inicio = filtradas.length === 0 ? 0 : (pageSafe - 1) * PAGE_SIZE + 1;
   const fim = Math.min(pageSafe * PAGE_SIZE, filtradas.length);
 
-  const fmtBR = (v: string | null) => v ? new Date(v).toLocaleDateString('pt-BR') : '—';
+  const fmtBR = (v: string | null) => v ? formatDateBR(v) : '—';
   const slugFiltro = statusFiltro ? slugify(STATUS_CONFIG[statusFiltro]?.label || statusFiltro) : 'todas';
   const fileBase = `fichas-unidade-${slugFiltro}_${(unidadeNome || 'unidade').replace(/\s+/g, '')}_${format(new Date(), 'yyyy-MM-dd')}`;
 
