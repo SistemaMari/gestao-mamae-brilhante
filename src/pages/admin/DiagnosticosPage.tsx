@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Fragment } from "react";
 import { useLocation } from "react-router-dom";
 import {
   ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   PieChart, Pie, Cell,
 } from "recharts";
-import { Loader2, Info } from "lucide-react";
+import { Loader2, Info, ArrowUpDown, ArrowUp, ArrowDown, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { mockMetricasDiagnosticos } from "@/lib/mockMetricasDiagnosticos";
 import { useAdminFiltros } from "@/contexts/AdminFiltrosContext";
