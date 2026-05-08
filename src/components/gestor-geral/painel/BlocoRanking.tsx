@@ -187,7 +187,9 @@ export default function BlocoRanking({ data, isLoading, isError, onRetry }: Prop
                   <TableCell>{fmtNum(r.laudos_emitidos)}</TableCell>
                   <TableCell>{fmtPct(r.taxa_dmg_positivo_pct, 1)}</TableCell>
                   <TableCell>
-                    {r.tempo_medio_fechamento_dias === null || r.tempo_medio_fechamento_dias === undefined
+                    {r.tempo_medio_fechamento_dias === null ||
+                    r.tempo_medio_fechamento_dias === undefined ||
+                    r.tempo_medio_fechamento_dias === 0
                       ? "—"
                       : `${r.tempo_medio_fechamento_dias.toFixed(1)} d`}
                   </TableCell>
