@@ -229,6 +229,22 @@ Deno.serve(async (req) => {
       log.push(`✓ Contratante Demo Health criado`);
     }
 
+    // ---------- 2.1 Vínculo gestor_geral <-> contratante ----------
+    const { data: ggcExist } = await supabase
+      .from("gestores_gerais_contratantes")
+      .select("gestor_geral_id")
+      .eq("gestor_geral_id", gestorGeralId)
+      .eq("contratante_id", contratanteId)
+      .maybeSingle();
+    if (!ggcExist) {
+      await supabase
+        .from("gestores_gerais_contratantes")
+        .insert({ gestor_geral_id: gestorGeralId, contratante_id: contratanteId });
+      log.push(`✓ Vínculo gestor_geral_contratante criado`);
+    } else {
+      log.push(`↻ Vínculo gestor_geral_contratante já existia`);
+    }
+
     // ---------- 3. Para cada unidade ----------
     for (const u of UNIDADES) {
       log.push(`--- ${u.nome} (${u.status}) ---`);
