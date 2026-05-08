@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, FileDown, FileText, ChevronLeft, ChevronRight, AlertTriangle, AlertCircle, AlertOctagon, X } from 'lucide-react';
+import { Search, FileDown, FileSpreadsheet, FileText, ChevronLeft, ChevronRight, AlertTriangle, AlertCircle, AlertOctagon, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import jsPDF from 'jspdf';
 import { STATUS_CONFIG, calcIdadeGestacional } from '@/lib/fichaUtils';
 import { slugify } from '@/lib/slugify';
+import { exportarFichasExcel } from '@/lib/exportarFichasExcel';
 
 const STATUS_CHIP_KEYS = [
   'aguardando_gj',
