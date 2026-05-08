@@ -341,6 +341,49 @@ Deno.serve(async (req) => {
       }
       log.push(`  ${profIds.length} profissionais`);
 
+      // ---------- gestor da unidade (perfil_institucional='gestor') ----------
+      if (u.gestor) {
+        const g = u.gestor;
+        let gUserId: string;
+        const { data: gCreated } = await supabase.auth.admin.createUser({
+          email: g.email, password: SENHA_PROF, email_confirm: true,
+          user_metadata: { nome: g.nome },
+        });
+        if (gCreated?.user) {
+          gUserId = gCreated.user.id;
+        } else {
+          const { data: list } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+          const ex = list?.users?.find((x) => x.email === g.email);
+          if (ex) {
+            gUserId = ex.id;
+            await supabase.auth.admin.updateUserById(ex.id, { password: SENHA_PROF });
+          } else {
+            log.push(`  ✗ não criou gestor ${g.email}`);
+            gUserId = "";
+          }
+        }
+        if (gUserId) {
+          const dadosGestor = {
+            user_id: gUserId, nome: g.nome, crm: g.crm,
+            especialidade: "Ginecologia e Obstetrícia",
+            plano: "free", plano_id: planoInicialId, plano_status: "ativo",
+            laudos_limite: 200, laudos_usados: 0,
+            cidade: "São Paulo", estado: "SP",
+            unidade_id: unidadeId,
+            perfil_institucional: "gestor" as const,
+            acesso_revogado: false,
+          };
+          const { data: gEx } = await supabase
+            .from("profissionais").select("id").eq("user_id", gUserId).maybeSingle();
+          if (gEx) {
+            await supabase.from("profissionais").update(dadosGestor).eq("id", gEx.id);
+          } else {
+            await supabase.from("profissionais").insert(dadosGestor);
+          }
+          log.push(`  + gestor da unidade: ${g.nome}`);
+        }
+      }
+
       if (profIds.length === 0 && u.pacientes === 0) continue;
 
       // ---------- pacientes / atendimentos / laudos / exames / partos ----------
