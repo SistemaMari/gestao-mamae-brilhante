@@ -14,7 +14,7 @@ export default function EncerramentoPartoCard() {
             Acompanhamento da MARI encerrado
           </h2>
           <p className="mt-2 text-sm" style={{ color: '#6D28D9' }}>
-            O acompanhamento desta paciente pela MARI Diagnóstica foi concluído com o
+            O acompanhamento desta paciente pela MARI foi concluído com o
             registro do parto. Toda a história clínica, laudos e perfis glicêmicos permanecem
             disponíveis para consulta nesta ficha.
           </p>

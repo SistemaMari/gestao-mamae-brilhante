@@ -95,7 +95,7 @@ export default function LaudoCompleto({
 
         {/* Rodapé legal — só impresso */}
         <p className="print-only mt-4 text-center text-[10px] text-muted-foreground">
-          Gerado por Dra. Mari DMG Diagnóstica — {dataLaudo.toLocaleDateString('pt-BR')} — Este documento não substitui a avaliação médica.
+          Gerado por MARI — {dataLaudo.toLocaleDateString('pt-BR')} — Este documento não substitui a avaliação médica.
         </p>
       </div>
     </article>

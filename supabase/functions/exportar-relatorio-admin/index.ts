@@ -401,7 +401,7 @@ async function gerarPdf(
   };
 
   // Capa
-  drawTitle("Relatório Administrativo — MARI DMG Diagnóstica");
+  drawTitle("Relatório Administrativo — MARI");
   drawText(`Gerado em ${new Date().toISOString().slice(0, 19).replace("T", " ")} UTC`, {
     size: 9,
   });
@@ -475,7 +475,7 @@ async function gerarPdf(
   // Rodapé na última página
   y = margin;
   page.drawText(
-    "Dados anonimizados — gerado pelo sistema MARI DMG Diagnóstica.",
+    "Dados anonimizados — gerado pelo sistema MARI.",
     { x: margin, y, size: 8, font: helv, color: rgb(0.45, 0.45, 0.5) },
   );
 

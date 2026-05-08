@@ -60,7 +60,7 @@ export function downloadLaudoPdf({ pacienteNome, cenario, geradoEm, conteudo }: 
     doc.setFontSize(8);
     doc.setTextColor(150);
     doc.text(
-      `Dra. Mari DMG Diagnóstica  •  Página ${p} de ${totalPages}`,
+      `MARI  •  Página ${p} de ${totalPages}`,
       marginX,
       pageHeight - 24,
     );

@@ -280,7 +280,7 @@ async function gerarPdfRelatorio(params: {
 
   // Cabeçalho
   page.drawRectangle({ x: 0, y: y - 10, width, height: 60, color: cLilas });
-  page.drawText('Dra. Mari DMG Diagnóstica', {
+  page.drawText('MARI', {
     x: 40, y: y + 25, size: 18, font: helvBold, color: rgb(1, 1, 1),
   });
   page.drawText('Relatório Mensal de Gestão (gerado automaticamente)', {
