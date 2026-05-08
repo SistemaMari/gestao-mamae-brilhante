@@ -58,6 +58,13 @@ export default function GestaoEquipePage() {
   const [distribuicao, setDistribuicao] = useState<PainelOperacao['distribuicao_profissionais']>([]);
   const [atividades, setAtividades] = useState<AtividadeItem[]>([]);
 
+  // Cards de resumo
+  const [totalAtivos, setTotalAtivos] = useState<number | null>(null);
+  const [totalPendentes, setTotalPendentes] = useState<number | null>(null);
+  const [totalExpirados, setTotalExpirados] = useState<number | null>(null);
+  const [totalLaudos, setTotalLaudos] = useState<number | null>(null);
+  const [errosCards, setErrosCards] = useState({ ativos: false, pendentes: false, expirados: false, laudos: false });
+
   const fetchEquipe = async () => {
     if (!user) return;
     setLoading(true);
