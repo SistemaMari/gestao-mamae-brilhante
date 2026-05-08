@@ -264,73 +264,30 @@ export default function FichasUnidadePage() {
     toast.success('Arquivo CSV gerado.');
   };
 
-  const exportPDF = () => {
+  const [gerandoExcel, setGerandoExcel] = useState(false);
+
+  const exportExcel = async () => {
     if (isVitrine) {
-      toast.info('Exportar PDF disponível no ambiente real.');
+      toast.info('Exportar Excel disponível no ambiente real.');
       return;
     }
-    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 36;
-    let y = margin;
-
-    doc.setFontSize(14);
-    doc.text('Fichas da unidade', margin, y);
-    y += 18;
-    doc.setFontSize(10);
-    doc.text(`Unidade: ${unidadeNome || '—'}`, margin, y); y += 14;
-    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, margin, y); y += 14;
-    if (gestorNome) { doc.text(`Gestor: ${gestorNome}`, margin, y); y += 14; }
-    y += 8;
-
-    const colWs = [120, 60, 90, 100, 70, 70];
-    const headers = ['Paciente', 'IG', 'Status', 'Profissional', 'Últ.', 'Próx.'];
-    const drawHeader = () => {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      let x = margin;
-      headers.forEach((h, i) => { doc.text(h, x + 2, y); x += colWs[i]; });
-      y += 12;
-      doc.setLineWidth(0.5);
-      doc.line(margin, y - 4, margin + colWs.reduce((a, b) => a + b, 0), y - 4);
-      doc.setFont('helvetica', 'normal');
-    };
-    drawHeader();
-
-    filtradas.forEach(f => {
-      if (y > pageH - margin - 30) {
-        doc.addPage();
-        y = margin;
-        drawHeader();
-      }
-      const row = [
-        f.nome,
-        calcIdadeGestacional(f),
-        STATUS_CONFIG[f.status_ficha]?.label || f.status_ficha,
-        f.profissional_nome,
-        fmtBR(f.data_ultima_consulta),
-        fmtBR(f.data_proximo_retorno),
-      ];
-      let x = margin;
-      row.forEach((cell, i) => {
-        const text = doc.splitTextToSize(String(cell), colWs[i] - 4);
-        doc.text(text, x + 2, y);
-        x += colWs[i];
+    setGerandoExcel(true);
+    try {
+      await exportarFichasExcel({
+        fichas: filtradas,
+        unidadeNome,
+        gestorNome,
+        statusFiltro,
+        busca: buscaDebounced,
+        fileBase,
       });
-      y += 14;
-    });
-
-    // rodapé "Página X de Y"
-    const total = doc.getNumberOfPages();
-    for (let p = 1; p <= total; p++) {
-      doc.setPage(p);
-      doc.setFontSize(8);
-      doc.text(`Página ${p} de ${total}`, pageW - margin, pageH - margin / 2, { align: 'right' });
+      toast.success('Arquivo Excel gerado.');
+    } catch (err) {
+      console.error('[exportarFichasExcel] erro:', err);
+      toast.error('Não foi possível gerar o Excel. Tente novamente.');
+    } finally {
+      setGerandoExcel(false);
     }
-
-    doc.save(`${fileBase}.pdf`);
-    toast.success('Relatório PDF gerado.');
   };
 
   return (
