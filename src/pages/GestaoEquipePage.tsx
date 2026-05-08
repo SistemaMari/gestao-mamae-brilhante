@@ -128,6 +128,43 @@ export default function GestaoEquipePage() {
 
     setMembros([...ativos, ...conviteMembros]);
 
+    // Card 1: profissionais ativos (inclui self)
+    try {
+      setTotalAtivos(profissionais.length);
+    } catch (e) {
+      console.error('[card ativos]', e);
+      setErrosCards(prev => ({ ...prev, ativos: true }));
+    }
+
+    // Cards 2 e 3: convites pendentes/expirados (a partir dos convites já buscados)
+    try {
+      const agora = new Date();
+      const pendentes = (convites || []).filter(
+        c => c.status === 'pendente' && new Date(c.expires_at) > agora
+      ).length;
+      const expirados = (convites || []).filter(
+        c => c.status === 'pendente' && new Date(c.expires_at) <= agora
+      ).length;
+      setTotalPendentes(pendentes);
+      setTotalExpirados(expirados);
+    } catch (e) {
+      console.error('[cards convites]', e);
+      setErrosCards(prev => ({ ...prev, pendentes: true, expirados: true }));
+    }
+
+    // Card 4: laudos da equipe (JOIN via paciente respeita RLS)
+    try {
+      const { count, error } = await supabase
+        .from('laudos')
+        .select('id, pacientes!inner(unidade_id)', { count: 'exact', head: true })
+        .eq('pacientes.unidade_id', prof.unidade_id);
+      if (error) throw error;
+      setTotalLaudos(count ?? 0);
+    } catch (e) {
+      console.error('[card laudos]', e);
+      setErrosCards(prev => ({ ...prev, laudos: true }));
+    }
+
     // Distribuição (RPC do painel)
     const opRes = await supabase.rpc('get_painel_operacao', { p_unidade_id: prof.unidade_id });
     if (!opRes.error && opRes.data) {
