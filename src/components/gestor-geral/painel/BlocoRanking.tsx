@@ -56,10 +56,10 @@ const STATUS_MAP: Record<
 };
 
 const STATUS_ORDER: Record<string, number> = {
-  inativa: 0,
-  atencao: 1,
-  ativa: 2,
-  nao_iniciada: 3,
+  nao_iniciada: 0,
+  inativa: 1,
+  atencao: 2,
+  ativa: 3,
 };
 
 export default function BlocoRanking({ data, isLoading, isError, onRetry }: Props) {
