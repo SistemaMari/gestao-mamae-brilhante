@@ -298,18 +298,15 @@ export default function ConfiguracoesPage() {
     return '—';
   })();
 
-  // Cronograma de relatórios — 3 meses anteriores + mês corrente (próximo).
-  // Borda do dia 1: se hoje for dia 1, "próximo" = dia 1 do mês corrente (a geração ainda ocorre/ocorreu hoje).
-  const cronograma = useMemo(() => {
+  // Card 3 — duas linhas: mês anterior (com status real) + próximo (cronograma puro).
+  // Borda do dia 1: se hoje for dia 1, "próximo" = dia 1 do mês corrente.
+  const { labelMesAnterior, labelProximo } = useMemo(() => {
     const hoje = new Date();
     const base = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    return [-3, -2, -1, 0].map((off) => {
-      const d = new Date(base.getFullYear(), base.getMonth() + off, 1);
-      return {
-        label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }),
-        proximo: off === 0,
-      };
-    });
+    const ant = new Date(base.getFullYear(), base.getMonth() - 1, 1);
+    const fmt = (d: Date) =>
+      d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    return { labelMesAnterior: fmt(ant), labelProximo: fmt(base) };
   }, []);
 
   return (
