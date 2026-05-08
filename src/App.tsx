@@ -31,6 +31,7 @@ import AppShellGestor from "@/components/gestor/AppShellGestor";
 import AppShellGestorGeral from "@/components/gestor-geral/AppShellGestorGeral";
 import StubEmConstrucao from "@/components/StubEmConstrucao";
 import FichasUnidadePage from "./pages/gestao/FichasUnidadePage";
+import ConfiguracoesPage from "./pages/gestao/ConfiguracoesPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import PacientePage from "./pages/PacientePage";
 import MeusCursosPage from "./pages/MeusCursosPage";
@@ -77,7 +78,7 @@ const App = () => (
               <Route path="/vitrine/gestao/equipe" element={<PreviewGestaoEquipePage />} />
               <Route path="/vitrine/gestao/fichas" element={<FichasUnidadePage />} />
               <Route path="/vitrine/gestao/fichas/:id" element={<PacientePage />} />
-              <Route path="/vitrine/gestao/configuracoes" element={<StubEmConstrucao titulo="Configurações" />} />
+              <Route path="/vitrine/gestao/configuracoes" element={<ConfiguracoesPage />} />
             </Route>
             <Route element={<AppShellGestorGeral />}>
               <Route path="/vitrine/consolidar" element={<ConsolidarPage />} />
@@ -166,7 +167,7 @@ const App = () => (
               <Route path="/gestao/equipe" element={<GestaoEquipePage />} />
               <Route path="/gestao/fichas" element={<FichasUnidadePage />} />
               <Route path="/gestao/fichas/:id" element={<PacientePage />} />
-              <Route path="/gestao/configuracoes" element={<StubEmConstrucao titulo="Configurações" />} />
+              <Route path="/gestao/configuracoes" element={<ConfiguracoesPage />} />
             </Route>
             {/* Painel Administrativo (Prompt 22) */}
             <Route element={<ProtectedRoute allowedProfiles={['admin']}><AdminLayout /></ProtectedRoute>}>
