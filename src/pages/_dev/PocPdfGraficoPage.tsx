@@ -203,21 +203,10 @@ export default function PocPdfGraficoPage() {
 
         {pdfUrl && (
           <section className="rounded-xl border bg-white p-5">
-            <h3
-              style={{ fontFamily: 'Sora, sans-serif' }}
-              className="mb-3 text-lg font-semibold"
-            >
-              PDF gerado (preview inline)
-            </h3>
-            <iframe
-              src={pdfUrl}
-              title="poc-pdf"
-              style={{ width: '100%', height: 900, border: '1px solid #E2E8F0' }}
-            />
             <a
               href={pdfUrl}
               download="poc-pdf-grafico.pdf"
-              className="mt-2 inline-block text-sm text-[#7C4DBA] underline"
+              className="text-sm text-[#7C4DBA] underline"
             >
               Baixar PDF
             </a>
