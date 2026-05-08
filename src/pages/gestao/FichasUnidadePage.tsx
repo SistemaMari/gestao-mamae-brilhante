@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { STATUS_CONFIG, calcIdadeGestacional } from '@/lib/fichaUtils';
 import { slugify } from '@/lib/slugify';
 import { exportarFichasExcel } from '@/lib/exportarFichasExcel';
+import { formatDateISO, formatDateBR } from '@/lib/dateUtils';
 
 const STATUS_CHIP_KEYS = [
   'aguardando_gj',
