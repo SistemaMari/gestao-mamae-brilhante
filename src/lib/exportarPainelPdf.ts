@@ -2,6 +2,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { createRoot, type Root } from 'react-dom/client';
 import { createElement } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { gerarResumoExecutivo } from './gerarResumoExecutivo';
 import { slugify } from './slugify';
