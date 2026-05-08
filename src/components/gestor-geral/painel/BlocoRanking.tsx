@@ -100,27 +100,27 @@ export default function BlocoRanking({ data, isLoading, isError, onRetry }: Prop
     }
   };
 
-  const Header = ({ k, label, align }: { k: SortKey; label: string; align?: "right" }) => (
+  const Header = ({ k, label, align, tooltip }: { k: SortKey; label: string; align?: "right"; tooltip?: string }) => (
     <TableHead className={align === "right" ? "text-right" : undefined}>
-      <button
-        type="button"
-        onClick={() => onSort(k)}
-        className={cn(
-          "inline-flex items-center gap-1 hover:text-[#7E69AB] transition-colors",
-          align === "right" && "ml-auto",
-        )}
-      >
-        {label}
-        {sortKey === k ? (
-          sortDir === "asc" ? (
-            <ArrowUp className="h-3 w-3" />
+      <span className={cn("inline-flex items-center gap-1", align === "right" && "ml-auto")}>
+        <button
+          type="button"
+          onClick={() => onSort(k)}
+          className="inline-flex items-center gap-1 hover:text-[#7E69AB] transition-colors"
+        >
+          {label}
+          {sortKey === k ? (
+            sortDir === "asc" ? (
+              <ArrowUp className="h-3 w-3" />
+            ) : (
+              <ArrowDown className="h-3 w-3" />
+            )
           ) : (
-            <ArrowDown className="h-3 w-3" />
-          )
-        ) : (
-          <ArrowUpDown className="h-3 w-3 opacity-40" />
-        )}
-      </button>
+            <ArrowUpDown className="h-3 w-3 opacity-40" />
+          )}
+        </button>
+        {tooltip && <TooltipInfo text={tooltip} />}
+      </span>
     </TableHead>
   );
 
