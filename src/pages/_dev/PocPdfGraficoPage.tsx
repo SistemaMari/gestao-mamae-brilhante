@@ -19,6 +19,7 @@ export default function PocPdfGraficoPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<string>('idle');
   const [tempoMs, setTempoMs] = useState<number | null>(null);
+  const [metricas, setMetricas] = useState<{ pdfKb: number; canvasKb: number } | null>(null);
   const [fontsCarregadas, setFontsCarregadas] = useState<{
     sora: boolean;
     jakarta: boolean;
@@ -81,10 +82,15 @@ export default function PocPdfGraficoPage() {
     const url = URL.createObjectURL(blob);
     setPdfUrl(url);
 
-    // Expor PDF + canvas como base64 em textareas para extração via tooling
-    const pdfB64 = pdf.output('datauristring');
-    (window as unknown as { __pocPdfB64: string }).__pocPdfB64 = pdfB64;
-    (window as unknown as { __pocCanvasB64: string }).__pocCanvasB64 = dataUrl;
+    // Expor base64 num data-attr de um span para captura via extract/screenshot
+    const pdfB64 = pdf.output('datauristring').replace(/^data:.*?;base64,/, '');
+    const w = window as unknown as Record<string, unknown>;
+    w.__pocPdfB64 = pdfB64;
+    w.__pocCanvasB64 = dataUrl;
+    // tamanho em KB
+    const pdfKb = Math.round((pdfB64.length * 3) / 4 / 1024);
+    const canvasKb = Math.round(dataUrl.length / 1024);
+    setMetricas({ pdfKb, canvasKb });
 
     const t1 = performance.now();
     setTempoMs(Math.round(t1 - t0));
