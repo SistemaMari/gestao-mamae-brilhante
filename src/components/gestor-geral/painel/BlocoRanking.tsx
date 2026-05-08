@@ -165,12 +165,12 @@ export default function BlocoRanking({ data, isLoading, isError, onRetry }: Prop
           <TableHeader>
             <TableRow className="bg-[#F8FAFC]">
               <Header k="unidade_nome" label="Unidade" />
-              <Header k="pacientes_ativos" label="Pacientes" />
-              <Header k="laudos_emitidos" label="Laudos" />
-              <Header k="taxa_dmg_positivo_pct" label="Taxa DMG+" />
-              <Header k="tempo_medio_fechamento_dias" label="Tempo médio" />
-              <Header k="ultima_atividade" label="Última atividade" />
-              <Header k="status_operacional" label="Status" />
+              <Header k="pacientes_ativos" label="Pacientes" tooltip="Gestantes com DUM nos últimos 280 dias." />
+              <Header k="laudos_emitidos" label="Laudos" tooltip="Laudos gerados no período selecionado." />
+              <Header k="taxa_dmg_positivo_pct" label="Taxa DMG+" tooltip="Percentual de laudos do período com diagnóstico positivo de DMG." />
+              <Header k="tempo_medio_fechamento_dias" label="Tempo médio" tooltip="Dias médios entre DUM e parto registrado no período. '—' quando não há partos elegíveis." />
+              <Header k="ultima_atividade" label="Última atividade" tooltip="Último registro (paciente, laudo, exame ou atendimento) na unidade." />
+              <Header k="status_operacional" label="Status" tooltip="Ativa: registro nos últimos 30d. Atenção: 30-60d. Inativa: >60d. Não iniciada: sem registros." />
             </TableRow>
           </TableHeader>
           <TableBody>
