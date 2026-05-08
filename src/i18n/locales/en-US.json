@@ -65,7 +65,7 @@
     "admins": "Administrators"
   },
   "onboarding": {
-    "welcome": "Welcome to MARI DMG",
+    "welcome": "Welcome to MARI",
     "question": "How will you be using the platform?",
     "autonomousTitle": "Private practice",
     "autonomousDesc": "I'm a physician in private practice, seeing patients on my own.",
@@ -84,7 +84,7 @@
     "profileCreatedDesc": "Now complete your professional details."
   },
   "auth": {
-    "appName": "MARI DMG Diagnostics",
+    "appName": "MARI",
     "appTagline": "Clinical decision support system",
     "loginTitle": "Sign in",
     "loginSubtitle": "Access your account",

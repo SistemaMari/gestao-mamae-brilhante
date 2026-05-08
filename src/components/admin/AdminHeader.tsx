@@ -30,7 +30,7 @@ export function AdminHeader({ nomeAdmin }: AdminHeaderProps) {
             className="font-semibold text-[#1E293B] truncate"
             style={{ fontFamily: "Sora, sans-serif" }}
           >
-            <span className="hidden md:inline">Painel Administrativo — Dra. Mari DMG Diagnóstica</span>
+            <span className="hidden md:inline">Painel Administrativo — MARI</span>
             <span className="md:hidden">Painel Admin</span>
           </h1>
         </div>

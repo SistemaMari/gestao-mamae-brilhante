@@ -17,7 +17,7 @@ export default function LaudoCabecalho({ paciente, igSemanas, igDias, dataLaudo 
           Laudo
         </p>
         <h2 className="font-heading text-base font-bold text-[#5B21B6]">
-          Dra. Mari DMG Diagnóstica
+          MARI
         </h2>
       </div>
 

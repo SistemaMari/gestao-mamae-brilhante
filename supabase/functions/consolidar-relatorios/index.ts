@@ -79,7 +79,7 @@ function somar(unidades: Array<{ metricas: Metricas }>): Metricas {
 // ============================================================
 // Prompt de sistema para a IA
 // ============================================================
-const SYSTEM_PROMPT = `Você é um analista de dados epidemiológicos do sistema Dra. Mari DMG Diagnóstica.
+const SYSTEM_PROMPT = `Você é um analista de dados epidemiológicos do sistema MARI.
 Você recebe dados agregados de múltiplas unidades de saúde e gera um relatório consolidado em JSON.
 
 ESTRUTURA OBRIGATÓRIA DA RESPOSTA (JSON puro, sem markdown):
@@ -223,7 +223,7 @@ async function gerarPdfConsolidado(params: {
   let { width, height } = page.getSize();
   page.drawRectangle({ x: 0, y: height - 150, width, height: 150, color: cLilas });
   page.drawText('Relatório Consolidado', { x: 40, y: height - 70, size: 24, font: helvBold, color: rgb(1,1,1) });
-  page.drawText('Dra. Mari DMG Diagnóstica', { x: 40, y: height - 100, size: 14, font: helv, color: rgb(1,1,1) });
+  page.drawText('MARI', { x: 40, y: height - 100, size: 14, font: helv, color: rgb(1,1,1) });
   page.drawText(`Análise comparativa entre unidades`, { x: 40, y: height - 125, size: 11, font: helv, color: rgb(1,1,1) });
 
   let y = height - 200;
@@ -322,7 +322,7 @@ async function gerarPdfConsolidado(params: {
 
   // ----- RODAPÉ na última página -----
   page.drawLine({ start: { x: 40, y: 50 }, end: { x: width - 40, y: 50 }, thickness: 0.5, color: cMuted });
-  page.drawText('Gerado automaticamente pelo sistema Dra. Mari DMG Diagnóstica. Dados anonimizados.', {
+  page.drawText('Gerado automaticamente pelo sistema MARI. Dados anonimizados.', {
     x: 40, y: 35, size: 8, font: helv, color: cMuted,
   });
 

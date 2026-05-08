@@ -396,7 +396,7 @@ export default function ConsolidarPage() {
             <span>Gestor Geral</span>
           </div>
           <h1 className="font-heading text-2xl font-bold text-foreground">
-            Consolidação de Relatórios — Dra. Mari DMG Diagnóstica
+            Consolidação de Relatórios — MARI
           </h1>
 
           {/* Card boas-vindas */}

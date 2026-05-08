@@ -65,7 +65,7 @@
     "admins": "Administradores"
   },
   "onboarding": {
-    "welcome": "Bem-vinda(o) à MARI DMG",
+    "welcome": "Bem-vinda(o) à MARI",
     "question": "Como você vai usar a plataforma?",
     "autonomousTitle": "Profissional autônomo",
     "autonomousDesc": "Sou médico(a) em consultório próprio, atendendo de forma individual.",
@@ -84,7 +84,7 @@
     "profileCreatedDesc": "Complete seus dados profissionais agora."
   },
   "auth": {
-    "appName": "MARI DMG Diagnóstica",
+    "appName": "MARI",
     "appTagline": "Sistema de apoio à decisão clínica",
     "loginTitle": "Entrar",
     "loginSubtitle": "Acesse sua conta",

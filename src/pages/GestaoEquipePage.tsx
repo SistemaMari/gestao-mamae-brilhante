@@ -267,7 +267,7 @@ export default function GestaoEquipePage() {
   const STATUS_MENSAGENS: Record<string, string> = {
     ja_vinculado: 'Este profissional já faz parte da unidade.',
     email_em_uso_admin:
-      'Este e-mail está cadastrado como administrador da Mari DMG Diagnóstica. Cada e-mail só pode ter um perfil — peça à pessoa que use outro e-mail.',
+      'Este e-mail está cadastrado como administrador da MARI. Cada e-mail só pode ter um perfil — peça à pessoa que use outro e-mail.',
     email_em_uso_gestor_unidade:
       'Este e-mail está cadastrado como gestor de outra unidade. Cada e-mail só pode ter um perfil — peça à pessoa que use outro e-mail.',
     email_em_uso_gestor_geral:
@@ -594,7 +594,7 @@ export default function GestaoEquipePage() {
             >
               <Info className="h-4 w-4 shrink-0 mt-0.5" style={{ color: '#7C4DBA' }} />
               <span>
-                Cada e-mail só pode ter um perfil no sistema. Se a pessoa já usa a Mari DMG
+                Cada e-mail só pode ter um perfil no sistema. Se a pessoa já usa a MARI
                 Diagnóstica como administrador, gestor de outra unidade ou gestor geral, ela
                 precisará usar um e-mail diferente. Se ela já tem uma conta no modelo consultório
                 (sem unidade vinculada), o sistema oferecerá a opção de vincular a conta existente
