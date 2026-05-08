@@ -51,6 +51,7 @@ interface UnidadeSpec {
   nome: string;
   criadaDiasAtras: number;
   status: "ativa" | "atencao" | "inativa" | "nao_iniciada";
+  gestor?: { email: string; nome: string; crm: string };
   profissionais: { email: string; nome: string; crm: string }[];
   pacientes: number;
   laudos: number;
