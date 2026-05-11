@@ -52,7 +52,7 @@ export function downloadLaudoPdf({ pacienteNome, medicoNome, medicoCrm, geradoEm
   doc.setFontSize(11);
   const lines = doc.splitTextToSize(conteudo || '(laudo vazio)', usableWidth);
 
-  let y = marginTop + 62;
+  let y = bodyStartY;
   const lineHeight = 14;
   for (const line of lines) {
     if (y > pageHeight - marginBottom) {
