@@ -307,7 +307,46 @@ export default function FichaPacientePage() {
     return [];
   }, [consultas]);
 
-  const _canShowRetorno1 = paciente?.status_ficha === 'aguardando_gj' && !!primeiraConsulta && !showRetorno1 && !retorno1Completed;
+  // === IA: Blocos 2 e 3 (Justificativa + Conduta) ===
+  const laudoIA = useLaudoIA({ isPreview });
+
+  // Reset estado IA ao trocar de paciente
+  useEffect(() => {
+    laudoIA.resetar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // Carrega laudos persistidos para as consultas existentes (real mode)
+  useEffect(() => {
+    if (isPreview || !id || consultas.length === 0) return;
+    const consultaIds = consultas.map((c) => c.id);
+    void laudoIA.carregarLaudosExistentes(id, consultaIds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isPreview, consultas]);
+
+  // Auto-trigger geração para cenários elegíveis sem laudo ainda.
+  // Ficha A/C inadequado (cenário 3) só dispara após confirmação do peso.
+  useEffect(() => {
+    if (!paciente?.id) return;
+    for (const c of consultas) {
+      const cenario = mapearCenario({
+        tipo: c.tipo,
+        status_gerado: c.status_gerado,
+        decisao: (c as any).decisao,
+        percentual_meta: (c as any).percentual_meta,
+      });
+      const isInadequadoAC =
+        (c.tipo === 'ficha_a' || c.tipo === 'ficha_c') && ((c as any).percentual_meta ?? 0) < 70;
+      if (isInadequadoAC) {
+        const peso = (c as any).peso_kg;
+        if (peso == null || peso <= 0) continue; // aguarda confirmação de peso
+      }
+      laudoIA.garantirLaudo(paciente.id, c.id, cenario);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paciente?.id, consultas]);
+
+
   // Only show form while actively filling — not after completion
   const canShowRetorno1Form = showRetorno1 && !!primeiraConsulta;
 
