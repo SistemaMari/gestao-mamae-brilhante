@@ -13,20 +13,20 @@ import { ShieldAlert } from 'lucide-react';
 interface BlockingModalProps {
   open: boolean;
   onClose: () => void;
-  tipo: 'pacientes' | 'laudos';
-  limite?: number;
+  /** Nome amigável do plano atual (ex.: "Inicial"). Opcional. */
+  planoNome?: string | null;
 }
 
-export default function BlockingModal({ open, onClose, tipo, limite }: BlockingModalProps) {
+/**
+ * Guardrail genérico de limite de plano.
+ * Texto único, neutro — não menciona pacientes nem números de cota.
+ * Disparado quando uma RPC de capacidade retorna false.
+ */
+export default function BlockingModal({ open, onClose, planoNome }: BlockingModalProps) {
   const navigate = useNavigate();
 
-  const titulo = tipo === 'pacientes'
-    ? 'Limite de pacientes atingido'
-    : 'Limite de laudos atingido';
-
-  const mensagem = tipo === 'pacientes'
-    ? 'Você atingiu o limite de 3 pacientes do plano Free. Faça upgrade para cadastrar mais pacientes.'
-    : `Você atingiu o limite de ${limite ?? 0} laudos do seu plano. Faça upgrade para continuar.`;
+  const planoLabel = planoNome ?? 'atual';
+  const mensagem = `Limite do seu plano ${planoLabel} atingido. Para continuar, faça upgrade do plano.`;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -35,7 +35,7 @@ export default function BlockingModal({ open, onClose, tipo, limite }: BlockingM
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-clinical-danger-bg">
             <ShieldAlert className="h-6 w-6 text-clinical-danger-icon" />
           </div>
-          <DialogTitle className="text-center font-heading">{titulo}</DialogTitle>
+          <DialogTitle className="text-center font-heading">Limite do plano atingido</DialogTitle>
           <DialogDescription className="text-center">
             {mensagem}
           </DialogDescription>

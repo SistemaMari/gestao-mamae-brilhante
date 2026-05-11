@@ -218,7 +218,6 @@ Deno.serve(async (req) => {
                 nome: item.nome,
                 perfil_institucional: perfilInst,
                 unidade_id: item.unidade_id ?? null,
-                plano: planoSlug,
                 plano_id: planoId,
               })
               .eq("id", existing.id);
@@ -228,7 +227,6 @@ Deno.serve(async (req) => {
               nome: item.nome,
               perfil_institucional: perfilInst,
               unidade_id: item.unidade_id ?? null,
-              plano: planoSlug,
               plano_id: planoId,
             });
           }
