@@ -223,7 +223,7 @@ Deno.serve(async (req) => {
     nome: "Dra. Institucional Dois",
     crm: "CRM-SP 444444",
     especialidade: "Endocrinologia",
-    plano: "inicial",
+    plano: "free",
     plano_id: "6df9eecf-82f1-44e5-9637-5f62052d02c8",
     plano_status: "ativo",
     laudos_limite: 100,
