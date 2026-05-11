@@ -311,6 +311,7 @@ export default function FichaPacientePage() {
 
   // === IA: Blocos 2 e 3 (Justificativa + Conduta) ===
   const laudoIA = useLaudoIA({ isPreview });
+  const autoriaFicha = useAutoriaFicha(paciente?.id);
 
   // Reset estado IA ao trocar de paciente
   useEffect(() => {
