@@ -235,7 +235,7 @@ export default function AppShellClinico() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col print:block">
+    <div className="flex h-screen flex-col print:block print:h-auto">
       {/* Header */}
       <header className="sticky top-0 z-50 flex h-16 items-center border-b border-border bg-card px-4 print:hidden">
         {/* Mobile hamburger */}
