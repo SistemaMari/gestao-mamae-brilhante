@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) return jsonResp({ error: "LOVABLE_API_KEY não configurada" }, 500);
 
     // Body
-    const { paciente_id, consulta_id } = await req.json();
+    const { paciente_id, consulta_id, cenario_clinico: cenarioBody } = await req.json();
     if (!paciente_id || !consulta_id) return jsonResp({ error: "paciente_id e consulta_id obrigatórios" }, 400);
 
     const supabaseAdmin = createClient(
@@ -136,9 +136,14 @@ Deno.serve(async (req) => {
       return jsonResp({ error: "Limite de laudos atingido", laudos_limite: (quota as any).laudos_limite }, 402);
     }
 
-    // Normaliza cenário e ficha_tipo
-    const cenarioId = normalizarCenario(consultaAtual.cenario_clinico);
-    if (!cenarioId) return jsonResp({ error: "Cenário clínico inválido ou ausente", recebido: consultaAtual.cenario_clinico }, 400);
+    // Normaliza cenário e ficha_tipo — aceita do body como fallback
+    const cenarioId = normalizarCenario(consultaAtual.cenario_clinico) ?? normalizarCenario(cenarioBody);
+    if (!cenarioId) return jsonResp({ error: "Cenário clínico inválido ou ausente", recebido: consultaAtual.cenario_clinico ?? cenarioBody ?? null }, 400);
+
+    // Persiste o cenário na consulta caso veio só do body
+    if (!consultaAtual.cenario_clinico && cenarioId) {
+      await supabaseAdmin.from("consultas").update({ cenario_clinico: cenarioId }).eq("id", consulta_id);
+    }
 
     const fichaTipo = derivarFichaTipo(consultaAtual.tipo);
 
@@ -200,29 +205,50 @@ Deno.serve(async (req) => {
     };
 
     // Monta mensagem multimodal: texto + PDFs como image_url (Gemini aceita PDF assim no gateway)
-    const userContent: any[] = [
-      { type: "text", text: `Gere os Blocos 2 e 3 do laudo conforme suas regras. Dados clínicos:\n\n\`\`\`json\n${JSON.stringify(dadosClinicosPayload, null, 2)}\n\`\`\`` },
-    ];
-    for (const arq of arquivosBaixados) {
-      userContent.push({ type: "image_url", image_url: { url: arq.dataUrl } });
+    const textPart = { type: "text", text: `Gere os Blocos 2 e 3 do laudo conforme suas regras. Dados clínicos:\n\n\`\`\`json\n${JSON.stringify(dadosClinicosPayload, null, 2)}\n\`\`\`` };
+    const buildContent = (arquivos: Array<{ name: string; dataUrl: string }>) => {
+      const c: any[] = [textPart];
+      for (const arq of arquivos) c.push({ type: "image_url", image_url: { url: arq.dataUrl } });
+      return c;
+    };
+
+    const callAI = async (arquivos: Array<{ name: string; dataUrl: string }>) => {
+      return await fetch(AI_GATEWAY_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT_MARI_V52 },
+            { role: "user", content: buildContent(arquivos) },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      });
+    };
+
+    // 1ª tentativa: todos os arquivos
+    let aiResp = await callAI(arquivosBaixados);
+    let errText = "";
+
+    // Retry escalonado quando Gemini rejeita PDFs (ex: "document has no pages")
+    if (!aiResp.ok && aiResp.status >= 400 && aiResp.status < 500) {
+      errText = await aiResp.text();
+      const isPdfErr = /no pages|invalid.*document|INVALID_ARGUMENT/i.test(errText);
+      if (isPdfErr) {
+        // 2ª: só PROTOCOLO
+        const soProtocolo = arquivosBaixados.filter((a) => a.name === "PROTOCOLO_DMG_Brasil_2016.pdf");
+        aiResp = await callAI(soProtocolo);
+        if (!aiResp.ok) {
+          errText = await aiResp.text();
+          // 3ª: sem PDFs
+          aiResp = await callAI([]);
+        }
+      }
     }
 
-    // Chamada Lovable AI Gateway (não-streaming, queremos JSON completo)
-    const aiResp = await fetch(AI_GATEWAY_URL, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT_MARI_V52 },
-          { role: "user", content: userContent },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
-
     if (!aiResp.ok) {
-      const errText = await aiResp.text();
+      if (!errText) errText = await aiResp.text();
       await supabaseAdmin.from("laudos").update({ status: "erro", metadata: { ...laudo.metadata, erro: `AI ${aiResp.status}: ${errText.slice(0, 500)}` } }).eq("id", laudo.id);
       if (aiResp.status === 429) return jsonResp({ error: "Limite de requisições à IA excedido. Tente novamente em instantes." }, 429);
       if (aiResp.status === 402) return jsonResp({ error: "Créditos da IA esgotados. Adicione fundos em Settings → Workspace → Usage." }, 402);
