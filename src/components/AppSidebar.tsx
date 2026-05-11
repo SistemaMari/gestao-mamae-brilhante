@@ -2,7 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, FileText, Users, Settings, LogOut, ChevronLeft, ChevronRight,
-  Building2, BarChart3, ShieldCheck, UserPlus, Activity, BookOpen, GraduationCap
+  Building2, BarChart3, ShieldCheck, Activity, BookOpen, GraduationCap, Map, Download, Stethoscope
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -39,11 +39,11 @@ const navByProfile: Record<string, NavItem[]> = {
   ],
   admin: [
     { label: 'Painel', icon: ShieldCheck, path: '/admin' },
-    { label: 'Usuários', icon: Users, path: '/admin' },
-    { label: 'Unidades', icon: Building2, path: '/admin' },
-    { label: 'Convites', icon: UserPlus, path: '/admin' },
-    { label: 'Base de Conhecimento', icon: BookOpen, path: '/admin/base-conhecimento' },
-    { label: 'Monitoramento', icon: Activity, path: '/admin' },
+    { label: 'Diagnósticos', icon: Map, path: '/admin/diagnosticos' },
+    { label: 'Filtros e Exportação', icon: Download, path: '/admin/exportar' },
+    { label: 'Administradores', icon: Users, path: '/admin/admins' },
+    { label: 'Contas Institucionais', icon: Building2, path: '/admin/institucionais' },
+    { label: 'Contas Profissionais', icon: Stethoscope, path: '/admin/profissionais' },
   ],
 };
 
