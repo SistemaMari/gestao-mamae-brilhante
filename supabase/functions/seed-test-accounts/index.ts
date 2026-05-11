@@ -15,13 +15,14 @@ const SENHA_PADRAO = "Teste@2026";
 interface ContaSpec {
   email: string;
   nome: string;
-  perfil: "consultorio_pro" | "consultorio_free" | "institucional" | "gestor" | "gestor_geral" | "admin";
+  perfil: "consultorio_pro" | "consultorio_free" | "institucional" | "institucional2" | "gestor" | "gestor_geral" | "admin";
 }
 
 const CONTAS: ContaSpec[] = [
   { email: "consultorio@teste.dramari", nome: "Dra. Consultório Pro", perfil: "consultorio_pro" },
   { email: "consultorio.free@teste.dramari", nome: "Dra. Consultório Free", perfil: "consultorio_free" },
   { email: "institucional@teste.dramari", nome: "Dr. Institucional Teste", perfil: "institucional" },
+  { email: "institucional2@teste.dramari", nome: "Dra. Institucional Dois", perfil: "institucional2" },
   { email: "gestor@teste.dramari", nome: "Dr. Gestor Unidade", perfil: "gestor" },
   { email: "gestorgeral@teste.dramari", nome: "Dr. Gestor Geral", perfil: "gestor_geral" },
   { email: "admin@teste.dramari", nome: "Admin Teste", perfil: "admin" },
@@ -217,6 +218,22 @@ Deno.serve(async (req) => {
     perfil_institucional: "institucional",
   });
   log.push(`✓ Profissional Institucional: ${profInstId}`);
+
+  const profInst2Id = await upsertProf(ids.institucional2, {
+    nome: "Dra. Institucional Dois",
+    crm: "CRM-SP 444444",
+    especialidade: "Endocrinologia",
+    plano: "free",
+    plano_id: "6df9eecf-82f1-44e5-9637-5f62052d02c8",
+    plano_status: "ativo",
+    laudos_limite: 100,
+    laudos_usados: 0,
+    cidade: "São Paulo",
+    estado: "SP",
+    unidade_id: unidadeId,
+    perfil_institucional: "institucional",
+  });
+  log.push(`✓ Profissional Institucional 2: ${profInst2Id}`);
 
   const profGestorId = await upsertProf(ids.gestor, {
     nome: "Dr. Gestor Unidade",
