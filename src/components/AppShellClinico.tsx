@@ -297,11 +297,11 @@ export default function AppShellClinico() {
 
       {/* Banners globais */}
       <BannerStatusPlano />
-      <BannerUsoLaudos />
+      {perfilSidebar !== 'institucional' && <BannerUsoLaudos />}
 
-      <div className="flex flex-1 overflow-hidden print:block print:overflow-visible print:h-auto">
+      <div className="flex flex-1 min-h-0 overflow-hidden print:block print:overflow-visible print:h-auto print:min-h-0">
         {/* Desktop sidebar */}
-        <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-border bg-card print:hidden sticky top-16 self-start h-[calc(100vh-4rem)] overflow-hidden">
+        <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-border bg-card print:hidden h-full overflow-hidden">
           <SidebarContent />
         </aside>
 
