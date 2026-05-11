@@ -136,9 +136,14 @@ Deno.serve(async (req) => {
       return jsonResp({ error: "Limite de laudos atingido", laudos_limite: (quota as any).laudos_limite }, 402);
     }
 
-    // Normaliza cenário e ficha_tipo
-    const cenarioId = normalizarCenario(consultaAtual.cenario_clinico);
-    if (!cenarioId) return jsonResp({ error: "Cenário clínico inválido ou ausente", recebido: consultaAtual.cenario_clinico }, 400);
+    // Normaliza cenário e ficha_tipo — aceita do body como fallback
+    const cenarioId = normalizarCenario(consultaAtual.cenario_clinico) ?? normalizarCenario(cenarioBody);
+    if (!cenarioId) return jsonResp({ error: "Cenário clínico inválido ou ausente", recebido: consultaAtual.cenario_clinico ?? cenarioBody ?? null }, 400);
+
+    // Persiste o cenário na consulta caso veio só do body
+    if (!consultaAtual.cenario_clinico && cenarioId) {
+      await supabaseAdmin.from("consultas").update({ cenario_clinico: cenarioId }).eq("id", consulta_id);
+    }
 
     const fichaTipo = derivarFichaTipo(consultaAtual.tipo);
 
