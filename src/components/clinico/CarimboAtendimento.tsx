@@ -112,7 +112,7 @@ export default function CarimboAtendimento(props: Props) {
   if (props.registros) {
     return <ListaHistoricoMock registros={props.registros} />;
   }
-  return <ListaHistorico pacienteId={props.pacienteId!} ehInstitucional={props.forceVisible || ehInstitucional || profile === "admin" || profile === "gestor_geral"} />;
+  return <ListaHistorico pacienteId={props.pacienteId!} ehInstitucional={props.forceVisible || ehInstitucional || profile === "admin"} />;
 }
 
 function ListaHistoricoMock({ registros }: { registros: RegistroLista[] }) {
