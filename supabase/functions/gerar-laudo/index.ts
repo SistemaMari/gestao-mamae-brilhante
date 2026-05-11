@@ -265,14 +265,21 @@ Deno.serve(async (req) => {
     };
 
     // Monta mensagem multimodal: texto + PDFs como image_url (Gemini aceita PDF assim no gateway)
-    const textPart = { type: "text", text: `Gere os Blocos 2 e 3 do laudo conforme suas regras. Dados clínicos:\n\n\`\`\`json\n${JSON.stringify(dadosClinicosPayload, null, 2)}\n\`\`\`` };
-    const buildContent = (arquivos: Array<{ name: string; dataUrl: string }>) => {
-      const c: any[] = [textPart];
+    const buildTextPart = (modo: "json" | "texto") => ({
+      type: "text",
+      text: `${modo === "json"
+        ? "Gere os Blocos 2 e 3 do laudo conforme suas regras. Retorne APENAS um JSON válido com as chaves bloco_2_justificativa e bloco_3_conduta."
+        : "Gere os Blocos 2 e 3 do laudo conforme suas regras, mas NÃO use JSON. Responda em texto com os marcadores exatos: BLOCO_2: e BLOCO_3:."}
+
+Dados clínicos:\n\n\`\`\`json\n${JSON.stringify(dadosClinicosPayload, null, 2)}\n\`\`\``,
+    });
+    const buildContent = (arquivos: Array<{ name: string; dataUrl: string }>, modo: "json" | "texto") => {
+      const c: any[] = [buildTextPart(modo)];
       for (const arq of arquivos) c.push({ type: "image_url", image_url: { url: arq.dataUrl } });
       return c;
     };
 
-    const callAI = async (arquivos: Array<{ name: string; dataUrl: string }>) => {
+    const callAI = async (arquivos: Array<{ name: string; dataUrl: string }>, modo: "json" | "texto" = "json") => {
       return await fetch(AI_GATEWAY_URL, {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -280,9 +287,11 @@ Deno.serve(async (req) => {
           model: MODEL,
           messages: [
             { role: "system", content: SYSTEM_PROMPT_MARI_V52 },
-            { role: "user", content: buildContent(arquivos) },
+            { role: "user", content: buildContent(arquivos, modo) },
           ],
-          response_format: { type: "json_object" },
+          ...(modo === "json" ? { response_format: { type: "json_object" } } : {}),
+          max_tokens: 8192,
+          temperature: 0.2,
         }),
       });
     };
