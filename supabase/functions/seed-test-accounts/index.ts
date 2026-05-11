@@ -219,6 +219,21 @@ Deno.serve(async (req) => {
   });
   log.push(`✓ Profissional Institucional: ${profInstId}`);
 
+  const profInst2Id = await upsertProf(ids.institucional2, {
+    nome: "Dra. Institucional Dois",
+    crm: "CRM-SP 444444",
+    especialidade: "Endocrinologia",
+    plano: "pro",
+    plano_status: "ativo",
+    laudos_limite: 100,
+    laudos_usados: 0,
+    cidade: "São Paulo",
+    estado: "SP",
+    unidade_id: unidadeId,
+    perfil_institucional: "institucional",
+  });
+  log.push(`✓ Profissional Institucional 2: ${profInst2Id}`);
+
   const profGestorId = await upsertProf(ids.gestor, {
     nome: "Dr. Gestor Unidade",
     crm: "CRM-SP 333333",
