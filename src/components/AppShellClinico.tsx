@@ -214,7 +214,7 @@ export default function AppShellClinico() {
 
   const SidebarContent = () => (
     <>
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 min-h-0 overflow-y-auto space-y-1 px-3 py-4">
         {itensClinicos.map(renderNavButton)}
         {itensClinicos.length > 0 && (
           <div className="my-2 border-t" style={{ borderColor: '#E2E8F0' }} />
@@ -222,7 +222,7 @@ export default function AppShellClinico() {
         {itensRodape.map(renderNavButton)}
       </nav>
 
-      <div className="border-t border-border px-3 py-3">
+      <div className="shrink-0 border-t border-border px-3 py-3 bg-card">
         <button
           onClick={signOut}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
