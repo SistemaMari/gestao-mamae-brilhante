@@ -1,57 +1,58 @@
-## Único ajuste: destaque visual do valor da glicemia no Retorno 1
+## Reorganizar fluxo de "peso → dose → justificativa" na Ficha A/C inadequada
 
-Escopo reduzido — toca só no Retorno 1. Nada de Ficha A/B/C/D, GTT ou handoff backend.
+Escopo único: `src/components/FichaACResultCard.tsx`. Sem mexer em Ficha B/D, GTT, laudo ou backend.
 
-### Problema
+### Estado atual (screenshot)
 
-Em `/paciente/7d446b8e-...`, o card do Retorno 1 mostra "Sem dados de resultado." mesmo havendo glicemia plasmática 105 mg/dL no banco. Causa: `Retorno1ResultCard` extrai o valor com regex de `consulta.observacoes`, mas essa coluna está `NULL` na consulta. O valor real (`105`) está em `exames_glicemia.valor_mgdl` (`tipo_exame='plasmatica'`, `consulta_id` casa). Audit já confirmou: **zero** retornos 1 em produção dependem do regex em `observacoes` — `exames_glicemia` cobre 100%.
+1. Card "CONTROLE INADEQUADO" (amarelo)
+2. Card amarelo com input de peso + botão **"Confirmar peso e gerar laudo"** + preview inline pequeno da dose
+3. Após confirmar: linha pequena `Peso registrado: X kg — dose inicial de NPH: Y UI/dia`
+4. Mais abaixo na página: Justificativa clínica (laudo)
+
+A dose aparece em fonte pequena, sem destaque, e o botão promete "gerar laudo" mas o laudo já vem em sequência de qualquer jeito.
 
 ### Mudanças
 
-**1. `src/pages/FichaPacientePage.tsx`** — uma query extra após carregar consultas:
+**1. Renomear botão.** `Confirmar peso e gerar laudo` → `Confirmar peso`.
 
-```ts
-const consultaIds = (cons ?? []).map(c => c.id);
-const { data: exames } = consultaIds.length
-  ? await supabase
-      .from('exames_glicemia')
-      .select('consulta_id, valor_mgdl, tipo_exame, data_exame')
-      .in('consulta_id', consultaIds)
-  : { data: [] };
+**2. Substituir o resumo discreto pós-confirmação por um card de destaque.** Hoje (linhas 202-214) é uma linha de texto pequena. Vira um card grande logo abaixo do botão, com:
 
-const exameByConsulta = new Map(
-  (exames ?? []).map(e => [e.consulta_id, e])
-);
+- Título: `Dose inicial de insulina NPH`
+- Número grande (estilo `font-heading text-4xl font-bold`): `{doseTotal} UI/dia`
+- Linha de apoio com a distribuição: `{doseManha} UI manhã + {doseNoite} UI 22h`
+- Linha pequena com o peso registrado e a fórmula `(0,5 UI/kg/dia)`
+- Cor: paleta lilás/roxo do projeto (`#7E69AB` / `bg-primary/10 border-primary/30`) — destaque clínico sem usar laranja/amarelo (o card de alerta acima já é amarelo).
+
+**3. Remover o preview inline pequeno da dose (linhas 179-188).** Como agora vai existir o card de destaque grande **abaixo do botão**, mostrar a mesma informação duas vezes (uma em preview, outra em destaque) é ruído. Manter apenas o destaque grande, que aparece em ambos os estados:
+- Antes de salvar: usa `calcDoseTotal` calculado em runtime (preview ao vivo enquanto digita).
+- Depois de salvar: usa `doseTotal` persistido.
+
+Assim a dose já "salta aos olhos" enquanto a médica digita o peso, e segue visível depois.
+
+**4. Ordem final no card:**
+
+```text
+┌─ CONTROLE INADEQUADO — 0.0% ... (amarelo)
+├─ Conduta: iniciar insulina. Dose e orientações no laudo completo abaixo.
+│
+├─ Card amarelo: Controle glicêmico abaixo da meta
+│   ├─ Input: Peso atual (kg) ⓘ
+│   └─ Botão: [Confirmar peso]
+│
+└─ ★ Card destaque (lilás): Dose inicial de insulina NPH
+    ├─ {doseTotal} UI/dia  (grande)
+    ├─ {doseManha} UI manhã + {doseNoite} UI 22h
+    └─ Peso: {peso} kg • 0,5 UI/kg/dia
+
+(em seguida, fora deste card, vem a Justificativa clínica do laudo)
 ```
-
-No `.map` que monta as consultas, para `tipo === 'retorno_1'`, injetar:
-```ts
-retorno1_valor_gj: exameByConsulta.get(c.id)?.valor_mgdl ?? null,
-retorno1_tipo_exame: exameByConsulta.get(c.id)?.tipo_exame ?? null,
-retorno1_data_exame: exameByConsulta.get(c.id)?.data_exame ?? null,
-```
-(campos já existem em `PreviewConsulta`)
-
-**2. `src/components/Retorno1ResultCard.tsx`**:
-
-- Trocar `parseValorFromObs` por leitura direta de `consulta.retorno1_valor_gj`. Manter fallback do regex apenas como rede para preview/dados antigos (sem custo).
-- Acima do `<p>` da descrição, adicionar destaque visual:
-
-```tsx
-<p className={`mt-2 font-heading text-4xl font-bold leading-none ${resultado.cor}`}>
-  {valor}
-  <span className="ml-1 text-base font-medium opacity-80">mg/dL</span>
-</p>
-```
-
-Mantém ícone, label e texto explicativo já existentes. Cor herda do `resultado.cor` (verde `text-emerald-800` / laranja `text-orange-800` / vermelho `text-red-800`).
 
 ### Fora do escopo
 
-Ficha A/C, Ficha B/D, GTT, `gerar-laudo`, RLS, migrations, backend. Nada de handoff doc.
+`FichaBDResultCard`, `GttResultCard`, geração/conteúdo do laudo, `gerar-laudo`, regras de cálculo da dose (0,5 UI/kg/dia • 2/3 manhã • 1/3 noite — mantidas). Sem queries novas, sem migration.
 
 ### Entrega
 
-Após aplicar:
-- Build verificado.
-- Print do card do Retorno 1 (paciente atual, 105 mg/dL) com valor destacado em laranja.
+- Diff de `FichaACResultCard.tsx`.
+- Print do fluxo: (a) antes de digitar peso, (b) digitando peso 70 com destaque vivo, (c) após confirmar.
+- Confirmação de build.
