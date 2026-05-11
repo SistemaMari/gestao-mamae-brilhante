@@ -205,10 +205,6 @@ Deno.serve(async (req) => {
     };
 
     // Monta mensagem multimodal: texto + PDFs como image_url (Gemini aceita PDF assim no gateway)
-    const userContent: any[] = [
-      { type: "text", text: `Gere os Blocos 2 e 3 do laudo conforme suas regras. Dados clínicos:\n\n\`\`\`json\n${JSON.stringify(dadosClinicosPayload, null, 2)}\n\`\`\`` },
-    ];
-    // Monta mensagem multimodal: texto + PDFs como image_url (Gemini aceita PDF assim no gateway)
     const textPart = { type: "text", text: `Gere os Blocos 2 e 3 do laudo conforme suas regras. Dados clínicos:\n\n\`\`\`json\n${JSON.stringify(dadosClinicosPayload, null, 2)}\n\`\`\`` };
     const buildContent = (arquivos: Array<{ name: string; dataUrl: string }>) => {
       const c: any[] = [textPart];
