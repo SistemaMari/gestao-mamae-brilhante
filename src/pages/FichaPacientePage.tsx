@@ -346,7 +346,7 @@ export default function FichaPacientePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paciente?.id, consultas]);
 
-
+  const _canShowRetorno1 = paciente?.status_ficha === 'aguardando_gj' && !!primeiraConsulta && !showRetorno1 && !retorno1Completed;
   // Only show form while actively filling — not after completion
   const canShowRetorno1Form = showRetorno1 && !!primeiraConsulta;
 
