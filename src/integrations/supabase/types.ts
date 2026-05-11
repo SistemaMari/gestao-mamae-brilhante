@@ -1167,7 +1167,6 @@ export type Database = {
           perfil_clinico: string | null
           perfil_institucional: string | null
           periodo_renovacao: string | null
-          plano: string
           plano_expira_em: string | null
           plano_id: string
           plano_status: string
@@ -1202,7 +1201,6 @@ export type Database = {
           perfil_clinico?: string | null
           perfil_institucional?: string | null
           periodo_renovacao?: string | null
-          plano?: string
           plano_expira_em?: string | null
           plano_id: string
           plano_status?: string
@@ -1237,7 +1235,6 @@ export type Database = {
           perfil_clinico?: string | null
           perfil_institucional?: string | null
           periodo_renovacao?: string | null
-          plano?: string
           plano_expira_em?: string | null
           plano_id?: string
           plano_status?: string

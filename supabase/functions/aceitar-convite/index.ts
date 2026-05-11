@@ -82,7 +82,13 @@ Deno.serve(async (req) => {
       return json({ status: "erro", mensagem: "Erro ao criar conta." }, 500);
     }
 
-    // 4. Insert into profissionais
+    // 4. Insert into profissionais — plano_id é NOT NULL, usa Inicial como default institucional
+    const { data: planoInicial } = await supabaseAdmin
+      .from("planos")
+      .select("id, laudos_por_mes")
+      .eq("slug", "inicial")
+      .single();
+
     const { error: profError } = await supabaseAdmin.from("profissionais").insert({
       user_id: newUser.user.id,
       nome,
@@ -91,7 +97,8 @@ Deno.serve(async (req) => {
       idioma: idioma_preferido,
       unidade_id: convite.unidade_id,
       perfil_institucional: "profissional",
-      plano: "institucional",
+      plano_id: planoInicial?.id,
+      laudos_limite: planoInicial?.laudos_por_mes ?? 10,
       plano_status: "ativo",
     });
 

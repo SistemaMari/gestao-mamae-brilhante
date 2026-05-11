@@ -12,8 +12,8 @@ import {
 
 const DUMMY = {
   firstName: 'Mari',
-  planoLabel: 'Plano Inicial — 3/10 laudos',
-  plano: 'inicial',
+  planoLabel: 'Plano Inicial — 0/10 laudos',
+  planoSlug: 'inicial',
 };
 
 const navItemsClinical = [
@@ -68,7 +68,7 @@ export default function PreviewAppShell() {
       <span>{item.label}</span>
       {item.path === '/vitrine/planos' && (
         <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-accent-foreground">
-          {DUMMY.plano}
+          {DUMMY.planoSlug}
         </span>
       )}
     </button>
