@@ -235,9 +235,9 @@ export default function AppShellClinico() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col print:block">
+    <div className="flex h-screen flex-col print:block print:h-auto">
       {/* Header */}
-      <header className="sticky top-0 z-50 flex h-16 items-center border-b border-border bg-card px-4 print:hidden">
+      <header className="shrink-0 z-50 flex h-16 items-center border-b border-border bg-card px-4 print:hidden">
         {/* Mobile hamburger */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -297,11 +297,11 @@ export default function AppShellClinico() {
 
       {/* Banners globais */}
       <BannerStatusPlano />
-      <BannerUsoLaudos />
+      {perfilSidebar !== 'institucional' && <BannerUsoLaudos />}
 
-      <div className="flex flex-1 overflow-hidden print:block print:overflow-visible print:h-auto">
+      <div className="flex flex-1 min-h-0 overflow-hidden print:block print:overflow-visible print:h-auto print:min-h-0">
         {/* Desktop sidebar */}
-        <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-border bg-card print:hidden sticky top-16 self-start h-[calc(100vh-4rem)] overflow-hidden">
+        <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-border bg-card print:hidden h-full overflow-hidden">
           <SidebarContent />
         </aside>
 

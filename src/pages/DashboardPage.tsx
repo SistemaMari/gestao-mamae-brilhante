@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useProfissionalData } from '@/hooks/useProfissionalData';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import UsageWarningBanner from '@/components/UsageWarningBanner';
 import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
@@ -52,6 +53,8 @@ const PAGE_SIZE = 20;
 
 export default function DashboardPage() {
   const { profissionalData, loading: profLoading } = useProfissionalData();
+  const { profile } = useAuth();
+  const ehInstitucional = profile === 'institucional';
   const navigate = useNavigate();
   const location = useLocation();
   const isPreview = location.pathname.startsWith('/vitrine');
@@ -162,7 +165,7 @@ export default function DashboardPage() {
   return (
     <div>
       {/* Usage warning banner */}
-      {profissionalData && (
+      {profissionalData && !ehInstitucional && (
         <UsageWarningBanner
           laudosUsados={profissionalData.laudos_usados}
           laudosLimite={profissionalData.laudos_limite}
@@ -172,7 +175,7 @@ export default function DashboardPage() {
       <div>
 
         {/* Plan usage bar */}
-        {(profissionalData || isPreview) && (
+        {(profissionalData || isPreview) && !ehInstitucional && (
           <div className="mb-6 rounded-xl border border-border bg-card p-4">
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm font-medium text-foreground">
