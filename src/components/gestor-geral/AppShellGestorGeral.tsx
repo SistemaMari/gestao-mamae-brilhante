@@ -67,7 +67,7 @@ function GestorGeralSidebar({
         ["--sidebar-accent-foreground" as string]: "260 25% 54%",
       }}
     >
-      <SidebarContent className="bg-white border-r border-[#E2E8F0] flex flex-col">
+      <SidebarContent className="bg-white border-r border-[#E2E8F0] flex flex-col overflow-hidden">
         <div className="border-b border-[#E2E8F0] p-4">
           <div className="flex items-center gap-3">
             <div
