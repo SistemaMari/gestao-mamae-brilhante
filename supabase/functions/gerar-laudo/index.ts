@@ -82,6 +82,66 @@ async function bucketFileToDataUrl(supabaseAdmin: any, path: string): Promise<{ 
   }
 }
 
+function extrairObjetoJson(texto: string): string | null {
+  const limpo = texto.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
+  const inicio = limpo.indexOf("{");
+  if (inicio < 0) return null;
+
+  let profundidade = 0;
+  let emString = false;
+  let escape = false;
+
+  for (let i = inicio; i < limpo.length; i++) {
+    const ch = limpo[i];
+    if (emString) {
+      if (escape) escape = false;
+      else if (ch === "\\") escape = true;
+      else if (ch === '"') emString = false;
+      continue;
+    }
+    if (ch === '"') emString = true;
+    else if (ch === "{") profundidade++;
+    else if (ch === "}") {
+      profundidade--;
+      if (profundidade === 0) return limpo.slice(inicio, i + 1);
+    }
+  }
+  return null;
+}
+
+function parseLaudoJson(texto: string): any | null {
+  const candidato = extrairObjetoJson(texto);
+  if (!candidato) return null;
+
+  const tentativas = [
+    candidato,
+    candidato.replace(/,\s*([}\]])/g, "$1"),
+  ];
+
+  for (const tentativa of tentativas) {
+    try {
+      return JSON.parse(tentativa);
+    } catch {
+      // tenta a próxima variação
+    }
+  }
+  return null;
+}
+
+function laudoTemBlocosValidos(parsed: any) {
+  return typeof parsed?.bloco_2_justificativa === "string" &&
+    parsed.bloco_2_justificativa.trim().length > 30 &&
+    typeof parsed?.bloco_3_conduta === "string" &&
+    parsed.bloco_3_conduta.trim().length > 30;
+}
+
+function limparTextoIA(texto: string) {
+  return texto
+    .replace(/```(?:json)?\s*/gi, "")
+    .replace(/```/g, "")
+    .trim();
+}
+
 // ── handler ────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
