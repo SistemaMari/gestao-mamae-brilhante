@@ -1126,6 +1126,22 @@ export default function FichaPacientePage() {
 
                         {(() => {
                           const estadoC = laudoIA.getEstado(c.id);
+                          const tipoOpConsulta =
+                            c.tipo === 'consulta_1' ? 'consulta_inicial'
+                            : c.tipo === 'retorno_1' ? 'retorno'
+                            : c.tipo === 'retorno_gtt' ? 'preencher_gtt'
+                            : (c.tipo === 'ficha_a' || c.tipo === 'ficha_c') ? 'preencher_ficha_ac'
+                            : (c.tipo === 'ficha_b' || c.tipo === 'ficha_d') ? 'preencher_ficha_bd'
+                            : c.tipo === 'registro_parto' ? 'registrar_parto'
+                            : null;
+                          const autoriaConsulta = autoriaFicha.getAutoria({
+                            recursoId: c.id,
+                            tipoOperacao: tipoOpConsulta,
+                          });
+                          const autoriaLaudo = autoriaFicha.getAutoria({
+                            recursoId: estadoC.laudoId ?? null,
+                            tipoOperacao: 'gerar_laudo',
+                          });
                           return (
                             <LaudoCompleto
                               paciente={{ nome: paciente.nome }}
@@ -1142,6 +1158,10 @@ export default function FichaPacientePage() {
                               igMaior24={igMaior24}
                             >
                               {renderCardBloco1()}
+                              <AutoriaRodape registro={autoriaConsulta} label="Atendimento registrado por" />
+                              {estadoC.statusIA === 'pronto' && (
+                                <AutoriaRodape registro={autoriaLaudo} label="Laudo gerado por" />
+                              )}
                             </LaudoCompleto>
                           );
                         })()}
