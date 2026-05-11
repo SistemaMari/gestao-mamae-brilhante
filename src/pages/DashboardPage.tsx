@@ -53,6 +53,8 @@ const PAGE_SIZE = 20;
 
 export default function DashboardPage() {
   const { profissionalData, loading: profLoading } = useProfissionalData();
+  const { profile } = useAuth();
+  const ehInstitucional = profile === 'institucional';
   const navigate = useNavigate();
   const location = useLocation();
   const isPreview = location.pathname.startsWith('/vitrine');
