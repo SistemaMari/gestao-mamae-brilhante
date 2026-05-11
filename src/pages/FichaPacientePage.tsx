@@ -252,17 +252,39 @@ export default function FichaPacientePage() {
         .eq('paciente_id', id)
         .order('data', { ascending: true });
 
+      const consultaIds = (cons ?? []).map((c: any) => c.id);
+      const { data: exames } = consultaIds.length
+        ? await supabase
+            .from('exames_glicemia')
+            .select('consulta_id, valor_mgdl, tipo_exame, data_exame')
+            .in('consulta_id', consultaIds)
+        : { data: [] as any[] };
+
+      const exameByConsulta = new Map<string, any>(
+        (exames ?? []).map((e: any) => [e.consulta_id, e]),
+      );
+
       setConsultas(
-        (cons || []).map((c: any) => ({
-          id: c.id,
-          tipo: c.tipo,
-          numero_sequencial: c.numero_sequencial,
-          data: c.data,
-          ig_semanas: c.ig_semanas,
-          ig_dias: c.ig_dias,
-          observacoes: c.observacoes,
-          status_gerado: c.status_gerado,
-        }))
+        (cons || []).map((c: any) => {
+          const ex = exameByConsulta.get(c.id);
+          return {
+            id: c.id,
+            tipo: c.tipo,
+            numero_sequencial: c.numero_sequencial,
+            data: c.data,
+            ig_semanas: c.ig_semanas,
+            ig_dias: c.ig_dias,
+            observacoes: c.observacoes,
+            status_gerado: c.status_gerado,
+            ...(c.tipo === 'retorno_1' && ex
+              ? {
+                  retorno1_valor_gj: ex.valor_mgdl ?? null,
+                  retorno1_tipo_exame: ex.tipo_exame ?? null,
+                  retorno1_data_exame: ex.data_exame ?? null,
+                }
+              : {}),
+          };
+        })
       );
     }
     setLoading(false);
