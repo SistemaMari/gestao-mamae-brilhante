@@ -1105,20 +1105,27 @@ export default function FichaPacientePage() {
                           </div>
                         )}
 
-                        <LaudoCompleto
-                          paciente={{ nome: paciente.nome }}
-                          igSemanas={igLaudo.semanas}
-                          igDias={igLaudo.dias}
-                          dataLaudo={dataLaudo}
-                          cenario={cenario}
-                          bloco2={null}
-                          bloco3={null}
-                          statusIA="pendente"
-                          janelaGTT={c.tipo === 'retorno_1' ? janelaGTT : null}
-                          igMaior24={igMaior24}
-                        >
-                          {renderCardBloco1()}
-                        </LaudoCompleto>
+                        {(() => {
+                          const estadoC = laudoIA.getEstado(c.id);
+                          return (
+                            <LaudoCompleto
+                              paciente={{ nome: paciente.nome }}
+                              igSemanas={igLaudo.semanas}
+                              igDias={igLaudo.dias}
+                              dataLaudo={dataLaudo}
+                              cenario={cenario}
+                              bloco2={estadoC.bloco2}
+                              bloco3={estadoC.bloco3}
+                              statusIA={estadoC.statusIA}
+                              erroIA={estadoC.erroIA}
+                              onTentarNovamente={() => laudoIA.tentarNovamente(paciente.id, c.id, cenario)}
+                              janelaGTT={c.tipo === 'retorno_1' ? janelaGTT : null}
+                              igMaior24={igMaior24}
+                            >
+                              {renderCardBloco1()}
+                            </LaudoCompleto>
+                          );
+                        })()}
                       </>
                     );
                   })()}
