@@ -22,6 +22,7 @@ const CONTAS: ContaSpec[] = [
   { email: "consultorio@teste.dramari", nome: "Dra. Consultório Pro", perfil: "consultorio_pro" },
   { email: "consultorio.free@teste.dramari", nome: "Dra. Consultório Free", perfil: "consultorio_free" },
   { email: "institucional@teste.dramari", nome: "Dr. Institucional Teste", perfil: "institucional" },
+  { email: "institucional2@teste.dramari", nome: "Dra. Institucional Dois", perfil: "institucional2" },
   { email: "gestor@teste.dramari", nome: "Dr. Gestor Unidade", perfil: "gestor" },
   { email: "gestorgeral@teste.dramari", nome: "Dr. Gestor Geral", perfil: "gestor_geral" },
   { email: "admin@teste.dramari", nome: "Admin Teste", perfil: "admin" },
