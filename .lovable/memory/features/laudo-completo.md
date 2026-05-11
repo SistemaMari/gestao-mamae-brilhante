@@ -4,6 +4,11 @@ description: Design system do laudo (Prompt 15) — wrapper LaudoCompleto, 8 ele
 type: feature
 ---
 
+## Disparo da IA
+- `useLaudoIA` (`src/hooks/useLaudoIA.ts`) gerencia estado/erro por `consulta_id` e chama a edge function `gerar-laudo`.
+- `FichaPacientePage` carrega laudos persistidos e auto-dispara geração para cada consulta sem laudo. **Ficha A/C inadequado (cenário 3) só gera após confirmação do peso** (`FichaACResultCard.onWeightSaved`).
+- Em `isPreview` (`/vitrine/...`), `useLaudoIA` devolve template demo (não chama IA, não consome quota).
+
 ## Estrutura (8 elementos)
 1. **Cabeçalho** (`LaudoCabecalho`) — fundo branco, borda inferior `#D6BCFA`. Título "Laudo Dra. Mari DMG Diagnóstica", paciente, IG, data, badge cenário.
 2. **Bloco 1** (children) — cards clínicos atuais (Consulta1ResultCard, Retorno1ResultCard, FichaACResultCard, FichaBDResultCard, GttResultCard, EncerramentoPartoCard, RegistroPartoReadOnlyCard).
