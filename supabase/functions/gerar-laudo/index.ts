@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) return jsonResp({ error: "LOVABLE_API_KEY não configurada" }, 500);
 
     // Body
-    const { paciente_id, consulta_id } = await req.json();
+    const { paciente_id, consulta_id, cenario_clinico: cenarioBody } = await req.json();
     if (!paciente_id || !consulta_id) return jsonResp({ error: "paciente_id e consulta_id obrigatórios" }, 400);
 
     const supabaseAdmin = createClient(
