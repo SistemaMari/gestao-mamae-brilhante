@@ -176,16 +176,6 @@ export default function FichaACResultCard({
               />
             </div>
 
-            {calcDoseTotal && pesoNum > 0 && (
-              <div className="rounded-lg bg-white/80 border border-[#F59E0B] px-3 py-2 text-xs space-y-0.5">
-                <p className="font-semibold text-amber-800">
-                  Dose calculada: {calcDoseTotal} UI/dia
-                </p>
-                <p className="text-amber-700">
-                  {calcDoseManha} UI manhã + {calcDoseNoite} UI 22h
-                </p>
-              </div>
-            )}
           </div>
 
           <Button
@@ -194,24 +184,42 @@ export default function FichaACResultCard({
             className="bg-[#7C4DBA] hover:bg-[#7E69AB] text-white"
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Confirmar peso e gerar laudo
+            Confirmar peso
           </Button>
         </div>
       )}
 
-      {/* Resumo de peso/dose já confirmados — visível inclusive na impressão */}
-      {hasWeight && (
-        <div className="rounded-lg border border-[#F59E0B] bg-[#FEF3C7] p-3 space-y-1">
-          <p className="text-xs font-semibold text-amber-800">
-            Peso registrado: {peso} kg — dose inicial de NPH: {doseTotal} UI/dia (0,5 UI/kg/dia)
-          </p>
-          {doseManha != null && doseNoite != null && (
-            <p className="text-xs text-amber-700">
-              Distribuição: {doseManha} UI pela manhã (ao acordar) e {doseNoite} UI às 22h.
+      {/* Destaque da dose inicial — preview ao vivo OU dose persistida */}
+      {(() => {
+        const showLive = needsWeight && calcDoseTotal && pesoNum > 0;
+        const showSaved = hasWeight;
+        if (!showLive && !showSaved) return null;
+
+        const dTotal = showSaved ? doseTotal! : calcDoseTotal!;
+        const dManha = showSaved ? doseManha : calcDoseManha;
+        const dNoite = showSaved ? doseNoite : calcDoseNoite;
+        const pesoShow = showSaved ? peso : pesoNum;
+
+        return (
+          <div className="rounded-xl border-2 border-primary/30 bg-primary/10 p-5 space-y-2">
+            <p className="text-sm font-semibold text-[#7E69AB] uppercase tracking-wide">
+              Dose inicial de insulina NPH
             </p>
-          )}
-        </div>
-      )}
+            <p className="font-heading text-4xl font-bold leading-none text-[#7E69AB]">
+              {dTotal}
+              <span className="ml-1 text-base font-medium opacity-80">UI/dia</span>
+            </p>
+            {dManha != null && dNoite != null && (
+              <p className="text-sm text-[#7E69AB]">
+                {dManha} UI manhã (ao acordar) + {dNoite} UI às 22h
+              </p>
+            )}
+            <p className="text-xs text-[#7E69AB]/80">
+              Peso: {pesoShow} kg • fórmula: 0,5 UI/kg/dia
+            </p>
+          </div>
+        );
+      })()}
     </div>
   );
 }
