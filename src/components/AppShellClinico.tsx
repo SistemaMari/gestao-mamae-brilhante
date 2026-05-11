@@ -126,9 +126,11 @@ export default function AppShellClinico() {
 
   const planoNome = profissionalData?.planos?.nome ?? '';
   const planoLimite = profissionalData?.planos?.laudos_por_mes ?? profissionalData?.laudos_limite ?? 0;
-  const planoLabel = profissionalData
-    ? `${t('nav.plans')} ${planoNome} — ${profissionalData.laudos_usados}/${planoLimite} ${t('nav.reports').toLowerCase()}`
-    : '';
+  const laudosUsados = profissionalData?.laudos_usados ?? 0;
+  const consumoPct = planoLimite > 0
+    ? Math.min(100, Math.round((laudosUsados / planoLimite) * 100))
+    : 0;
+  const consumoCor = consumoPct >= 100 ? '#EF4444' : consumoPct >= 80 ? '#F59E0B' : '#7E69AB';
 
   const handleNavClick = async (item: NavItem) => {
     if (item.checkLimit && profissionalData) {
@@ -182,9 +184,9 @@ export default function AppShellClinico() {
       >
         <Icon className="h-5 w-5 shrink-0" />
         <span className="flex-1 text-left">{t(item.labelKey)}</span>
-        {item.path === '/planos' && profissionalData && (
-          <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-accent-foreground">
-            {profissionalData.planos?.slug ?? '—'}
+        {item.path === '/planos' && profissionalData?.planos?.nome && (
+          <span className="ml-auto rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-accent-foreground capitalize">
+            {profissionalData.planos.nome}
           </span>
         )}
       </button>
@@ -260,14 +262,29 @@ export default function AppShellClinico() {
 
         <div className="flex-1" />
 
-        {/* Plan badge */}
-        {planoLabel && ehConsultorio && (
+        {/* Plan badge with consumption bar */}
+        {profissionalData && ehConsultorio && (
           <button
             onClick={() => navigate('/planos')}
-            className="hidden lg:inline-flex items-center rounded-full px-3 py-1 text-xs font-medium mr-4"
+            className="hidden lg:flex items-center gap-3 rounded-full pl-3 pr-4 py-1.5 text-xs font-medium mr-4 hover:opacity-90 transition"
             style={{ backgroundColor: '#F1F0FB', color: '#7E69AB' }}
+            title={`${laudosUsados} de ${planoLimite} ${t('nav.reports').toLowerCase()} este mês`}
           >
-            {planoLabel}
+            <span className="font-semibold">{t('nav.plans')} {planoNome}</span>
+            <span className="flex items-center gap-2">
+              <span
+                className="relative block h-1.5 w-24 rounded-full overflow-hidden"
+                style={{ backgroundColor: '#E2DEF5' }}
+              >
+                <span
+                  className="absolute left-0 top-0 h-full rounded-full transition-all"
+                  style={{ width: `${consumoPct}%`, backgroundColor: consumoCor }}
+                />
+              </span>
+              <span className="tabular-nums" style={{ color: consumoCor }}>
+                {laudosUsados}/{planoLimite}
+              </span>
+            </span>
           </button>
         )}
 
