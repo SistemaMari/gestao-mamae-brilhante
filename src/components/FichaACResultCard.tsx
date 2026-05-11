@@ -171,21 +171,18 @@ export default function FichaACResultCard({
                 step={0.1}
                 value={pesoInput}
                 onChange={e => setPesoInput(e.target.value)}
+                onBlur={() => { if (pesoNum > 0 && !saving) handleConfirmWeight(); }}
                 placeholder="Ex: 70"
                 className="w-32 bg-white"
               />
+              {saving && (
+                <p className="flex items-center gap-1 text-xs text-amber-700">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Salvando…
+                </p>
+              )}
             </div>
 
           </div>
-
-          <Button
-            onClick={handleConfirmWeight}
-            disabled={pesoNum <= 0 || saving}
-            className="bg-[#7C4DBA] hover:bg-[#7E69AB] text-white"
-          >
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Confirmar peso
-          </Button>
         </div>
       )}
 
