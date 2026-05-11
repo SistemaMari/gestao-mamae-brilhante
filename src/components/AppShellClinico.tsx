@@ -259,7 +259,7 @@ export default function AppShellClinico() {
         <div className="flex-1" />
 
         {/* Plan badge */}
-        {planoLabel && (
+        {planoLabel && ehConsultorio && (
           <button
             onClick={() => navigate('/planos')}
             className="hidden lg:inline-flex items-center rounded-full px-3 py-1 text-xs font-medium mr-4"
