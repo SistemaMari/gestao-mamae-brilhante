@@ -61,16 +61,40 @@ interface NavItem {
   checkLimit?: boolean;
 }
 
-const navItemsClinical: NavItem[] = [
+// Menus clínicos — seleção explícita por perfil (defesa em profundidade,
+// não confiar só no ProtectedRoute).
+const navClinicoConsultorio: NavItem[] = [
   { labelKey: 'nav.patients', icon: Users, path: '/dashboard' },
   { labelKey: 'nav.newPatient', icon: UserPlus, path: '/paciente/nova', checkLimit: true },
-  { labelKey: 'nav.history', icon: FileText, path: '/laudos' },
   { labelKey: 'Meus Cursos', icon: GraduationCap, path: '/meus-cursos' },
   { labelKey: 'nav.metrics', icon: BarChart3, path: '/dashboard/metricas' },
 ];
 
-const navItemsAdmin: NavItem[] = [
+const navClinicoInstitucional: NavItem[] = [
+  { labelKey: 'nav.patients', icon: Users, path: '/dashboard' },
+  { labelKey: 'nav.newPatient', icon: UserPlus, path: '/paciente/nova', checkLimit: true },
+  { labelKey: 'nav.history', icon: FileText, path: '/laudos' },
+];
+
+// Gestor / gestor_geral normalmente não passam por AppShellClinico, mas se
+// cairem aqui por bug de rota recebem menu mínimo — nunca menu de consultório.
+const navClinicoGestor: NavItem[] = [];
+const navClinicoFallback: NavItem[] = [];
+
+const navRodapeConsultorio: NavItem[] = [
   { labelKey: 'nav.plans', icon: CreditCard, path: '/planos' },
+  { labelKey: 'nav.profile', icon: UserCog, path: '/perfil' },
+];
+
+const navRodapeInstitucional: NavItem[] = [
+  { labelKey: 'nav.profile', icon: UserCog, path: '/perfil' },
+];
+
+const navRodapeGestor: NavItem[] = [
+  { labelKey: 'nav.profile', icon: UserCog, path: '/perfil' },
+];
+
+const navRodapeFallback: NavItem[] = [
   { labelKey: 'nav.profile', icon: UserCog, path: '/perfil' },
 ];
 
@@ -165,15 +189,37 @@ export default function AppShellClinico() {
     );
   };
 
-  // Todos os planos atuais (Inicial, Intermediária, Profissional) têm cursos inclusos.
-  const itensClinicos = navItemsClinical;
+  // Seleção explícita por perfil — sem default permissivo.
+  const perfilSidebar: 'consultorio' | 'institucional' | 'gestor' | 'gestor_geral' | 'fallback' =
+    profile === null ? 'consultorio' :
+    profile === 'institucional' ? 'institucional' :
+    profile === 'gestor' ? 'gestor' :
+    profile === 'gestor_geral' ? 'gestor_geral' :
+    profile === 'consultorio' ? 'consultorio' :
+    'fallback';
+
+  const ehConsultorio = perfilSidebar === 'consultorio';
+
+  const itensClinicos =
+    perfilSidebar === 'consultorio' ? navClinicoConsultorio :
+    perfilSidebar === 'institucional' ? navClinicoInstitucional :
+    perfilSidebar === 'gestor' || perfilSidebar === 'gestor_geral' ? navClinicoGestor :
+    navClinicoFallback;
+
+  const itensRodape =
+    perfilSidebar === 'consultorio' ? navRodapeConsultorio :
+    perfilSidebar === 'institucional' ? navRodapeInstitucional :
+    perfilSidebar === 'gestor' || perfilSidebar === 'gestor_geral' ? navRodapeGestor :
+    navRodapeFallback;
 
   const SidebarContent = () => (
     <>
       <nav className="flex-1 space-y-1 px-3 py-4">
         {itensClinicos.map(renderNavButton)}
-        <div className="my-2 border-t" style={{ borderColor: '#E2E8F0' }} />
-        {navItemsAdmin.map(renderNavButton)}
+        {itensClinicos.length > 0 && (
+          <div className="my-2 border-t" style={{ borderColor: '#E2E8F0' }} />
+        )}
+        {itensRodape.map(renderNavButton)}
       </nav>
 
       <div className="border-t border-border px-3 py-3">
@@ -213,7 +259,7 @@ export default function AppShellClinico() {
         <div className="flex-1" />
 
         {/* Plan badge */}
-        {planoLabel && (
+        {planoLabel && ehConsultorio && (
           <button
             onClick={() => navigate('/planos')}
             className="hidden lg:inline-flex items-center rounded-full px-3 py-1 text-xs font-medium mr-4"
