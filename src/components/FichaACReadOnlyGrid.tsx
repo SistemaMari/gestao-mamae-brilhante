@@ -20,6 +20,10 @@ const POINT_METAS: Record<Point, number> = {
   pos_jantar: 140,
 };
 
+function isHypoglycemia(value: number): boolean {
+  return value > 0 && value < 70;
+}
+
 interface FichaACReadOnlyGridProps {
   gridValores: Record<string, string>[];
 }
@@ -38,6 +42,7 @@ export default function FichaACReadOnlyGrid({ gridValores }: FichaACReadOnlyGrid
   const getCellBg = (point: Point, value: string) => {
     const num = parseInt(value);
     if (!num || num <= 0) return '';
+    if (isHypoglycemia(num)) return 'bg-[#FEE2E2] border border-red-400';
     if (num >= POINT_METAS[point]) return 'bg-[#FEE2E2]';
     return 'bg-[#DCFCE7]';
   };
