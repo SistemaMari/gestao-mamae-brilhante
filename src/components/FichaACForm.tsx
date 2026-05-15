@@ -44,11 +44,15 @@ const POINT_METAS: Record<Point, number> = {
 };
 
 const POINT_TOOLTIPS: Record<Point, string> = {
-  jejum: 'Coleta antes de qualquer refeição, após pelo menos 8 horas sem comer. Meta: < 95 mg/dL. Usar glicômetro capilar para acompanhamento — diferente do diagnóstico, onde é obrigatório plasma venoso.',
-  pos_cafe: 'Coleta exatamente 1 hora após o início da refeição. Meta: < 140 mg/dL.',
-  pos_almoco: 'Coleta exatamente 1 hora após o início da refeição. Meta: < 140 mg/dL.',
-  pos_jantar: 'Coleta exatamente 1 hora após o início da refeição. Meta: < 140 mg/dL.',
+  jejum: 'Coleta antes de qualquer refeição, após pelo menos 8 horas sem comer. Meta: < 95 mg/dL. Usar glicômetro capilar para acompanhamento — diferente do diagnóstico, onde é obrigatório plasma venoso. ATENÇÃO: valores < 70 mg/dL indicam hipoglicemia — avaliar imediatamente e informar ao especialista.',
+  pos_cafe: 'Coleta exatamente 1 hora após o início da refeição. Meta: < 140 mg/dL. ATENÇÃO: valores < 70 mg/dL indicam hipoglicemia — avaliar imediatamente e informar ao especialista.',
+  pos_almoco: 'Coleta exatamente 1 hora após o início da refeição. Meta: < 140 mg/dL. ATENÇÃO: valores < 70 mg/dL indicam hipoglicemia — avaliar imediatamente e informar ao especialista.',
+  pos_jantar: 'Coleta exatamente 1 hora após o início da refeição. Meta: < 140 mg/dL. ATENÇÃO: valores < 70 mg/dL indicam hipoglicemia — avaliar imediatamente e informar ao especialista.',
 };
+
+function isHypoglycemia(value: number): boolean {
+  return value > 0 && value < 70;
+}
 
 const DAYS = Array.from({ length: 15 }, (_, i) => i + 1);
 
@@ -135,13 +139,10 @@ export default function FichaACForm({
       for (const p of POINTS) {
         const val = parseInt(row[p]);
         if (!val || val <= 0) continue; // empty or 0 = skip
-        if (val >= 1 && val <= 400) {
-          total++;
-          if (val < POINT_METAS[p]) ok++;
-        } else if (val > 400) {
-          total++;
-          if (val < POINT_METAS[p]) ok++;
-        }
+        total++;
+        // Hipoglicemia (< 70) sempre conta como fora da meta, em qualquer ponto
+        if (isHypoglycemia(val)) continue;
+        if (val < POINT_METAS[p]) ok++;
       }
     }
     return {
@@ -149,6 +150,20 @@ export default function FichaACForm({
       dentroMeta: ok,
       percentual: total > 0 ? Math.round((ok / total) * 1000) / 10 : null,
     };
+  }, [grid]);
+
+  // Hypoglycemia alerts — qualquer valor < 70 em qualquer ponto
+  const hypoAlerts = useMemo(() => {
+    const alerts: { day: number; point: string; value: number }[] = [];
+    grid.forEach((row, dayIdx) => {
+      for (const p of POINTS) {
+        const val = parseInt(row[p]);
+        if (!isNaN(val) && isHypoglycemia(val)) {
+          alerts.push({ day: dayIdx + 1, point: POINT_LABELS[p], value: val });
+        }
+      }
+    });
+    return alerts;
   }, [grid]);
 
   const isAdequado = percentual !== null && percentual >= 70;
@@ -186,6 +201,7 @@ export default function FichaACForm({
     const num = parseInt(value);
     if (!num || num <= 0) return '';
     if (num < 0) return 'bg-red-100 border-red-300';
+    if (isHypoglycemia(num)) return 'bg-[#FEE2E2] border-red-400'; // hypoglycemia
     if (num >= POINT_METAS[point]) return 'bg-[#FEE2E2]'; // above target
     return 'bg-[#DCFCE7]'; // within target
   };
@@ -540,6 +556,21 @@ export default function FichaACForm({
         <p className="text-xs font-medium text-[#5B21B6]">{dayMessage}</p>
       </div>
 
+      {/* Hypoglycemia alerts */}
+      {hypoAlerts.length > 0 && (
+        <div className="rounded-xl border-2 border-[#EF4444] bg-[#FEE2E2] p-4 space-y-1">
+          <p className="text-sm font-bold text-red-800 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-[#EF4444]" />
+            ALERTA DE HIPOGLICEMIA
+          </p>
+          {hypoAlerts.map((a, i) => (
+            <p key={i} className="text-xs text-red-700">
+              Valor de {a.value} mg/dL no Dia {a.day} ({a.point}). Avaliar imediatamente e informar ao especialista.
+            </p>
+          ))}
+        </div>
+      )}
+
       {/* Form fields */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1">
@@ -691,6 +722,7 @@ export default function FichaACForm({
                   const numVal = parseInt(val);
                   const isNeg = !isNaN(numVal) && numVal < 0;
                   const isHigh = !isNaN(numVal) && numVal > 400;
+                  const isHypo = !isNaN(numVal) && isHypoglycemia(numVal);
 
                   return (
                     <td key={p} className="px-1 py-1">
@@ -705,7 +737,8 @@ export default function FichaACForm({
                           focus:ring-2 focus:ring-[#7C4DBA] focus:border-[#7C4DBA]
                           ${isNeg ? 'bg-red-100 border-red-400 text-red-700' : ''}
                           ${isHigh ? 'bg-amber-50 border-amber-400' : ''}
-                          ${!isNeg && !isHigh ? getCellBg(p, val) : ''}
+                          ${isHypo ? 'bg-[#FEE2E2] border-red-400' : ''}
+                          ${!isNeg && !isHigh && !isHypo ? getCellBg(p, val) : ''}
                           ${!val ? 'border-border' : ''}
                         `}
                         placeholder="—"
@@ -716,6 +749,9 @@ export default function FichaACForm({
                       )}
                       {isHigh && (
                         <span className="text-[9px] text-amber-600 block text-center">Verificar</span>
+                      )}
+                      {isHypo && (
+                        <span className="text-[9px] text-red-600 block text-center">Hipoglicemia</span>
                       )}
                     </td>
                   );
