@@ -427,6 +427,25 @@ export default function Retorno1Form({
       data_ultima_consulta: dataConsultaRetorno,
     }).eq('id', paciente.id);
 
+    // Bloco 2: salvar USG capturada agora + referência escolhida
+    if (precisaUsgRef && usgFlow.jaFezUsg === 'sim' && usgFlow.dataExame && usgFlow.igSemanas !== '') {
+      await supabase.from('exames_usg' as any).insert({
+        paciente_id: paciente.id,
+        data_exame: usgFlow.dataExame,
+        ig_semanas: parseInt(usgFlow.igSemanas, 10),
+        ig_dias: parseInt(usgFlow.igDias || '0', 10),
+        ordem: 1,
+      } as any);
+      await supabase.from('pacientes').update({
+        referencia_ig: usgFlow.referenciaIg ?? 'usg',
+      } as any).eq('id', paciente.id);
+    } else if (precisaUsgRef && usgFlow.jaFezUsg === 'nao' && paciente.dum) {
+      // Sem USG mas com DUM conhecida → fixa DUM como referência
+      await supabase.from('pacientes').update({
+        referencia_ig: 'dum',
+      } as any).eq('id', paciente.id);
+    }
+
     const { carimbarAtendimento } = await import('@/lib/carimbar');
     await carimbarAtendimento({
       pacienteId: paciente.id,
