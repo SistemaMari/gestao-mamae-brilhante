@@ -823,6 +823,17 @@ export default function FichaPacientePage() {
         )}
       </div>
 
+      {/* Bloco 3 + 4: gestor de USGs e referência de IG */}
+      {!isReadOnly && paciente && (
+        <UsgManagerCard
+          pacienteId={paciente.id}
+          dum={paciente.dum}
+          referenciaIg={(paciente as any).referencia_ig ?? null}
+          isPreview={isPreview}
+          onChanged={fetchPaciente}
+        />
+      )}
+
       {/* CORREÇÃO 3: Card fixo de destaque da janela do GTT — aparece entre cabeçalho e histórico */}
       {paciente.status_ficha === 'aguardando_gtt' && janelaGTT && igAtual && (() => {
         const igSem = igAtual.semanas;
