@@ -193,7 +193,7 @@ export default function Retorno1Form({
 
   const valorNum = parseInt(valorGJ, 10);
   const valorValido = !isNaN(valorNum) && valorNum >= 1 && valorNum <= 400;
-  const isValid = valorValido && tipoExame && dataExame && dataConsultaRetorno;
+  const isValid = valorValido && tipoExame && dataExame && dataConsultaRetorno && usgValida;
 
   const igFinal = useMemo(() => {
     const s = parseInt(igSemanas, 10);
