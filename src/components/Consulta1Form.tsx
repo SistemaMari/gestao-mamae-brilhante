@@ -26,6 +26,8 @@ import {
 } from '@/lib/whatsapp';
 import { useAutosave } from '@/hooks/useAutosave';
 import AutosaveIndicator from '@/components/AutosaveIndicator';
+import UsgFlowSection, { emptyUsgFlow, type UsgFlowValue } from '@/components/UsgFlowSection';
+import { Checkbox } from '@/components/ui/checkbox';
 
 function todayISO() {
   return todayLocalISO();
@@ -44,12 +46,14 @@ export default function Consulta1Form() {
   const [numeroId, setNumeroId] = useState('');
   const [whatsapp, setWhatsapp] = useState(''); // string mascarada (sem DDI)
   const [dum, setDum] = useState('');
+  const [dumDesconhecida, setDumDesconhecida] = useState(false);
   const [dataConsulta, setDataConsulta] = useState(todayISO());
   const [observacoes, setObservacoes] = useState('');
   const [dmgAnterior, setDmgAnterior] = useState<boolean | null>(null);
   const [pais, setPais] = useState('Brasil');
   const [estado, setEstado] = useState('');
   const [cidade, setCidade] = useState('');
+  const [usgFlow, setUsgFlow] = useState<UsgFlowValue>(emptyUsgFlow);
   const [saving, setSaving] = useState(false);
   const [touched, setTouched] = useState(false);
 
@@ -70,12 +74,17 @@ export default function Consulta1Form() {
   const { cidades: cityList } = useCidadesIBGE(pais, estado);
 
   const whatsappValidacao = validarWhatsappBR(whatsapp);
+  const dumValido = dumDesconhecida || !!dum;
+  // Se "sim" para USG, exige data + semanas + dias + referência
+  const usgValida =
+    usgFlow.jaFezUsg !== 'sim' ||
+    (!!usgFlow.dataExame && usgFlow.igSemanas !== '' && usgFlow.igDias !== '' && !!usgFlow.referenciaIg);
   const isValid =
-    nome.trim() && dataNascimento && dum && dataConsulta && dmgAnterior !== null && whatsappValidacao.ok;
+    nome.trim() && dataNascimento && dumValido && dataConsulta && dmgAnterior !== null && whatsappValidacao.ok && usgValida && usgFlow.jaFezUsg !== null;
 
-  // Mínimo para começar a salvar rascunho: nome + DUM
+  // Mínimo para começar a salvar rascunho: nome + (DUM ou DUM desconhecida)
   const canAutosave =
-    !isPreview && !!profissionalData && !!user && !!nome.trim() && !!dum && !saving;
+    !isPreview && !!profissionalData && !!user && !!nome.trim() && dumValido && !saving;
 
   const autosaveData = useMemo(
     () => ({
@@ -84,7 +93,7 @@ export default function Consulta1Form() {
       tipoIdentificacao,
       numeroId: numeroId.trim(),
       whatsapp: paraFormatoCanonico(whatsapp),
-      dum,
+      dum: dumDesconhecida ? null : (dum || null),
       dataConsulta,
       observacoes: observacoes.trim(),
       dmgAnterior,
@@ -92,7 +101,7 @@ export default function Consulta1Form() {
       estado,
       cidade,
     }),
-    [nome, dataNascimento, tipoIdentificacao, numeroId, whatsapp, dum, dataConsulta, observacoes, dmgAnterior, pais, estado, cidade],
+    [nome, dataNascimento, tipoIdentificacao, numeroId, whatsapp, dum, dumDesconhecida, dataConsulta, observacoes, dmgAnterior, pais, estado, cidade],
   );
 
   const { status: autosaveStatus } = useAutosave({
@@ -170,13 +179,13 @@ export default function Consulta1Form() {
         data_nascimento: dataNascimento,
         numero_identificacao: numeroId.trim() || null,
         tipo_identificacao: tipoIdentificacao,
-        dum,
+        dum: dumDesconhecida ? null : dum,
         pais,
         estado: estado || null,
         cidade: cidade || null,
-        usg_data: null,
-        usg_ig_semanas: null,
-        usg_ig_dias: null,
+        usg_data: usgFlow.jaFezUsg === 'sim' ? usgFlow.dataExame : null,
+        usg_ig_semanas: usgFlow.jaFezUsg === 'sim' ? Number(usgFlow.igSemanas) : null,
+        usg_ig_dias: usgFlow.jaFezUsg === 'sim' ? Number(usgFlow.igDias || 0) : null,
         dmg_gestacao_anterior: dmgAnterior === true,
         data_ultima_consulta: dataConsulta,
         consultas: [
@@ -213,7 +222,7 @@ export default function Consulta1Form() {
       numero_identificacao: numeroId.trim() || null,
       tipo_identificacao: tipoIdentificacao,
       whatsapp: paraFormatoCanonico(whatsapp),
-      dum,
+      dum: dumDesconhecida ? null : dum,
       pais,
       estado: estado || null,
       cidade: cidade || null,
@@ -221,6 +230,7 @@ export default function Consulta1Form() {
       data_ultima_consulta: dataConsulta,
       status_ficha: 'aguardando_gj',
       is_rascunho: false,
+      referencia_ig: usgFlow.referenciaIg ?? (dumDesconhecida ? null : 'dum'),
     };
 
     if ('unidade_id' in profissionalData) {
@@ -264,6 +274,20 @@ export default function Consulta1Form() {
         return;
       }
     }
+
+    // Persistir 1ª USG na tabela exames_usg (se informada)
+    if (usgFlow.jaFezUsg === 'sim' && usgFlow.dataExame && usgFlow.igSemanas !== '') {
+      const { error: usgErr } = await supabase.from('exames_usg').insert({
+        paciente_id: pacienteId!,
+        data_exame: usgFlow.dataExame,
+        ig_semanas: Number(usgFlow.igSemanas),
+        ig_dias: Number(usgFlow.igDias || 0),
+        ordem: 1,
+        criado_por: user?.id ?? null,
+      } as any);
+      if (usgErr) console.error('[exames_usg] insert falhou:', usgErr);
+    }
+
 
     const consultaPayload = {
       paciente_id: pacienteId,
@@ -492,10 +516,37 @@ export default function Consulta1Form() {
               type="date"
               value={dum}
               onChange={(e) => setDum(e.target.value)}
-              className={fieldError(!!dum)}
+              disabled={dumDesconhecida}
+              className={fieldError(dumValido)}
             />
-            {errorMsg(!!dum)}
+            <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+              <Checkbox
+                checked={dumDesconhecida}
+                onCheckedChange={(c) => {
+                  const v = c === true;
+                  setDumDesconhecida(v);
+                  if (v) {
+                    setDum('');
+                    // se referência era DUM, limpa
+                    if (usgFlow.referenciaIg === 'dum') {
+                      setUsgFlow({ ...usgFlow, referenciaIg: null });
+                    }
+                  }
+                }}
+              />
+              Não sei a data da última menstruação
+            </label>
+            {errorMsg(dumValido)}
           </div>
+
+          {/* USG flow: 1ª USG + referência de IG */}
+          <UsgFlowSection
+            value={usgFlow}
+            onChange={setUsgFlow}
+            dum={dum}
+            dumDesconhecida={dumDesconhecida}
+          />
+
 
           {/* Data da consulta */}
           <div className="space-y-2">
