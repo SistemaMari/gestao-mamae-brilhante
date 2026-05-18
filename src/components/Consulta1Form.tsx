@@ -222,7 +222,7 @@ export default function Consulta1Form() {
       numero_identificacao: numeroId.trim() || null,
       tipo_identificacao: tipoIdentificacao,
       whatsapp: paraFormatoCanonico(whatsapp),
-      dum,
+      dum: dumDesconhecida ? null : dum,
       pais,
       estado: estado || null,
       cidade: cidade || null,
@@ -230,6 +230,7 @@ export default function Consulta1Form() {
       data_ultima_consulta: dataConsulta,
       status_ficha: 'aguardando_gj',
       is_rascunho: false,
+      referencia_ig: usgFlow.referenciaIg ?? (dumDesconhecida ? null : 'dum'),
     };
 
     if ('unidade_id' in profissionalData) {
