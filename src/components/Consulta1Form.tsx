@@ -26,6 +26,8 @@ import {
 } from '@/lib/whatsapp';
 import { useAutosave } from '@/hooks/useAutosave';
 import AutosaveIndicator from '@/components/AutosaveIndicator';
+import UsgFlowSection, { emptyUsgFlow, type UsgFlowValue } from '@/components/UsgFlowSection';
+import { Checkbox } from '@/components/ui/checkbox';
 
 function todayISO() {
   return todayLocalISO();
@@ -44,12 +46,14 @@ export default function Consulta1Form() {
   const [numeroId, setNumeroId] = useState('');
   const [whatsapp, setWhatsapp] = useState(''); // string mascarada (sem DDI)
   const [dum, setDum] = useState('');
+  const [dumDesconhecida, setDumDesconhecida] = useState(false);
   const [dataConsulta, setDataConsulta] = useState(todayISO());
   const [observacoes, setObservacoes] = useState('');
   const [dmgAnterior, setDmgAnterior] = useState<boolean | null>(null);
   const [pais, setPais] = useState('Brasil');
   const [estado, setEstado] = useState('');
   const [cidade, setCidade] = useState('');
+  const [usgFlow, setUsgFlow] = useState<UsgFlowValue>(emptyUsgFlow);
   const [saving, setSaving] = useState(false);
   const [touched, setTouched] = useState(false);
 
