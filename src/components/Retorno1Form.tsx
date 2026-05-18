@@ -695,6 +695,27 @@ export default function Retorno1Form({
       )}
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-5">
+        {/* Bloco 2: capturar USG e referência de IG quando ainda não definidas */}
+        {precisaUsgRef && (
+          <div className="rounded-xl border border-[#7C4DBA]/30 bg-card p-4">
+            <p className="text-xs text-muted-foreground mb-3">
+              Esta paciente ainda não tem uma referência de IG definida. Aproveite o retorno para registrar a 1ª ultrassonografia.
+            </p>
+            <UsgFlowSection
+              value={usgFlow}
+              onChange={setUsgFlow}
+              dum={paciente.dum ?? ''}
+              dumDesconhecida={!paciente.dum}
+              jaPossuiUsg={false}
+              ehPrimeiraUsg={true}
+            />
+            {touched && !usgValida && (
+              <p className="mt-2 text-xs text-destructive">Complete a referência de IG antes de salvar.</p>
+            )}
+          </div>
+        )}
+
+
         {/* Resultado GJ */}
         <div className="space-y-2">
           <FieldLabel htmlFor="valor-gj" required tooltip="Insira o valor numérico exato do resultado do exame laboratorial. Ex: 94. Não arredonde.">
