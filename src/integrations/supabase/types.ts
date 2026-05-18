@@ -569,6 +569,47 @@ export type Database = {
           },
         ]
       }
+      exames_usg: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          data_exame: string
+          id: string
+          ig_dias: number
+          ig_semanas: number
+          ordem: number
+          paciente_id: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          data_exame: string
+          id?: string
+          ig_dias?: number
+          ig_semanas: number
+          ordem?: number
+          paciente_id: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          data_exame?: string
+          id?: string
+          ig_dias?: number
+          ig_semanas?: number
+          ordem?: number
+          paciente_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exames_usg_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       execucoes_cron: {
         Row: {
           detalhe_falhas: Json | null
@@ -947,6 +988,7 @@ export type Database = {
           numero_identificacao: string | null
           pais: string | null
           profissional_id: string
+          referencia_ig: string | null
           status_ficha: string
           tipo_identificacao: string | null
           tipo_retorno: string | null
@@ -972,6 +1014,7 @@ export type Database = {
           numero_identificacao?: string | null
           pais?: string | null
           profissional_id: string
+          referencia_ig?: string | null
           status_ficha?: string
           tipo_identificacao?: string | null
           tipo_retorno?: string | null
@@ -997,6 +1040,7 @@ export type Database = {
           numero_identificacao?: string | null
           pais?: string | null
           profissional_id?: string
+          referencia_ig?: string | null
           status_ficha?: string
           tipo_identificacao?: string | null
           tipo_retorno?: string | null
@@ -1890,6 +1934,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      dum_efetiva: { Args: { p_paciente_id: string }; Returns: string }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
