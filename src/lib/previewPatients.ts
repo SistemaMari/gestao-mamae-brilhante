@@ -47,6 +47,7 @@ export interface PreviewPaciente {
   usg_data: string | null;
   usg_ig_semanas: number | null;
   usg_ig_dias: number | null;
+  referencia_ig?: 'dum' | 'usg' | null;
   status_ficha: string;
   dmg_gestacao_anterior: boolean | null;
   data_ultima_consulta: string | null;

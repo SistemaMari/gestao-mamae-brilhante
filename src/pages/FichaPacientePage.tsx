@@ -41,6 +41,7 @@ import FichaBDReadOnlyGrid from '@/components/FichaBDReadOnlyGrid';
 
 import RegistroPartoForm from '@/components/RegistroPartoForm';
 import RegistroPartoReadOnlyCard from '@/components/RegistroPartoReadOnlyCard';
+import UsgManagerCard from '@/components/UsgManagerCard';
 import LaudoCompleto from '@/components/laudo/LaudoCompleto';
 import { mapearCenario } from '@/lib/laudoMapping';
 import { useLaudoIA } from '@/hooks/useLaudoIA';
@@ -821,6 +822,17 @@ export default function FichaPacientePage() {
           </>
         )}
       </div>
+
+      {/* Bloco 3 + 4: gestor de USGs e referência de IG */}
+      {!isReadOnly && paciente && (
+        <UsgManagerCard
+          pacienteId={paciente.id}
+          dum={paciente.dum}
+          referenciaIg={(paciente as any).referencia_ig ?? null}
+          isPreview={isPreview}
+          onChanged={fetchPaciente}
+        />
+      )}
 
       {/* CORREÇÃO 3: Card fixo de destaque da janela do GTT — aparece entre cabeçalho e histórico */}
       {paciente.status_ficha === 'aguardando_gtt' && janelaGTT && igAtual && (() => {

@@ -43,6 +43,7 @@ import {
 import { Info, Loader2, AlertTriangle, CheckCircle2, XCircle, Printer, Pencil, FileText } from 'lucide-react';
 import { differenceInDays, addDays, format } from 'date-fns';
 import { todayLocalISO, parseDateLocal } from '@/lib/dateUtils';
+import UsgFlowSection, { emptyUsgFlow, UsgFlowValue } from '@/components/UsgFlowSection';
 
 function todayISO() {
   return todayLocalISO();
@@ -132,6 +133,14 @@ export default function Retorno1Form({
   const [saving, setSaving] = useState(false);
   const [touched, setTouched] = useState(false);
 
+  // Bloco 2: capturar USG se ainda não há referência de IG definida.
+  const precisaUsgRef = !(paciente as any).referencia_ig && !editingConsulta;
+  const [usgFlow, setUsgFlow] = useState<UsgFlowValue>(emptyUsgFlow);
+  const usgValida = !precisaUsgRef || usgFlow.jaFezUsg === 'nao' || (
+    usgFlow.jaFezUsg === 'sim' &&
+    !!usgFlow.dataExame && usgFlow.igSemanas !== '' && !!usgFlow.referenciaIg
+  );
+
   // Result state
   const [resultado, setResultado] = useState<DiagnosticoResult | null>(null);
   const [showPopup, setShowPopup] = useState(false);
@@ -184,7 +193,7 @@ export default function Retorno1Form({
 
   const valorNum = parseInt(valorGJ, 10);
   const valorValido = !isNaN(valorNum) && valorNum >= 1 && valorNum <= 400;
-  const isValid = valorValido && tipoExame && dataExame && dataConsultaRetorno;
+  const isValid = valorValido && tipoExame && dataExame && dataConsultaRetorno && usgValida;
 
   const igFinal = useMemo(() => {
     const s = parseInt(igSemanas, 10);
@@ -417,6 +426,25 @@ export default function Retorno1Form({
       status_ficha: newStatus,
       data_ultima_consulta: dataConsultaRetorno,
     }).eq('id', paciente.id);
+
+    // Bloco 2: salvar USG capturada agora + referência escolhida
+    if (precisaUsgRef && usgFlow.jaFezUsg === 'sim' && usgFlow.dataExame && usgFlow.igSemanas !== '') {
+      await supabase.from('exames_usg' as any).insert({
+        paciente_id: paciente.id,
+        data_exame: usgFlow.dataExame,
+        ig_semanas: parseInt(usgFlow.igSemanas, 10),
+        ig_dias: parseInt(usgFlow.igDias || '0', 10),
+        ordem: 1,
+      } as any);
+      await supabase.from('pacientes').update({
+        referencia_ig: usgFlow.referenciaIg ?? 'usg',
+      } as any).eq('id', paciente.id);
+    } else if (precisaUsgRef && usgFlow.jaFezUsg === 'nao' && paciente.dum) {
+      // Sem USG mas com DUM conhecida → fixa DUM como referência
+      await supabase.from('pacientes').update({
+        referencia_ig: 'dum',
+      } as any).eq('id', paciente.id);
+    }
 
     const { carimbarAtendimento } = await import('@/lib/carimbar');
     await carimbarAtendimento({
@@ -667,6 +695,27 @@ export default function Retorno1Form({
       )}
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-5">
+        {/* Bloco 2: capturar USG e referência de IG quando ainda não definidas */}
+        {precisaUsgRef && (
+          <div className="rounded-xl border border-[#7C4DBA]/30 bg-card p-4">
+            <p className="text-xs text-muted-foreground mb-3">
+              Esta paciente ainda não tem uma referência de IG definida. Aproveite o retorno para registrar a 1ª ultrassonografia.
+            </p>
+            <UsgFlowSection
+              value={usgFlow}
+              onChange={setUsgFlow}
+              dum={paciente.dum ?? ''}
+              dumDesconhecida={!paciente.dum}
+              jaPossuiUsg={false}
+              ehPrimeiraUsg={true}
+            />
+            {touched && !usgValida && (
+              <p className="mt-2 text-xs text-destructive">Complete a referência de IG antes de salvar.</p>
+            )}
+          </div>
+        )}
+
+
         {/* Resultado GJ */}
         <div className="space-y-2">
           <FieldLabel htmlFor="valor-gj" required tooltip="Insira o valor numérico exato do resultado do exame laboratorial. Ex: 94. Não arredonde.">
