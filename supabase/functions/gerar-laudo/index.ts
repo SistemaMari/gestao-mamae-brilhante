@@ -375,6 +375,11 @@ Dados clínicos:\n\n\`\`\`json\n${JSON.stringify(dadosClinicosPayload, null, 2)}
           metadata: { ...laudo.metadata, modelo: MODEL, arquivos_enviados: arquivosBaixados.map((a) => a.name), referencias: parsed.referencias_citadas, metadados_do_laudo: parsed.metadados_do_laudo },
         }).eq("id", laudo.id);
 
+        // Marca consulta como laudo_gerado
+        await supabaseAdmin.from("consultas")
+          .update({ status_ficha: "laudo_gerado" })
+          .eq("id", consulta_id);
+
         if (profissional.unidade_id) {
           await supabaseAdmin.from("registros_atendimento").insert({
             paciente_id,
