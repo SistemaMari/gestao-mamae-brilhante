@@ -1,10 +1,12 @@
-// Edge function: gerar-laudo (v2 - getUser fix)
-// Gera Blocos 2 e 3 do laudo de DMG via Lovable AI Gateway (Gemini 2.5 Flash)
-// usando o System Prompt MARI v5.2 + arquivos da Base de Conhecimento como anexos.
+// Edge function: gerar-laudo (v3 — textos fixos, sem IA)
+// Refatoração 34D-A: a geração de Blocos 2 e 3 do laudo deixa de chamar a
+// API Gemini (Lovable AI Gateway) e passa a ler textos fixos publicados
+// pelo time clínico na tabela `laudo_textos`, via Edge Function
+// `obter-textos-laudo`. Os dados clínicos da paciente (nome, IG, glicemias)
+// continuam sendo injetados pelo template do PDF a partir de `metadata`.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import {
-  SYSTEM_PROMPT_MARI_V52,
   modulosParaCenario,
   normalizarCenario,
   derivarFichaTipo,
@@ -17,8 +19,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-2.5-flash"; // rápido e econômico para geração de laudos
+// Feature flag operacional — quando 'false', bloqueia geração mesmo se textos existirem.
+// Default: ativa (true). Setar LAUDO_GERACAO_ATIVA=false em produção até time clínico
+// publicar todos os textos.
+const LAUDO_GERACAO_ATIVA = (Deno.env.get("LAUDO_GERACAO_ATIVA") ?? "true").toLowerCase() !== "false";
+
 
 // ── helpers ────────────────────────────────────────────────────────
 
