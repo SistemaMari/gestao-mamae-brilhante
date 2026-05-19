@@ -779,6 +779,57 @@ export type Database = {
           },
         ]
       }
+      laudo_textos: {
+        Row: {
+          bloco: string
+          criado_em: string
+          criado_por: string | null
+          desfecho_clinico: string
+          id: string
+          observacoes: string | null
+          ordem_bloco: number
+          publicado_em: string | null
+          publicado_por: string | null
+          status: string
+          texto: string
+          tipo_consulta: string
+          titulo_bloco: string | null
+          versao: number
+        }
+        Insert: {
+          bloco: string
+          criado_em?: string
+          criado_por?: string | null
+          desfecho_clinico: string
+          id?: string
+          observacoes?: string | null
+          ordem_bloco?: number
+          publicado_em?: string | null
+          publicado_por?: string | null
+          status?: string
+          texto: string
+          tipo_consulta: string
+          titulo_bloco?: string | null
+          versao?: number
+        }
+        Update: {
+          bloco?: string
+          criado_em?: string
+          criado_por?: string | null
+          desfecho_clinico?: string
+          id?: string
+          observacoes?: string | null
+          ordem_bloco?: number
+          publicado_em?: string | null
+          publicado_por?: string | null
+          status?: string
+          texto?: string
+          tipo_consulta?: string
+          titulo_bloco?: string | null
+          versao?: number
+        }
+        Relationships: []
+      }
       laudos: {
         Row: {
           cenario_clinico: string | null
