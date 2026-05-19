@@ -189,6 +189,21 @@ Deno.serve(async (req) => {
     const consultaAtual = consultas?.find((c: any) => c.id === consulta_id);
     if (!consultaAtual) return jsonResp({ error: "Consulta não encontrada" }, 404);
 
+    // Bloqueia geração se a ficha não está completa
+    if (consultaAtual.status_ficha && !["completa", "laudo_gerado"].includes(consultaAtual.status_ficha)) {
+      const faltantes: string[] = [];
+      if (!consultaAtual.data) faltantes.push("data");
+      if (consultaAtual.ig_semanas == null) faltantes.push("ig_semanas");
+      if (consultaAtual.ig_dias == null) faltantes.push("ig_dias");
+      if (!consultaAtual.cenario_clinico) faltantes.push("cenario_clinico");
+      return jsonResp({
+        error: "ficha_incompleta",
+        details: "A ficha precisa estar com status 'completa' antes de gerar o laudo.",
+        status_ficha: consultaAtual.status_ficha,
+        faltantes,
+      }, 422);
+    }
+
     // Verifica e consome quota de laudos
     const { data: quota, error: quotaErr } = await supabaseAdmin.rpc("pode_gerar_laudo", { p_profissional_id: profissional.id });
     if (quotaErr) return jsonResp({ error: "Erro ao verificar quota", details: quotaErr.message }, 500);
@@ -359,6 +374,11 @@ Dados clínicos:\n\n\`\`\`json\n${JSON.stringify(dadosClinicosPayload, null, 2)}
           status: "gerado",
           metadata: { ...laudo.metadata, modelo: MODEL, arquivos_enviados: arquivosBaixados.map((a) => a.name), referencias: parsed.referencias_citadas, metadados_do_laudo: parsed.metadados_do_laudo },
         }).eq("id", laudo.id);
+
+        // Marca consulta como laudo_gerado
+        await supabaseAdmin.from("consultas")
+          .update({ status_ficha: "laudo_gerado" })
+          .eq("id", consulta_id);
 
         if (profissional.unidade_id) {
           await supabaseAdmin.from("registros_atendimento").insert({
