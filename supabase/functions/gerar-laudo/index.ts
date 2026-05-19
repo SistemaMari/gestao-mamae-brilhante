@@ -1,9 +1,9 @@
 // Edge function: gerar-laudo (v3 — textos fixos, sem IA)
 // Refatoração 34D-A: a geração de Blocos 2 e 3 do laudo deixa de chamar a
 // API Gemini (Lovable AI Gateway) e passa a ler textos fixos publicados
-// pelo time clínico na tabela `laudo_textos`, via Edge Function
-// `obter-textos-laudo`. Os dados clínicos da paciente (nome, IG, glicemias)
-// continuam sendo injetados pelo template do PDF a partir de `metadata`.
+// pelo time clínico na tabela `laudo_textos`. Os dados clínicos da paciente
+// (nome, IG, glicemias) continuam sendo injetados pelo template do PDF a
+// partir de `metadata`.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import {
@@ -20,10 +20,8 @@ const corsHeaders = {
 };
 
 // Feature flag operacional — quando 'false', bloqueia geração mesmo se textos existirem.
-// Default: ativa (true). Setar LAUDO_GERACAO_ATIVA=false em produção até time clínico
-// publicar todos os textos.
-const LAUDO_GERACAO_ATIVA = (Deno.env.get("LAUDO_GERACAO_ATIVA") ?? "true").toLowerCase() !== "false";
-
+const LAUDO_GERACAO_ATIVA =
+  (Deno.env.get("LAUDO_GERACAO_ATIVA") ?? "true").toLowerCase() !== "false";
 
 // ── helpers ────────────────────────────────────────────────────────
 
@@ -34,8 +32,12 @@ function jsonResp(body: unknown, status = 200) {
   });
 }
 
-function calcularIG(dum: string | null, usgData: string | null, usgSemanas: number | null, usgDias: number | null) {
-  // Prioriza USG corrigida quando presente
+function calcularIG(
+  dum: string | null,
+  usgData: string | null,
+  usgSemanas: number | null,
+  usgDias: number | null,
+) {
   const hoje = new Date();
   if (usgData && (usgSemanas !== null || usgDias !== null)) {
     const [y, m, d] = usgData.split("-").map(Number);
@@ -54,10 +56,7 @@ function calcularIG(dum: string | null, usgData: string | null, usgSemanas: numb
 }
 
 function calcularProximaConsulta(cenario: CenarioId, igSemanas: number | null) {
-  if (semProximaConsulta(cenario)) {
-    return { prazo_dias: null, data_formatada: null };
-  }
-  // Heurística: se IG ≥ 32 sem → 7 dias; se ≥ 28 → 14 dias; senão 21 dias.
+  if (semProximaConsulta(cenario)) return { prazo_dias: null, data_formatada: null };
   let prazo = 21;
   if (igSemanas !== null) {
     if (igSemanas >= 32) prazo = 7;
@@ -71,80 +70,36 @@ function calcularProximaConsulta(cenario: CenarioId, igSemanas: number | null) {
   return { prazo_dias: prazo, data_formatada: `${dd}/${mm}/${yyyy}` };
 }
 
-async function bucketFileToDataUrl(supabaseAdmin: any, path: string): Promise<{ name: string; dataUrl: string } | null> {
-  try {
-    const { data, error } = await supabaseAdmin.storage.from("base-conhecimento").download(path);
-    if (error || !data) return null;
-    const buf = new Uint8Array(await data.arrayBuffer());
-    // base64 encode
-    let bin = "";
-    for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
-    const b64 = btoa(bin);
-    const mime = path.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream";
-    return { name: path, dataUrl: `data:${mime};base64,${b64}` };
-  } catch {
-    return null;
+// Busca textos fixos publicados para (tipo_consulta + desfecho_clinico).
+// Equivalente em SQL à Edge Function obter-textos-laudo — invocada inline
+// para evitar round-trip e propagação de header.
+async function obterTextosLaudo(
+  supabaseAdmin: any,
+  tipo_consulta: string,
+  desfecho_clinico: string,
+): Promise<
+  | { completo: true; textos: Array<{ bloco: string; ordem_bloco: number; titulo_bloco: string | null; texto: string; versao: number }> }
+  | { completo: false; blocos_faltantes: string[]; mensagem: string }
+> {
+  const { data, error } = await supabaseAdmin
+    .from("laudo_textos")
+    .select("bloco, ordem_bloco, titulo_bloco, texto, versao")
+    .eq("tipo_consulta", tipo_consulta)
+    .eq("desfecho_clinico", desfecho_clinico)
+    .eq("status", "publicado")
+    .order("ordem_bloco", { ascending: true });
+
+  if (error) throw new Error(`Erro ao ler laudo_textos: ${error.message}`);
+
+  if (!data || data.length === 0) {
+    return {
+      completo: false,
+      blocos_faltantes: ["*"],
+      mensagem: "Nenhum texto publicado para esta combinação — solicitar ao time clínico.",
+    };
   }
-}
 
-function extrairObjetoJson(texto: string): string | null {
-  const limpo = texto.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
-  const inicio = limpo.indexOf("{");
-  if (inicio < 0) return null;
-
-  let profundidade = 0;
-  let emString = false;
-  let escape = false;
-
-  for (let i = inicio; i < limpo.length; i++) {
-    const ch = limpo[i];
-    if (emString) {
-      if (escape) escape = false;
-      else if (ch === "\\") escape = true;
-      else if (ch === '"') emString = false;
-      continue;
-    }
-    if (ch === '"') emString = true;
-    else if (ch === "{") profundidade++;
-    else if (ch === "}") {
-      profundidade--;
-      if (profundidade === 0) return limpo.slice(inicio, i + 1);
-    }
-  }
-  return null;
-}
-
-function parseLaudoJson(texto: string): any | null {
-  const candidato = extrairObjetoJson(texto);
-  if (!candidato) return null;
-
-  const tentativas = [
-    candidato,
-    candidato.replace(/,\s*([}\]])/g, "$1"),
-  ];
-
-  for (const tentativa of tentativas) {
-    try {
-      return JSON.parse(tentativa);
-    } catch {
-      // tenta a próxima variação
-    }
-  }
-  return null;
-}
-
-function laudoTemBlocosValidos(parsed: any) {
-  return typeof parsed?.bloco_2_justificativa === "string" &&
-    parsed.bloco_2_justificativa.trim().length > 30 &&
-    typeof parsed?.bloco_3_conduta === "string" &&
-    parsed.bloco_3_conduta.trim().length > 30;
-}
-
-function limparTextoIA(texto: string) {
-  return texto
-    .replace(/```(?:json)?\s*/gi, "")
-    .replace(/```/g, "")
-    .trim();
+  return { completo: true, textos: data };
 }
 
 // ── handler ────────────────────────────────────────────────────────
@@ -160,32 +115,46 @@ Deno.serve(async (req) => {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData?.user) return jsonResp({ error: "Unauthorized" }, 401);
     const userId = userData.user.id;
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) return jsonResp({ error: "LOVABLE_API_KEY não configurada" }, 500);
-
     // Body
     const { paciente_id, consulta_id, cenario_clinico: cenarioBody } = await req.json();
-    if (!paciente_id || !consulta_id) return jsonResp({ error: "paciente_id e consulta_id obrigatórios" }, 400);
+    if (!paciente_id || !consulta_id) {
+      return jsonResp({ error: "paciente_id e consulta_id obrigatórios" }, 400);
+    }
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Carrega dados
-    const [{ data: profissional }, { data: paciente }, { data: consultas }, { data: exames }, { data: laudosAnteriores }] = await Promise.all([
+    // Carrega dados clínicos da paciente (continuam sendo injetados no PDF)
+    const [
+      { data: profissional },
+      { data: paciente },
+      { data: consultas },
+      { data: exames },
+      { data: laudosAnteriores },
+    ] = await Promise.all([
       supabaseAdmin.from("profissionais").select("*").eq("user_id", userId).single(),
       supabaseAdmin.from("pacientes").select("*").eq("id", paciente_id).single(),
-      supabaseAdmin.from("consultas").select("*").eq("paciente_id", paciente_id).order("numero_sequencial", { ascending: true }),
+      supabaseAdmin
+        .from("consultas")
+        .select("*")
+        .eq("paciente_id", paciente_id)
+        .order("numero_sequencial", { ascending: true }),
       supabaseAdmin.from("exames_glicemia").select("*").eq("paciente_id", paciente_id).order("data_exame", { ascending: true }),
-      supabaseAdmin.from("laudos").select("id, cenario_clinico, conteudo_laudo, created_at").eq("paciente_id", paciente_id).neq("consulta_id", consulta_id).order("created_at"),
+      supabaseAdmin
+        .from("laudos")
+        .select("id, cenario_clinico, conteudo_laudo, created_at")
+        .eq("paciente_id", paciente_id)
+        .neq("consulta_id", consulta_id)
+        .order("created_at"),
     ]);
 
     if (!profissional) return jsonResp({ error: "Profissional não encontrado" }, 404);
@@ -194,7 +163,7 @@ Deno.serve(async (req) => {
     const consultaAtual = consultas?.find((c: any) => c.id === consulta_id);
     if (!consultaAtual) return jsonResp({ error: "Consulta não encontrada" }, 404);
 
-    // Bloqueia geração se a ficha não está completa
+    // Bloqueia se ficha não está completa
     if (consultaAtual.status_ficha && !["completa", "laudo_gerado"].includes(consultaAtual.status_ficha)) {
       const faltantes: string[] = [];
       if (!consultaAtual.data) faltantes.push("data");
@@ -209,48 +178,63 @@ Deno.serve(async (req) => {
       }, 422);
     }
 
-    // Verifica e consome quota de laudos
+    // Feature flag de release
+    if (!LAUDO_GERACAO_ATIVA) {
+      return jsonResp({
+        erro: "TEXTOS_PENDENTES",
+        mensagem: "Geração de laudo temporariamente desativada (LAUDO_GERACAO_ATIVA=false).",
+        blocos_faltantes: ["*"],
+      }, 422);
+    }
+
+    // Quota
     const { data: quota, error: quotaErr } = await supabaseAdmin.rpc("pode_gerar_laudo", { p_profissional_id: profissional.id });
     if (quotaErr) return jsonResp({ error: "Erro ao verificar quota", details: quotaErr.message }, 500);
     if (quota && (quota as any).allowed === false) {
       return jsonResp({ error: "Limite de laudos atingido", laudos_limite: (quota as any).laudos_limite }, 402);
     }
 
-    // Normaliza cenário e ficha_tipo — aceita do body como fallback
+    // Cenário e ficha_tipo
     const cenarioId = normalizarCenario(consultaAtual.cenario_clinico) ?? normalizarCenario(cenarioBody);
-    if (!cenarioId) return jsonResp({ error: "Cenário clínico inválido ou ausente", recebido: consultaAtual.cenario_clinico ?? cenarioBody ?? null }, 400);
+    if (!cenarioId) {
+      return jsonResp({ error: "Cenário clínico inválido ou ausente", recebido: consultaAtual.cenario_clinico ?? cenarioBody ?? null }, 400);
+    }
 
-    // Persiste o cenário na consulta caso veio só do body
     if (!consultaAtual.cenario_clinico && cenarioId) {
       await supabaseAdmin.from("consultas").update({ cenario_clinico: cenarioId }).eq("id", consulta_id);
     }
 
     const fichaTipo = derivarFichaTipo(consultaAtual.tipo);
 
-    // IG atual
+    // IG atual e próxima consulta (dados clínicos da paciente — para o template do PDF)
     const igAtual = calcularIG(paciente.dum, paciente.usg_data, paciente.usg_ig_semanas, paciente.usg_ig_dias);
     const proximaConsulta = calcularProximaConsulta(cenarioId, igAtual?.semanas ?? null);
 
-    // Roteamento de módulos: confere disponibilidade sem anexar PDFs grandes à IA.
-    // PDFs em base64 estouravam CPU/contexto e causavam respostas JSON truncadas.
-    const arquivosAlvo = modulosParaCenario(cenarioId);
-    const { data: storageItems } = await supabaseAdmin.storage.from("base-conhecimento").list("", { limit: 100 });
-    const nomesDisponiveis = new Set((storageItems ?? []).map((item: any) => item.name));
-    const arquivosBaixados = arquivosAlvo
-      .filter((name) => nomesDisponiveis.has(name))
-      .map((name) => ({ name, dataUrl: "" }));
-    const arquivosFaltantes = arquivosAlvo.filter((p) => !nomesDisponiveis.has(p));
+    // ── Núcleo da refatoração: lê textos fixos em vez de chamar IA ──
+    const tipoConsulta = String(consultaAtual.tipo);
+    const desfechoClinico = cenarioId; // cenario_clinico funciona como desfecho consolidado
 
-    // Bloqueia se PROTOCOLO ausente (Bloco 2 é impossível sem ele)
-    if (!arquivosBaixados.find((a) => a.name === "PROTOCOLO_DMG_Brasil_2016.pdf")) {
+    const resultado = await obterTextosLaudo(supabaseAdmin, tipoConsulta, desfechoClinico);
+
+    if (!resultado.completo) {
       return jsonResp({
-        error: "Base de Conhecimento incompleta",
-        details: "O PROTOCOLO_DMG_Brasil_2016.pdf é obrigatório para gerar qualquer laudo. Peça ao admin para fazer o upload em /admin/base-conhecimento.",
-        arquivos_faltantes: arquivosFaltantes,
-      }, 412);
+        erro: "TEXTOS_PENDENTES",
+        mensagem: "Texto pendente — solicitar ao time clínico",
+        tipo_consulta: tipoConsulta,
+        desfecho_clinico: desfechoClinico,
+        blocos_faltantes: resultado.blocos_faltantes,
+      }, 422);
     }
 
-    // Cria laudo "processando"
+    // Roteamento informativo de módulos (mantido para metadata do PDF)
+    const arquivosAlvo = modulosParaCenario(cenarioId);
+
+    // Concatena textos para o campo legado `conteudo_laudo` (mantém compatibilidade
+    // com o template atual de PDF). Estrutura completa fica em metadata.blocos_textos.
+    const conteudoConcatenado = resultado.textos
+      .map((b) => (b.titulo_bloco ? `## ${b.titulo_bloco}\n\n${b.texto}` : b.texto))
+      .join("\n\n");
+
     const { data: laudo, error: laudoErr } = await supabaseAdmin
       .from("laudos")
       .insert({
@@ -258,169 +242,75 @@ Deno.serve(async (req) => {
         consulta_id,
         profissional_id: profissional.id,
         cenario_clinico: cenarioId,
-        status: "processando",
-        metadata: { ficha_tipo: fichaTipo, ig_atual: igAtual, proxima_consulta: proximaConsulta, arquivos_faltantes: arquivosFaltantes },
+        status: "gerado",
+        conteudo_laudo: conteudoConcatenado,
+        metadata: {
+          ficha_tipo: fichaTipo,
+          ig_atual: igAtual,
+          proxima_consulta: proximaConsulta,
+          origem_texto: "laudo_textos",
+          tipo_consulta: tipoConsulta,
+          desfecho_clinico: desfechoClinico,
+          blocos_textos: resultado.textos,
+          modulos_referencia: arquivosAlvo,
+          dados_paciente: {
+            nome: paciente.nome,
+            data_nascimento: paciente.data_nascimento,
+            dum: paciente.dum,
+            usg: { data: paciente.usg_data, ig_semanas: paciente.usg_ig_semanas, ig_dias: paciente.usg_ig_dias },
+            ig_atual: igAtual,
+            dmg_gestacao_anterior: paciente.dmg_gestacao_anterior,
+          },
+          profissional: {
+            nome: profissional.nome,
+            crm: profissional.crm,
+            especialidade: profissional.especialidade,
+          },
+          consulta_atual: {
+            id: consultaAtual.id,
+            tipo: consultaAtual.tipo,
+            data: consultaAtual.data,
+            ig_semanas: consultaAtual.ig_semanas,
+            ig_dias: consultaAtual.ig_dias,
+          },
+        },
       })
       .select()
       .single();
 
-    if (laudoErr || !laudo) return jsonResp({ error: "Erro ao criar laudo", details: laudoErr?.message }, 500);
+    if (laudoErr || !laudo) {
+      return jsonResp({ error: "Erro ao criar laudo", details: laudoErr?.message }, 500);
+    }
 
-    // Payload de dados clínicos enviado como user message
-    const dadosClinicosPayload = {
-      cenario_clinico: cenarioId,
-      ficha_tipo: fichaTipo,
-      proxima_consulta: proximaConsulta,
-      dados_paciente: {
-        nome: paciente.nome,
-        data_nascimento: paciente.data_nascimento,
-        dum: paciente.dum,
-        usg: { data: paciente.usg_data, ig_semanas: paciente.usg_ig_semanas, ig_dias: paciente.usg_ig_dias },
-        ig_atual: igAtual,
-        dmg_gestacao_anterior: paciente.dmg_gestacao_anterior,
-        status_ficha: paciente.status_ficha,
-      },
-      consulta_atual: consultaAtual,
-      historico_consultas: consultas,
-      exames_glicemia: exames,
-      laudos_anteriores: laudosAnteriores,
-      profissional: { nome: profissional.nome, crm: profissional.crm, especialidade: profissional.especialidade },
-      arquivos_de_contexto: arquivosBaixados.map((a) => a.name),
-    };
+    // Marca consulta como laudo_gerado
+    await supabaseAdmin
+      .from("consultas")
+      .update({ status_ficha: "laudo_gerado" })
+      .eq("id", consulta_id);
 
-    // Monta mensagem multimodal: texto + PDFs como image_url (Gemini aceita PDF assim no gateway)
-    const buildTextPart = (modo: "json" | "texto") => ({
-      type: "text",
-      text: `${modo === "json"
-        ? "Gere os Blocos 2 e 3 do laudo conforme suas regras. Retorne APENAS um JSON válido com as chaves bloco_2_justificativa e bloco_3_conduta."
-        : "Gere os Blocos 2 e 3 do laudo conforme suas regras, mas NÃO use JSON. Responda em texto com os marcadores exatos: BLOCO_2: e BLOCO_3:."}
-
-Dados clínicos:\n\n\`\`\`json\n${JSON.stringify(dadosClinicosPayload, null, 2)}\n\`\`\``,
-    });
-    const buildContent = (arquivos: Array<{ name: string; dataUrl: string }>, modo: "json" | "texto") => {
-      const c: any[] = [buildTextPart(modo)];
-      for (const arq of arquivos) c.push({ type: "image_url", image_url: { url: arq.dataUrl } });
-      return c;
-    };
-
-    const callAI = async (arquivos: Array<{ name: string; dataUrl: string }>, modo: "json" | "texto" = "json") => {
-      return await fetch(AI_GATEWAY_URL, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT_MARI_V52 },
-            { role: "user", content: buildContent(arquivos, modo) },
-          ],
-          ...(modo === "json" ? { response_format: { type: "json_object" } } : {}),
-          max_tokens: 8192,
-          temperature: 0.2,
-        }),
+    if (profissional.unidade_id) {
+      await supabaseAdmin.from("registros_atendimento").insert({
+        paciente_id,
+        profissional_id: profissional.id,
+        unidade_id: profissional.unidade_id,
+        tipo_operacao: "gerar_laudo",
+        recurso_id: laudo.id,
+        recurso_tipo: "laudo",
+        profissional_nome: profissional.nome,
+        profissional_crm: profissional.crm,
+        profissional_especialidade: profissional.especialidade,
       });
-    };
+    }
 
-    // Processa IA em BACKGROUND para evitar WORKER_RESOURCE_LIMIT.
-    // Frontend faz polling no registro `laudos` pelo status.
-    const processarLaudoEmBackground = async () => {
-      try {
-        let aiResp = await callAI([]);
-        let errText = "";
-
-        if (!aiResp.ok && aiResp.status >= 400 && aiResp.status < 500) {
-          errText = await aiResp.text();
-        }
-
-        if (!aiResp.ok) {
-          if (!errText) errText = await aiResp.text();
-          await supabaseAdmin.from("laudos").update({
-            status: "erro",
-            metadata: { ...laudo.metadata, erro: `AI ${aiResp.status}: ${errText.slice(0, 500)}` },
-          }).eq("id", laudo.id);
-          return;
-        }
-
-        const lerConteudo = async (resp: Response) => {
-          const json = await resp.json();
-          return json.choices?.[0]?.message?.content ?? "";
-        };
-
-        let conteudoStr = await lerConteudo(aiResp);
-        let parsed: any = parseLaudoJson(conteudoStr);
-
-        if (!laudoTemBlocosValidos(parsed)) {
-          const fallbackResp = await callAI([], "texto");
-          if (fallbackResp.ok) {
-            const fallbackText = limparTextoIA(await lerConteudo(fallbackResp));
-            const bloco2Match = fallbackText.match(/BLOCO_2:\s*([\s\S]*?)(?=\n\s*BLOCO_3:|$)/i);
-            const bloco3Match = fallbackText.match(/BLOCO_3:\s*([\s\S]*)$/i);
-            if (bloco2Match?.[1]?.trim() && bloco3Match?.[1]?.trim()) {
-              conteudoStr = fallbackText;
-              parsed = {
-                bloco_2_justificativa: bloco2Match[1].trim(),
-                bloco_3_conduta: bloco3Match[1].trim(),
-                referencias_citadas: [{ fonte: "Protocolo Brasileiro de DMG (2016) e módulos clínicos entregues", relevancia: "Base de conhecimento usada para geração dos Blocos 2 e 3" }],
-                metadados_do_laudo: { fallback_texto_sem_json: true, cenario_processado: cenarioId },
-              };
-            }
-          }
-        }
-
-        if (!laudoTemBlocosValidos(parsed)) {
-          await supabaseAdmin.from("laudos").update({
-            status: "erro",
-            metadata: { ...laudo.metadata, erro: "JSON inválido retornado pela IA", raw: conteudoStr.slice(0, 2000) },
-          }).eq("id", laudo.id);
-          return;
-        }
-
-        await supabaseAdmin.from("laudos").update({
-          conteudo_laudo: JSON.stringify(parsed),
-          status: "gerado",
-          metadata: { ...laudo.metadata, modelo: MODEL, arquivos_enviados: arquivosBaixados.map((a) => a.name), referencias: parsed.referencias_citadas, metadados_do_laudo: parsed.metadados_do_laudo },
-        }).eq("id", laudo.id);
-
-        // Marca consulta como laudo_gerado
-        await supabaseAdmin.from("consultas")
-          .update({ status_ficha: "laudo_gerado" })
-          .eq("id", consulta_id);
-
-        if (profissional.unidade_id) {
-          await supabaseAdmin.from("registros_atendimento").insert({
-            paciente_id,
-            profissional_id: profissional.id,
-            unidade_id: profissional.unidade_id,
-            tipo_operacao: "gerar_laudo",
-            recurso_id: laudo.id,
-            recurso_tipo: "laudo",
-            profissional_nome: profissional.nome,
-            profissional_crm: profissional.crm,
-            profissional_especialidade: profissional.especialidade,
-          });
-        }
-      } catch (e) {
-        await supabaseAdmin.from("laudos").update({
-          status: "erro",
-          metadata: { ...laudo.metadata, erro: `Exceção: ${(e as Error).message}` },
-        }).eq("id", laudo.id);
-      }
-    };
-
-    // @ts-ignore EdgeRuntime existe no runtime Supabase
-    EdgeRuntime.waitUntil(processarLaudoEmBackground());
-
-    // Resposta imediata — frontend faz polling pelo laudo_id
     return jsonResp({
       success: true,
-      processing: true,
       laudo_id: laudo.id,
       cenario: cenarioId,
       ficha_tipo: fichaTipo,
       proxima_consulta: proximaConsulta,
-      arquivos_usados: arquivosBaixados.map((a) => a.name),
-      arquivos_faltantes: arquivosAlvo.filter((p) => !arquivosBaixados.find((a) => a.name === p)),
-    }, 202);
-
+      origem_texto: "laudo_textos",
+      blocos: resultado.textos.map((b) => b.bloco),
+    }, 201);
   } catch (error) {
     return jsonResp({ error: "Erro interno", details: (error as Error).message }, 500);
   }
