@@ -201,6 +201,7 @@ export type Database = {
           cenario_clinico: string | null
           created_at: string
           data: string
+          ficha_finalizada_em: string | null
           id: string
           ig_dias: number | null
           ig_semanas: number | null
@@ -209,6 +210,7 @@ export type Database = {
           observacoes: string | null
           paciente_id: string
           profissional_id: string
+          status_ficha: string
           status_gerado: string | null
           tipo: string
         }
@@ -216,6 +218,7 @@ export type Database = {
           cenario_clinico?: string | null
           created_at?: string
           data?: string
+          ficha_finalizada_em?: string | null
           id?: string
           ig_dias?: number | null
           ig_semanas?: number | null
@@ -224,6 +227,7 @@ export type Database = {
           observacoes?: string | null
           paciente_id: string
           profissional_id: string
+          status_ficha?: string
           status_gerado?: string | null
           tipo?: string
         }
@@ -231,6 +235,7 @@ export type Database = {
           cenario_clinico?: string | null
           created_at?: string
           data?: string
+          ficha_finalizada_em?: string | null
           id?: string
           ig_dias?: number | null
           ig_semanas?: number | null
@@ -239,6 +244,7 @@ export type Database = {
           observacoes?: string | null
           paciente_id?: string
           profissional_id?: string
+          status_ficha?: string
           status_gerado?: string | null
           tipo?: string
         }
@@ -547,6 +553,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "exames_glicemia_consulta_id_fkey"
+            columns: ["consulta_id"]
+            isOneToOne: false
+            referencedRelation: "v_ficha_retorno_contexto"
+            referencedColumns: ["consulta_caso_novo_id"]
+          },
+          {
+            foreignKeyName: "exames_glicemia_consulta_id_fkey"
+            columns: ["consulta_id"]
+            isOneToOne: false
+            referencedRelation: "v_ficha_retorno_contexto"
+            referencedColumns: ["consulta_retorno_id"]
+          },
+          {
             foreignKeyName: "exames_glicemia_paciente_id_fkey"
             columns: ["paciente_id"]
             isOneToOne: false
@@ -803,6 +823,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "consultas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "laudos_consulta_id_fkey"
+            columns: ["consulta_id"]
+            isOneToOne: false
+            referencedRelation: "v_ficha_retorno_contexto"
+            referencedColumns: ["consulta_caso_novo_id"]
+          },
+          {
+            foreignKeyName: "laudos_consulta_id_fkey"
+            columns: ["consulta_id"]
+            isOneToOne: false
+            referencedRelation: "v_ficha_retorno_contexto"
+            referencedColumns: ["consulta_retorno_id"]
           },
           {
             foreignKeyName: "laudos_paciente_id_fkey"
@@ -1212,6 +1246,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "consultas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perfis_glicemicos_consulta_id_fkey"
+            columns: ["consulta_id"]
+            isOneToOne: false
+            referencedRelation: "v_ficha_retorno_contexto"
+            referencedColumns: ["consulta_caso_novo_id"]
+          },
+          {
+            foreignKeyName: "perfis_glicemicos_consulta_id_fkey"
+            columns: ["consulta_id"]
+            isOneToOne: false
+            referencedRelation: "v_ficha_retorno_contexto"
+            referencedColumns: ["consulta_retorno_id"]
           },
           {
             foreignKeyName: "perfis_glicemicos_paciente_id_fkey"
@@ -1913,6 +1961,28 @@ export type Database = {
         }
         Relationships: []
       }
+      v_ficha_retorno_contexto: {
+        Row: {
+          cenario_caso_novo: string | null
+          consulta_caso_novo_id: string | null
+          consulta_retorno_id: string | null
+          data_caso_novo: string | null
+          data_exame_caso_novo: string | null
+          exame_gj_id: string | null
+          glicemia_jejum_caso_novo: number | null
+          paciente_id: string | null
+          tipo_exame_caso_novo: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultas_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _pode_ver_unidade: {
@@ -1926,6 +1996,15 @@ export type Database = {
       belongs_to_unidade: {
         Args: { _unidade_id: string; _user_id: string }
         Returns: boolean
+      }
+      calcular_ig: {
+        Args: { p_data_alvo: string; p_paciente_id: string }
+        Returns: {
+          base_data: string
+          dias: number
+          origem: string
+          semanas: number
+        }[]
       }
       carimbar_atendimento: {
         Args: {
