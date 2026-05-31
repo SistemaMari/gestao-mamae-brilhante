@@ -132,19 +132,45 @@ export default function UsgManagerCard({
     }
     setSaving(true);
     const nextOrdem = (usgs[usgs.length - 1]?.ordem ?? 0) + 1;
-    const { error } = await supabase.from('exames_usg' as any).insert({
-      paciente_id: pacienteId,
-      data_exame: usgFlow.dataExame,
-      ig_semanas: parseInt(usgFlow.igSemanas, 10),
-      ig_dias: parseInt(usgFlow.igDias || '0', 10),
-      ordem: nextOrdem,
-    } as any);
-    setSaving(false);
-    if (error) {
+    // Bug fix: o INSERT retorna o id da nova USG para usar como referencia_usg_id
+    // quando o usuário marcou "USG" como referência no UsgFlowSection. Antes,
+    // o handleAddUsg só fazia INSERT e ignorava o usgFlow.referenciaIg, fazendo
+    // o card seguir mostrando "referência: DUM" mesmo quando o usuário escolheu USG.
+    const { data: novaUsg, error } = await supabase
+      .from('exames_usg' as any)
+      .insert({
+        paciente_id: pacienteId,
+        data_exame: usgFlow.dataExame,
+        ig_semanas: parseInt(usgFlow.igSemanas, 10),
+        ig_dias: parseInt(usgFlow.igDias || '0', 10),
+        ordem: nextOrdem,
+      } as any)
+      .select('id')
+      .single();
+    if (error || !novaUsg) {
+      setSaving(false);
       console.error(error);
       toast.error('Erro ao salvar USG.');
       return;
     }
+
+    // Se o usuário escolheu uma referência no fluxo de adicionar, persiste em pacientes.
+    if (usgFlow.referenciaIg === 'usg') {
+      const novoId = (novaUsg as { id: string }).id;
+      const { error: refErr } = await supabase
+        .from('pacientes')
+        .update({ referencia_ig: 'usg', referencia_usg_id: novoId } as any)
+        .eq('id', pacienteId);
+      if (refErr) console.error('[UsgManagerCard] falha ao atualizar referencia_ig=usg:', refErr);
+    } else if (usgFlow.referenciaIg === 'dum') {
+      const { error: refErr } = await supabase
+        .from('pacientes')
+        .update({ referencia_ig: 'dum', referencia_usg_id: null } as any)
+        .eq('id', pacienteId);
+      if (refErr) console.error('[UsgManagerCard] falha ao atualizar referencia_ig=dum:', refErr);
+    }
+
+    setSaving(false);
     toast.success('USG registrada.');
     setOpenAdd(false);
     setUsgFlow({ ...emptyUsgFlow, jaFezUsg: 'sim' });
