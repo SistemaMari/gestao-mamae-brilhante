@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  AlertTriangle, Calendar, Clock, FileText, Pencil, Plus, User, Loader2, MessageCircle,
+  AlertTriangle, Calendar, Clock, FileText, Pencil, Plus, User, Loader2, MessageCircle, ChevronDown,
 } from 'lucide-react';
 import {
   mascararWhatsappBR,
@@ -53,6 +53,9 @@ import AutoriaRodape from '@/components/clinico/AutoriaRodape';
 import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
+import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { differenceInYears, differenceInDays, addDays, format } from 'date-fns';
 import { parseDateLocal, formatDateBR } from '@/lib/dateUtils';
 
@@ -627,6 +630,12 @@ export default function FichaPacientePage() {
   // Check if the retorno_1 is the most recent consultation (for edit button)
   const retorno1IsLast = ultimaConsulta?.tipo === 'retorno_1' && consultas.length <= 2;
 
+  // 34C.2 (§3.4): sinal de "ficha aberta em edição" — usado para colapsar o
+  // histórico por padrão. Nesta tela não há status_ficha de rascunho; o estado
+  // real de edição é dado pelos flags de formulário ativo / consulta em edição.
+  const hasFichaEmEdicao =
+    showRetorno1 || showFichaAC || showFichaBD || showGtt || showRegistroParto || editingConsultaId !== null;
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       {isReadOnly && (
@@ -999,14 +1008,150 @@ export default function FichaPacientePage() {
       })()}
 
 
-      {/* Histórico de consultas */}
-      {consultasHistorico.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm print:shadow-none">
-          <h2 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Histórico de consultas
-          </h2>
+      {/* Ficha aberta no momento (34C.2 §3.3, ordem #5): renderizada ANTES do
+          histórico para manter a ficha em edição acima da dobra. O Contexto
+          Clínico (ordem #4) é renderizado dentro de cada form. */}
+      {/* Retorno 1 form — only while actively filling (unmounts after save + popup close) */}
+      {canShowRetorno1Form && primeiraConsulta && paciente && (
+        <div className="print:hidden">
+          <Retorno1Form
+            paciente={paciente}
+            primeiraConsulta={primeiraConsulta}
+            isPreview={isPreview}
+            onSaved={reloadPaciente}
+            onCancel={() => setShowRetorno1(false)}
+            isLastConsulta={retorno1IsLast}
+          />
+        </div>
+      )}
+      {/* Ficha A/C form */}
+      {showFichaAC && paciente && (
+        <div className="print:hidden">
+          <FichaACForm
+            paciente={paciente}
+            consultas={consultas}
+            isPreview={isPreview}
+            onSaved={() => {
+              setShowFichaAC(false);
+              // Reload data
+              if (isPreview && id) {
+                const p = getPreviewPacienteById(id);
+                if (p) {
+                  setPaciente(p);
+                  setConsultas(p.consultas || []);
+                  // Find the last ficha_a/ficha_c consultation for standalone result
+                  const lastFicha = [...(p.consultas || [])].reverse().find(c => ['ficha_a', 'ficha_c'].includes(c.tipo));
+                  if (lastFicha) {
+                    setFichaACResult(lastFicha);
+                    setFichaACCompleted(true);
+                  }
+                }
+              } else {
+                // 34B.1 follow-up: refetch explícito (Realtime desligado nesta tela)
+                void fetchPaciente();
+                setFichaACCompleted(true);
+              }
+            }}
+            onCancel={() => setShowFichaAC(false)}
+          />
+        </div>
+      )}
+      {/* Ficha B/D form */}
+      {showFichaBD && paciente && (
+        <div className="print:hidden">
+          <FichaBDForm
+            paciente={paciente}
+            consultas={consultas}
+            isPreview={isPreview}
+            onSaved={() => {
+              setShowFichaBD(false);
+              if (isPreview && id) {
+                const p = getPreviewPacienteById(id);
+                if (p) {
+                  setPaciente(p);
+                  setConsultas(p.consultas || []);
+                  const lastFicha = [...(p.consultas || [])].reverse().find(c => ['ficha_b', 'ficha_d'].includes(c.tipo));
+                  if (lastFicha) {
+                    setFichaBDResult(lastFicha);
+                    setFichaBDCompleted(true);
+                  }
+                }
+              } else {
+                // 34B.1 follow-up: refetch explícito (Realtime desligado nesta tela)
+                void fetchPaciente();
+                setFichaBDCompleted(true);
+              }
+            }}
+            onCancel={() => setShowFichaBD(false)}
+          />
+        </div>
+      )}
+      {/* GTT form */}
+      {showGtt && paciente && (
+        <div className="print:hidden">
+          <GttForm
+            paciente={paciente}
+            consultas={consultas}
+            isPreview={isPreview}
+            onSaved={() => {
+              setShowGtt(false);
+              setGttCompleted(true);
+              if (isPreview && id) {
+                const p = getPreviewPacienteById(id);
+                if (p) {
+                  setPaciente(p);
+                  setConsultas(p.consultas || []);
+                }
+              } else {
+                // 34B.1 follow-up: refetch explícito (Realtime desligado nesta tela)
+                void fetchPaciente();
+              }
+            }}
+            onCancel={() => setShowGtt(false)}
+          />
+        </div>
+      )}
 
+      {/* Registro do parto form */}
+      {showRegistroParto && paciente && (
+        <div className="print:hidden">
+          <RegistroPartoForm
+            paciente={paciente}
+            consultas={consultas}
+            isPreview={isPreview}
+            onSaved={() => {
+              setShowRegistroParto(false);
+              if (isPreview && id) {
+                const p = getPreviewPacienteById(id);
+                if (p) {
+                  setPaciente(p);
+                  setConsultas(p.consultas || []);
+                }
+              } else {
+                // 34B.1 follow-up: refetch explícito (Realtime desligado nesta tela)
+                void fetchPaciente();
+              }
+            }}
+            onCancel={() => setShowRegistroParto(false)}
+          />
+        </div>
+      )}
+
+      {/* Histórico de consultas (34C.2 §3.3 ordem #6 + §3.4 colapso por padrão) */}
+      {consultasHistorico.length > 0 && (
+        <Collapsible
+          defaultOpen={!hasFichaEmEdicao}
+          key={`hist-collapse-${hasFichaEmEdicao}`}
+          className="rounded-xl border border-border bg-card p-5 shadow-sm print:shadow-none"
+        >
+          <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2">
+            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Histórico de consultas ({consultasHistorico.length})
+            </h2>
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3">
           <Accordion
             type="multiple"
             defaultValue={[consultasHistorico[0]?.id].filter(Boolean)}
@@ -1032,7 +1177,13 @@ export default function FichaPacientePage() {
               }
 
               return (
-              <AccordionItem key={c.id} value={c.id} className="rounded-lg border border-border px-3 py-0">
+              <AccordionItem
+                key={c.id}
+                value={c.id}
+                className={`rounded-lg border border-border px-3 py-0 ${
+                  c.tipo === 'consulta_1' ? 'border-l-4 border-l-[#7C4DBA]' : ''
+                }`}
+              >
                 <AccordionTrigger className="py-3 hover:no-underline">
                   <div className="flex w-full flex-col pr-2 gap-1">
                     <div className="flex w-full items-center justify-between">
@@ -1300,133 +1451,8 @@ export default function FichaPacientePage() {
               );
             })}
           </Accordion>
-        </div>
-      )}
-
-      {/* Retorno 1 form — only while actively filling (unmounts after save + popup close) */}
-      {canShowRetorno1Form && primeiraConsulta && paciente && (
-        <div className="print:hidden">
-          <Retorno1Form
-            paciente={paciente}
-            primeiraConsulta={primeiraConsulta}
-            isPreview={isPreview}
-            onSaved={reloadPaciente}
-            onCancel={() => setShowRetorno1(false)}
-            isLastConsulta={retorno1IsLast}
-          />
-        </div>
-      )}
-      {/* Ficha A/C form */}
-      {showFichaAC && paciente && (
-        <div className="print:hidden">
-          <FichaACForm
-            paciente={paciente}
-            consultas={consultas}
-            isPreview={isPreview}
-            onSaved={() => {
-              setShowFichaAC(false);
-              // Reload data
-              if (isPreview && id) {
-                const p = getPreviewPacienteById(id);
-                if (p) {
-                  setPaciente(p);
-                  setConsultas(p.consultas || []);
-                  // Find the last ficha_a/ficha_c consultation for standalone result
-                  const lastFicha = [...(p.consultas || [])].reverse().find(c => ['ficha_a', 'ficha_c'].includes(c.tipo));
-                  if (lastFicha) {
-                    setFichaACResult(lastFicha);
-                    setFichaACCompleted(true);
-                  }
-                }
-              } else {
-                // 34B.1 follow-up: refetch explícito (Realtime desligado nesta tela)
-                void fetchPaciente();
-                setFichaACCompleted(true);
-              }
-            }}
-            onCancel={() => setShowFichaAC(false)}
-          />
-        </div>
-      )}
-      {/* Ficha B/D form */}
-      {showFichaBD && paciente && (
-        <div className="print:hidden">
-          <FichaBDForm
-            paciente={paciente}
-            consultas={consultas}
-            isPreview={isPreview}
-            onSaved={() => {
-              setShowFichaBD(false);
-              if (isPreview && id) {
-                const p = getPreviewPacienteById(id);
-                if (p) {
-                  setPaciente(p);
-                  setConsultas(p.consultas || []);
-                  const lastFicha = [...(p.consultas || [])].reverse().find(c => ['ficha_b', 'ficha_d'].includes(c.tipo));
-                  if (lastFicha) {
-                    setFichaBDResult(lastFicha);
-                    setFichaBDCompleted(true);
-                  }
-                }
-              } else {
-                // 34B.1 follow-up: refetch explícito (Realtime desligado nesta tela)
-                void fetchPaciente();
-                setFichaBDCompleted(true);
-              }
-            }}
-            onCancel={() => setShowFichaBD(false)}
-          />
-        </div>
-      )}
-      {/* GTT form */}
-      {showGtt && paciente && (
-        <div className="print:hidden">
-          <GttForm
-            paciente={paciente}
-            consultas={consultas}
-            isPreview={isPreview}
-            onSaved={() => {
-              setShowGtt(false);
-              setGttCompleted(true);
-              if (isPreview && id) {
-                const p = getPreviewPacienteById(id);
-                if (p) {
-                  setPaciente(p);
-                  setConsultas(p.consultas || []);
-                }
-              } else {
-                // 34B.1 follow-up: refetch explícito (Realtime desligado nesta tela)
-                void fetchPaciente();
-              }
-            }}
-            onCancel={() => setShowGtt(false)}
-          />
-        </div>
-      )}
-
-      {/* Registro do parto form */}
-      {showRegistroParto && paciente && (
-        <div className="print:hidden">
-          <RegistroPartoForm
-            paciente={paciente}
-            consultas={consultas}
-            isPreview={isPreview}
-            onSaved={() => {
-              setShowRegistroParto(false);
-              if (isPreview && id) {
-                const p = getPreviewPacienteById(id);
-                if (p) {
-                  setPaciente(p);
-                  setConsultas(p.consultas || []);
-                }
-              } else {
-                // 34B.1 follow-up: refetch explícito (Realtime desligado nesta tela)
-                void fetchPaciente();
-              }
-            }}
-            onCancel={() => setShowRegistroParto(false)}
-          />
-        </div>
+          </CollapsibleContent>
+        </Collapsible>
       )}
 
       {/* Standalone results removed — results appear only inside history accordion */}
