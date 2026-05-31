@@ -175,27 +175,60 @@ export default function Retorno1Form({
     return { semanas: Math.floor(dias / 7), dias: dias % 7 };
   }, [paciente.dum, dataExame]);
 
-  // 34B.1 — Bug B Fonte 5: auto-fill da IG calculada acontece UMA VEZ por entrada do form.
-  // O useEffect original ([igCalculada, editingResult, editingConsulta]) re-disparava ao voltar
-  // de aba (paciente refetched → igCalculada referência nova) sobrescrevendo o input do médico.
+  // 34B.1 hotfix — auto-fill da IG na data do exame.
   //
-  // Agora: dispara só na primeira vez que igCalculada fica disponível para uma instância do form,
-  // e nunca mais. Trocar de paciente desmonta o componente, então a ref reseta naturalmente.
-  const igAutoFillFeitoRef = useRef(false);
+  // Original: useEffect([igCalculada, ...]) → sobrescrevia input do médico ao voltar de aba (Bug B Fonte 5).
+  // Primeira tentativa (34B.1): ref-guarded para disparar uma vez → quebrou o recálculo quando o usuário
+  // muda a data do exame depois (o foco real deste hotfix).
+  //
+  // Agora: o recálculo é feito INLINE no onChange do input de data (handleDataExameChange abaixo),
+  // não num useEffect que escuta `paciente`. Assim:
+  //   - Mudar a data do exame → recalcula IG na hora (esperado pelo usuário).
+  //   - Refetch de `paciente` (voltar foco de aba) → não dispara nada, state local intacto.
+  // Auto-fill inicial no mount: igSemanas/igDias já são inicializados via useState com base em
+  // editingConsulta; quando ficha é nova e há DUM, calcular para a data padrão (hoje) acontece
+  // uma única vez via efeito guardado por ref no mount.
+  const igAutoFillInicialFeitoRef = useRef(false);
   useEffect(() => {
-    if (
-      !igAutoFillFeitoRef.current &&
-      igCalculada &&
-      !editingResult &&
-      !editingConsulta &&
-      igSemanas === '' &&
-      igDias === ''
-    ) {
-      igAutoFillFeitoRef.current = true;
-      setIgSemanas(String(igCalculada.semanas));
-      setIgDias(String(igCalculada.dias));
+    if (igAutoFillInicialFeitoRef.current) return;
+    if (editingResult || editingConsulta) {
+      igAutoFillInicialFeitoRef.current = true;
+      return;
     }
+    if (igSemanas !== '' || igDias !== '') {
+      igAutoFillInicialFeitoRef.current = true;
+      return;
+    }
+    if (!igCalculada) return; // ainda sem DUM/data válida — aguarda
+    igAutoFillInicialFeitoRef.current = true;
+    setIgSemanas(String(igCalculada.semanas));
+    setIgDias(String(igCalculada.dias));
   }, [igCalculada, editingResult, editingConsulta, igSemanas, igDias]);
+
+  /**
+   * Atualiza a data do exame E recalcula IG inline.
+   * Disparado APENAS pelo onChange do input de data — não reage a mudanças de `paciente`,
+   * então refetch ao voltar foco de aba não consegue sobrescrever o que o médico digitou.
+   *
+   * Se o médico já editou manualmente os campos de IG (semanas/dias), preserva o que ele
+   * colocou? Não — a expectativa do usuário (reportada) é que mudar a data do exame
+   * recalcule IG. Quem quiser fixar IG manual deve digitá-la depois de definir a data.
+   */
+  const handleDataExameChange = useCallback(
+    (novaData: string) => {
+      setDataExame(novaData);
+      if (editingResult || editingConsulta) return;
+      if (!paciente.dum || !novaData) return;
+      const exam = parseDateLocal(novaData);
+      const dum = parseDateLocal(paciente.dum);
+      if (!exam || !dum) return;
+      const dias = differenceInDays(exam, dum);
+      if (dias < 0) return;
+      setIgSemanas(String(Math.floor(dias / 7)));
+      setIgDias(String(dias % 7));
+    },
+    [paciente.dum, editingResult, editingConsulta],
+  );
 
   // DUM-based GTT window calc for negative result
   const janelaGTT = useMemo(() => {
@@ -933,7 +966,7 @@ export default function Retorno1Form({
             id="data-exame"
             type="date"
             value={dataExame}
-            onChange={(e) => setDataExame(e.target.value)}
+            onChange={(e) => handleDataExameChange(e.target.value)}
             className={fieldError(!!dataExame)}
           />
           {errorMsg(!!dataExame)}
