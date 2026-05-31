@@ -59,3 +59,37 @@ export function formatDateBR(value: string | Date | null | undefined): string {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   return `${day}/${month}/${d.getFullYear()}`;
 }
+
+/**
+ * Valida que uma string 'YYYY-MM-DD' representa uma data real do calendário
+ * (sem rollover do JS). Bloqueia entradas como '2026-02-30', '2026-04-31',
+ * '2026-11-31'. String vazia ou null é considerada "ainda não preenchida"
+ * — não é inválida (o caller decide se é obrigatória).
+ *
+ * Retorna { valida: true } quando OK ou { valida: false, motivo } quando ruim.
+ */
+export function validarDataClinica(
+  value: string | null | undefined,
+): { valida: true } | { valida: false; motivo: string } {
+  if (value == null || value === '') return { valida: true }; // vazio = aceito
+  // Aceita só o formato YYYY-MM-DD (igual ao type="date" do HTML)
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return { valida: false, motivo: 'Formato inválido (use AAAA-MM-DD).' };
+  const [, ys, ms, ds] = match;
+  const y = Number(ys);
+  const m = Number(ms);
+  const d = Number(ds);
+  if (y < 1900 || y > 2100) return { valida: false, motivo: 'Ano fora da faixa esperada.' };
+  if (m < 1 || m > 12) return { valida: false, motivo: 'Mês deve ser entre 01 e 12.' };
+  if (d < 1 || d > 31) return { valida: false, motivo: 'Dia deve ser entre 01 e 31.' };
+  // Detecta rollover (ex.: 30/02 → 02/03)
+  const obj = new Date(y, m - 1, d);
+  if (
+    obj.getFullYear() !== y ||
+    obj.getMonth() !== m - 1 ||
+    obj.getDate() !== d
+  ) {
+    return { valida: false, motivo: 'Data inválida. Verifique dia e mês.' };
+  }
+  return { valida: true };
+}

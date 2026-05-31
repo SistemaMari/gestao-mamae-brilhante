@@ -7,6 +7,7 @@ import { useProfissionalData } from '@/hooks/useProfissionalData';
 // 34B.1 — useAutosave + AutosaveIndicator removidos (Bug A). Save explícito via botão.
 import StatusFichaBadge from '@/components/ficha/StatusFichaBadge';
 import CamposPendentesBanner from '@/components/ficha/CamposPendentesBanner';
+import DateInput from '@/components/ficha/DateInput';
 import {
   updatePreviewPaciente,
   type PreviewPaciente,
@@ -277,6 +278,12 @@ export default function FichaACForm({
     return f;
   }, [dataInicio, dataFim, dataConsulta, igSemanas, totalPreenchidos, hasNegativeValues]);
 
+  // 34B.3 seção 3.10 — bloqueia submit quando alguma data clínica é inválida.
+  const [dataInicioValida, setDataInicioValida] = useState(true);
+  const [dataFimValida, setDataFimValida] = useState(true);
+  const [dataConsultaValida, setDataConsultaValida] = useState(true);
+  const todasDatasValidas = dataInicioValida && dataFimValida && dataConsultaValida;
+
   // Confirm high values
   const [showHighValueConfirm, setShowHighValueConfirm] = useState(false);
 
@@ -525,7 +532,7 @@ export default function FichaACForm({
               </Tooltip>
             </TooltipProvider>
           </div>
-          <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} />
+          <DateInput value={dataInicio} onChange={setDataInicio} onValidityChange={setDataInicioValida} />
         </div>
 
         <div className="space-y-1">
@@ -542,7 +549,7 @@ export default function FichaACForm({
               </Tooltip>
             </TooltipProvider>
           </div>
-          <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} />
+          <DateInput value={dataFim} onChange={setDataFim} onValidityChange={setDataFimValida} />
         </div>
 
         <div className="space-y-1">
@@ -559,7 +566,7 @@ export default function FichaACForm({
               </Tooltip>
             </TooltipProvider>
           </div>
-          <Input type="date" value={dataConsulta} onChange={e => setDataConsulta(e.target.value)} />
+          <DateInput value={dataConsulta} onChange={setDataConsulta} onValidityChange={setDataConsultaValida} />
         </div>
 
         <div className="space-y-1">
@@ -732,7 +739,7 @@ export default function FichaACForm({
         </Button>
         <Button
           onClick={handleSave}
-          disabled={!canSave || saving}
+          disabled={!canSave || saving || !todasDatasValidas}
           className="bg-[#7C4DBA] hover:bg-[#7E69AB] text-white"
         >
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

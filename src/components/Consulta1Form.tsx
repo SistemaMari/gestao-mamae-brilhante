@@ -27,6 +27,7 @@ import {
 // 34B.1 — useAutosave + AutosaveIndicator removidos (Bug A). Save explícito via botão.
 import StatusFichaBadge from '@/components/ficha/StatusFichaBadge';
 import CamposPendentesBanner from '@/components/ficha/CamposPendentesBanner';
+import DateInput from '@/components/ficha/DateInput';
 import UsgFlowSection, { emptyUsgFlow, type UsgFlowValue } from '@/components/UsgFlowSection';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -85,6 +86,11 @@ export default function Consulta1Form() {
 
   // 34B.2 — Caso Novo. Status sempre 'rascunho' até o save (Consulta1Form sempre cria, não edita).
   const statusFichaLocal: string = 'rascunho';
+  // 34B.3 seção 3.10 — bloqueia submit se alguma data inválida.
+  const [dataNascValida, setDataNascValida] = useState(true);
+  const [dumValidaDate, setDumValidaDate] = useState(true);
+  const [dataConsultaValida, setDataConsultaValida] = useState(true);
+  const todasDatasValidas = dataNascValida && dumValidaDate && dataConsultaValida;
   const camposPendentes = useMemo<string[]>(() => {
     const f: string[] = [];
     if (!nome.trim()) f.push('Nome da paciente');
@@ -329,12 +335,13 @@ export default function Consulta1Form() {
               Data de nascimento
             </FieldLabel>
             <div className="flex items-center gap-3">
-              <Input
+              <DateInput
                 id="data-nasc"
-                type="date"
                 value={dataNascimento}
-                onChange={(e) => setDataNascimento(e.target.value)}
-                className={`flex-1 ${fieldError(!!dataNascimento)}`}
+                onChange={setDataNascimento}
+                onValidityChange={setDataNascValida}
+                wrapperClassName="flex-1"
+                className={fieldError(!!dataNascimento)}
               />
               {idade !== null && (
                 <span className="whitespace-nowrap rounded-md bg-muted px-2.5 py-1 text-sm font-medium text-foreground">
@@ -458,11 +465,11 @@ export default function Consulta1Form() {
             <FieldLabel htmlFor="dum" required tooltip="Data da última menstruação. Usada para calcular a idade gestacional automaticamente.">
               DUM (Data da última menstruação)
             </FieldLabel>
-            <Input
+            <DateInput
               id="dum"
-              type="date"
               value={dum}
-              onChange={(e) => setDum(e.target.value)}
+              onChange={setDum}
+              onValidityChange={setDumValidaDate}
               disabled={dumDesconhecida}
               className={fieldError(dumValido)}
             />
@@ -500,11 +507,11 @@ export default function Consulta1Form() {
             <FieldLabel htmlFor="data-consulta" required tooltip="Data em que esta consulta está sendo realizada. Padrão: hoje.">
               Data da consulta
             </FieldLabel>
-            <Input
+            <DateInput
               id="data-consulta"
-              type="date"
               value={dataConsulta}
-              onChange={(e) => setDataConsulta(e.target.value)}
+              onChange={setDataConsulta}
+              onValidityChange={setDataConsultaValida}
               className={fieldError(!!dataConsulta)}
             />
             {errorMsg(!!dataConsulta)}
@@ -567,7 +574,7 @@ export default function Consulta1Form() {
             </Button>
             <Button
               type="submit"
-              disabled={saving}
+              disabled={saving || !todasDatasValidas}
               className="bg-[#7C4DBA] hover:bg-[#7E69AB] text-white"
             >
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

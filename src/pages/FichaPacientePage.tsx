@@ -44,7 +44,8 @@ import FichaBDReadOnlyGrid from '@/components/FichaBDReadOnlyGrid';
 import RegistroPartoForm from '@/components/RegistroPartoForm';
 import RegistroPartoReadOnlyCard from '@/components/RegistroPartoReadOnlyCard';
 import UsgManagerCard from '@/components/UsgManagerCard';
-import { calcIdadeGestacionalStruct, type UsgRefInput } from '@/lib/fichaUtils';
+import { calcIdadeGestacionalStruct, resolveUsgAtiva, type UsgRefInput } from '@/lib/fichaUtils';
+import IgOrigemTooltip from '@/components/ficha/IgOrigemTooltip';
 import LaudoCompleto from '@/components/laudo/LaudoCompleto';
 import { mapearCenario } from '@/lib/laudoMapping';
 import { useLaudoIA } from '@/hooks/useLaudoIA';
@@ -839,9 +840,14 @@ export default function FichaPacientePage() {
               </div>
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Calendar className="h-3.5 w-3.5 shrink-0" />
-                <span>
+                <span className="inline-flex items-center gap-1">
                   <span className="font-medium text-foreground">IG hoje:</span>{' '}
                   {igAtual ? `${igAtual.semanas} sem + ${igAtual.dias} dias` : '—'}
+                  <IgOrigemTooltip
+                    referenciaIg={paciente.referencia_ig ?? null}
+                    dum={paciente.dum}
+                    usgAtiva={paciente.referencia_ig === 'usg' ? resolveUsgAtiva(usgs, paciente.referencia_usg_id ?? null) : null}
+                  />
                 </span>
               </div>
               <div className="flex items-center gap-1.5 text-muted-foreground">

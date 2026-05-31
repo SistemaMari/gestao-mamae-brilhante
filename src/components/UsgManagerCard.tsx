@@ -10,6 +10,7 @@ import { formatDateBR } from '@/lib/dateUtils';
 import { toast } from 'sonner';
 import { addDays, differenceInDays } from 'date-fns';
 import { calcIgHojeFromDum, calcIgHojeFromUsg, formatIgCurto } from '@/lib/fichaUtils';
+import IgOrigemTooltip from '@/components/ficha/IgOrigemTooltip';
 
 type UsgRow = {
   id: string;
@@ -216,20 +217,37 @@ export default function UsgManagerCard({
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="rounded-md bg-[#E8E0FF] px-2 py-1 text-[#5B21B6] font-medium">
-          IG hoje: {igHoje ? `${igHoje.semanas}s ${igHoje.dias}d` : '—'}
-        </span>
-        <span className="text-muted-foreground">
-          referência: <strong className="text-foreground">{refLabel}</strong>
-        </span>
-        <button
-          type="button"
-          onClick={() => setOpenEdit(true)}
-          className="inline-flex items-center gap-1 text-[#7C4DBA] hover:underline"
-        >
-          <Pencil className="h-3 w-3" /> editar
-        </button>
+      {/* 34B.3 seção 3.9 — bloco destacado de Referência de IG ativa */}
+      <div className="rounded-lg border border-[#7C4DBA]/40 bg-[#F8F6FC] px-3 py-2.5 space-y-1.5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#5B21B6]">
+            📌 Referência de IG:{' '}
+            <span className="text-foreground">
+              {refLabel}
+              {referenciaIg === 'dum' && dum ? ` (${formatDateBR(dum)})` : ''}
+              {referenciaIg === 'usg' && usgAtiva ? ` (${formatDateBR(usgAtiva.data_exame)})` : ''}
+            </span>
+          </p>
+          <button
+            type="button"
+            onClick={() => setOpenEdit(true)}
+            className="inline-flex items-center gap-1 rounded-md border border-[#7C4DBA] px-2 py-1 text-[11px] font-medium text-[#7C4DBA] hover:bg-[#E8E0FF] focus:outline-none focus:ring-2 focus:ring-[#7C4DBA]/40"
+            aria-label="Trocar referência de IG"
+          >
+            <Pencil className="h-3 w-3" /> Trocar referência
+          </button>
+        </div>
+        <p className="inline-flex items-center gap-1 text-xs text-foreground">
+          IG hoje:{' '}
+          <span className="font-semibold">
+            {igHoje ? `${igHoje.semanas}s ${igHoje.dias}d` : '—'}
+          </span>
+          <IgOrigemTooltip
+            referenciaIg={referenciaIg ?? null}
+            dum={dum}
+            usgAtiva={usgAtiva}
+          />
+        </p>
       </div>
 
       {loading ? (
