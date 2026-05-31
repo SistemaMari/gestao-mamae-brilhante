@@ -235,6 +235,7 @@ export default function FichaPacientePage() {
   const [editDmgAnterior, setEditDmgAnterior] = useState<boolean>(false);
   const [editDataConsulta, setEditDataConsulta] = useState('');
   const [editObservacoes, setEditObservacoes] = useState('');
+  const [editDum, setEditDum] = useState(''); // DUM editável (yyyy-MM-dd ou vazio)
 
   const fetchPaciente = useCallback(async () => {
     if (!id || isPreview) return;
@@ -486,6 +487,7 @@ export default function FichaPacientePage() {
     setEditDmgAnterior(!!paciente.dmg_gestacao_anterior);
     setEditDataConsulta(primeiraConsulta.data);
     setEditObservacoes(primeiraConsulta.observacoes || '');
+    setEditDum(paciente.dum ?? ''); // pode ficar vazio quando DUM é desconhecida
     setEditing(true);
   };
 
@@ -505,6 +507,9 @@ export default function FichaPacientePage() {
 
     setEditSaving(true);
 
+    // DUM editável: vazio = manter "não sei" (null), valor = atualizar.
+    const dumNormalizado: string | null = editDum && editDum.length > 0 ? editDum : null;
+
     if (isPreview) {
       const updatedConsultas = consultas.map((c) =>
         c.id === primeiraConsulta.id
@@ -516,6 +521,7 @@ export default function FichaPacientePage() {
         data_nascimento: editDataNascimento,
         numero_identificacao: editNumeroId.trim() || null,
         dmg_gestacao_anterior: editDmgAnterior,
+        dum: dumNormalizado,
         consultas: updatedConsultas,
       });
       const updated = getPreviewPacienteById(id);
@@ -538,6 +544,7 @@ export default function FichaPacientePage() {
         numero_identificacao: editNumeroId.trim() || null,
         whatsapp: whatsappCanonico,
         dmg_gestacao_anterior: editDmgAnterior,
+        dum: dumNormalizado,
       } as any)
       .eq('id', id);
 
@@ -573,6 +580,7 @@ export default function FichaPacientePage() {
             numero_identificacao: editNumeroId.trim() || null,
             whatsapp: whatsappCanonico,
             dmg_gestacao_anterior: editDmgAnterior,
+            dum: dumNormalizado,
           } as any
         : prev
     );
@@ -748,6 +756,20 @@ export default function FichaPacientePage() {
                   value={editDataConsulta}
                   onChange={(e) => setEditDataConsulta(e.target.value)}
                 />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-foreground">
+                  DUM (Data da última menstruação)
+                </label>
+                <Input
+                  type="date"
+                  value={editDum}
+                  onChange={(e) => setEditDum(e.target.value)}
+                  placeholder="Deixe em branco se desconhecida"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Atualizar a DUM recalcula automaticamente as IGs e o card de Referência de IG.
+                </p>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-foreground">DMG em gestação anterior</label>
