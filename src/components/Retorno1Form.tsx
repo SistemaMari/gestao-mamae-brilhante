@@ -14,6 +14,9 @@ import RascunhoStatus, { type RascunhoVisualState } from '@/components/ficha/Ras
 import DraftRecoveryModal from '@/components/ficha/DraftRecoveryModal';
 import StatusFichaBadge from '@/components/ficha/StatusFichaBadge';
 import CamposPendentesBanner from '@/components/ficha/CamposPendentesBanner';
+import DateInput from '@/components/ficha/DateInput';
+import ContextoClinicoCard from '@/components/ficha/ContextoClinicoCard';
+import DivergenciaIgBanner from '@/components/ficha/DivergenciaIgBanner';
 import {
   updatePreviewPaciente,
   getPreviewPacienteById,
@@ -148,6 +151,21 @@ export default function Retorno1Form({
   const [serverDraftState, setServerDraftState] = useState<'idle' | 'salvando' | 'salvo' | 'erro'>('idle');
   const [serverDraftSavedAt, setServerDraftSavedAt] = useState<string | null>(null);
 
+  // 34B.3 seção 3.8 — contexto clínico do Caso Novo (view v_ficha_retorno_contexto).
+  type ContextoCasoNovo = {
+    data_caso_novo: string | null;
+    glicemia_jejum_caso_novo: number | null;
+    tipo_exame_caso_novo: string | null;
+    data_exame_caso_novo: string | null;
+    cenario_caso_novo: string | null;
+  };
+  const [contextoCasoNovo, setContextoCasoNovo] = useState<ContextoCasoNovo | null>(null);
+  const [contextoLoading, setContextoLoading] = useState(true);
+
+  // 34B.3 seção 3.9.4 — alerta de divergência IG vindo da Edge Function
+  // salvar-ficha-retorno (efêmero por sessão, não persistido).
+  const [alertaDivergenciaIg, setAlertaDivergenciaIg] = useState(false);
+
   // Bloco 2: capturar USG se ainda não há referência de IG definida.
   const precisaUsgRef = !(paciente as any).referencia_ig && !editingConsulta;
   const [usgFlow, setUsgFlow] = useState<UsgFlowValue>(emptyUsgFlow);
@@ -216,6 +234,53 @@ export default function Retorno1Form({
    * colocou? Não — a expectativa do usuário (reportada) é que mudar a data do exame
    * recalcule IG. Quem quiser fixar IG manual deve digitá-la depois de definir a data.
    */
+  // 34B.3 seção 3.8 — carrega contexto do Caso Novo da view v_ficha_retorno_contexto.
+  // Roda uma vez por mount, gated por paciente.id. Em modo preview, deriva da primeiraConsulta.
+  useEffect(() => {
+    let cancelado = false;
+    async function carregar() {
+      setContextoLoading(true);
+      if (isPreview) {
+        // Em preview, monta um objeto vazio (sem GJ — só Caso Novo registrado, sem laudo).
+        // A primeiraConsulta tem a data, mas não a glicemia. Ficamos com placeholder vazio.
+        if (!cancelado) {
+          setContextoCasoNovo({
+            data_caso_novo: primeiraConsulta?.data ?? null,
+            glicemia_jejum_caso_novo: null,
+            tipo_exame_caso_novo: null,
+            data_exame_caso_novo: null,
+            cenario_caso_novo: primeiraConsulta?.cenario_clinico ?? null,
+          });
+          setContextoLoading(false);
+        }
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('v_ficha_retorno_contexto' as never)
+          .select('data_caso_novo, glicemia_jejum_caso_novo, tipo_exame_caso_novo, data_exame_caso_novo, cenario_caso_novo')
+          .eq('paciente_id', paciente.id)
+          .limit(1)
+          .maybeSingle();
+        if (cancelado) return;
+        if (error || !data) {
+          setContextoCasoNovo(null);
+        } else {
+          setContextoCasoNovo(data as ContextoCasoNovo);
+        }
+      } catch {
+        if (!cancelado) setContextoCasoNovo(null);
+      } finally {
+        if (!cancelado) setContextoLoading(false);
+      }
+    }
+    void carregar();
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paciente.id, isPreview]);
+
   const handleDataExameChange = useCallback(
     (novaData: string) => {
       setDataExame(novaData);
@@ -275,6 +340,12 @@ export default function Retorno1Form({
     if (!usgValida) faltam.push('USG ou referência de IG');
     return faltam;
   }, [valorValido, tipoExame, dataExame, dataConsultaRetorno, usgValida]);
+
+  // 34B.3 seção 3.10 — bloqueia submit quando alguma data clínica é inválida.
+  // Cada DateInput reporta sua validade via onValidityChange.
+  const [dataExameValida, setDataExameValida] = useState(true);
+  const [dataConsultaValida, setDataConsultaValida] = useState(true);
+  const todasDatasValidas = dataExameValida && dataConsultaValida;
 
   const igFinal = useMemo(() => {
     const s = parseInt(igSemanas, 10);
@@ -468,10 +539,14 @@ export default function Retorno1Form({
         { body: payload },
       );
       if (error) throw error;
-      const respConsultaId = (response as { consulta?: { id?: string } } | null)?.consulta?.id;
+      type SalvarFichaResp = { consulta?: { id?: string }; alerta_divergencia_ig?: boolean };
+      const respTyped = response as SalvarFichaResp | null;
+      const respConsultaId = respTyped?.consulta?.id;
       if (respConsultaId && !draftConsultaIdRef.current) {
         draftConsultaIdRef.current = respConsultaId;
       }
+      // 34B.3 seção 3.9.4 — captura alerta de divergência IG (efêmero).
+      setAlertaDivergenciaIg(!!respTyped?.alerta_divergencia_ig);
 
       const savedAt = new Date().toISOString();
       setServerDraftState('salvo');
@@ -919,6 +994,15 @@ export default function Retorno1Form({
         ativo={statusFichaLocal === 'rascunho'}
       />
 
+      {/* 34B.3 seção 3.9.4 — banner laranja de divergência IG (efêmero) */}
+      <DivergenciaIgBanner ativo={alertaDivergenciaIg} />
+
+      {/* 34B.3 seção 3.8 — card readonly de contexto clínico do Caso Novo */}
+      <ContextoClinicoCard
+        loading={contextoLoading}
+        contexto={contextoCasoNovo}
+      />
+
       {/* Capilar alert */}
       {isCapilar && (
         <div className="mt-4 rounded-lg border border-red-300 bg-[#FEE2E2] p-4 flex items-start gap-3">
@@ -994,11 +1078,11 @@ export default function Retorno1Form({
           <FieldLabel htmlFor="data-exame" required tooltip="Data em que o exame foi coletado no laboratório.">
             Data do exame
           </FieldLabel>
-          <Input
+          <DateInput
             id="data-exame"
-            type="date"
             value={dataExame}
-            onChange={(e) => handleDataExameChange(e.target.value)}
+            onChange={(v) => handleDataExameChange(v)}
+            onValidityChange={setDataExameValida}
             className={fieldError(!!dataExame)}
           />
           {errorMsg(!!dataExame)}
@@ -1040,11 +1124,11 @@ export default function Retorno1Form({
           <FieldLabel htmlFor="data-consulta-retorno" required tooltip="Data do retorno da paciente. Preenchida automaticamente com a data de hoje. Edite se necessário.">
             Data da consulta de retorno
           </FieldLabel>
-          <Input
+          <DateInput
             id="data-consulta-retorno"
-            type="date"
             value={dataConsultaRetorno}
-            onChange={(e) => setDataConsultaRetorno(e.target.value)}
+            onChange={setDataConsultaRetorno}
+            onValidityChange={setDataConsultaValida}
             className={fieldError(!!dataConsultaRetorno)}
           />
           {errorMsg(!!dataConsultaRetorno)}
@@ -1074,7 +1158,7 @@ export default function Retorno1Form({
             type="button"
             variant="outline"
             onClick={handleSalvarRascunho}
-            disabled={saving}
+            disabled={saving || !todasDatasValidas}
             className="border-[#7C4DBA] text-[#7C4DBA] hover:bg-[#E8E0FF]"
           >
             {saving && serverDraftState === 'salvando' && (
@@ -1084,7 +1168,7 @@ export default function Retorno1Form({
           </Button>
           <Button
             type="submit"
-            disabled={saving || !isValid}
+            disabled={saving || !isValid || !todasDatasValidas}
             className="bg-[#7C4DBA] hover:bg-[#7E69AB] text-white"
             title={!isValid ? 'Preencha todos os campos obrigatórios para finalizar' : undefined}
           >

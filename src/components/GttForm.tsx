@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 // 34B.1 — useAutosave + AutosaveIndicator removidos (Bug A). Save explícito via botão.
 import StatusFichaBadge from '@/components/ficha/StatusFichaBadge';
 import CamposPendentesBanner from '@/components/ficha/CamposPendentesBanner';
+import DateInput from '@/components/ficha/DateInput';
 import {
   updatePreviewPaciente,
   getPreviewPacienteById,
@@ -189,6 +190,11 @@ export default function GttForm({
     if (!dataConsulta) f.push('Data da consulta');
     return f;
   }, [jejumValido, h1Valido, h2Valido, recursoLimitado, dataExame, dataConsulta]);
+
+  // 34B.3 seção 3.10 — bloqueia submit se data inválida.
+  const [dataExameValida, setDataExameValida] = useState(true);
+  const [dataConsultaValida, setDataConsultaValida] = useState(true);
+  const todasDatasValidas = dataExameValida && dataConsultaValida;
 
   const igFinal = useMemo(() => {
     const s = parseInt(igSemanas, 10);
@@ -685,10 +691,10 @@ export default function GttForm({
               </TooltipContent>
             </Tooltip>
           </div>
-          <Input
-            type="date"
+          <DateInput
             value={dataExame}
-            onChange={(e) => setDataExame(e.target.value)}
+            onChange={setDataExame}
+            onValidityChange={setDataExameValida}
             className={fieldError(!!dataExame)}
           />
         </div>
@@ -706,10 +712,10 @@ export default function GttForm({
               </TooltipContent>
             </Tooltip>
           </div>
-          <Input
-            type="date"
+          <DateInput
             value={dataConsulta}
-            onChange={(e) => setDataConsulta(e.target.value)}
+            onChange={setDataConsulta}
+            onValidityChange={setDataConsultaValida}
             className={fieldError(!!dataConsulta)}
           />
         </div>
@@ -789,7 +795,7 @@ export default function GttForm({
         </Button>
         <Button
           type="submit"
-          disabled={saving}
+          disabled={saving || !todasDatasValidas}
           className="flex-1 bg-[#7C4DBA] hover:bg-[#7E69AB] text-white"
         >
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

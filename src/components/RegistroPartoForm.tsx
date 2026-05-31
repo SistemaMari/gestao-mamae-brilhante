@@ -8,6 +8,7 @@ import { FileText, Info, Loader2, Baby } from 'lucide-react';
 // 34B.1 — useAutosave + AutosaveIndicator removidos (Bug A). Save explícito via botão.
 import StatusFichaBadge from '@/components/ficha/StatusFichaBadge';
 import CamposPendentesBanner from '@/components/ficha/CamposPendentesBanner';
+import DateInput from '@/components/ficha/DateInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -225,6 +226,8 @@ export default function RegistroPartoForm({
   // 34B.2 — status + pendentes. Registro de Parto não tem fluxo de edição inline,
   // então o status é sempre 'rascunho' até que o save no servidor o mude pra 'completa'.
   const statusFichaLocal: string = 'rascunho';
+  // 34B.3 seção 3.10 — bloqueia submit se data do parto inválida.
+  const [dataPartoValida, setDataPartoValida] = useState(true);
   const ROTULOS_REGISTRO_PARTO: Record<string, string> = {
     viaParto: 'Via do parto',
     motivoCesarea: 'Motivo da cesárea',
@@ -483,10 +486,10 @@ export default function RegistroPartoForm({
               Data do parto <span className="text-destructive">*</span>
               <HelpIcon text="Data em que o parto ocorreu. Default: hoje. Editável." />
             </label>
-            <Input
-              type="date"
+            <DateInput
               value={dataParto}
-              onChange={(e) => setDataParto(e.target.value)}
+              onChange={setDataParto}
+              onValidityChange={setDataPartoValida}
             />
           </div>
 
@@ -703,7 +706,7 @@ export default function RegistroPartoForm({
           <Button
             type="submit"
             className="bg-[#7C4DBA] hover:bg-[#7E69AB] text-white"
-            disabled={!isValid || saving}
+            disabled={!isValid || saving || !dataPartoValida}
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             <FileText className="mr-2 h-4 w-4" />

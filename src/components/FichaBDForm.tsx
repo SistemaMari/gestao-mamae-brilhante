@@ -7,6 +7,7 @@ import { useProfissionalData } from '@/hooks/useProfissionalData';
 // 34B.1 — useAutosave + AutosaveIndicator removidos (Bug A). Save explícito via botão.
 import StatusFichaBadge from '@/components/ficha/StatusFichaBadge';
 import CamposPendentesBanner from '@/components/ficha/CamposPendentesBanner';
+import DateInput from '@/components/ficha/DateInput';
 import {
   updatePreviewPaciente,
   type PreviewPaciente,
@@ -292,6 +293,12 @@ export default function FichaBDForm({
     return f;
   }, [dataInicio, dataFim, dataConsulta, igSemanas, totalPreenchidos, hasNegativeValues]);
 
+  // 34B.3 seção 3.10 — bloqueia submit se alguma data clínica inválida.
+  const [dataInicioValida, setDataInicioValida] = useState(true);
+  const [dataFimValida, setDataFimValida] = useState(true);
+  const [dataConsultaValida, setDataConsultaValida] = useState(true);
+  const todasDatasValidas = dataInicioValida && dataFimValida && dataConsultaValida;
+
   const [showHighValueConfirm, setShowHighValueConfirm] = useState(false);
 
   // 34B.1 — Bug A: useAutosave removido. Save explícito via botão (handleSave abaixo).
@@ -524,7 +531,7 @@ export default function FichaBDForm({
             <label className="text-xs font-medium text-foreground">Data de início do perfil</label>
             <TooltipProvider><Tooltip><TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent className="max-w-xs"><p className="text-xs">Primeiro dia em que a paciente começou a medir as glicemias.</p></TooltipContent></Tooltip></TooltipProvider>
           </div>
-          <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} />
+          <DateInput value={dataInicio} onChange={setDataInicio} onValidityChange={setDataInicioValida} />
         </div>
 
         <div className="space-y-1">
@@ -532,7 +539,7 @@ export default function FichaBDForm({
             <label className="text-xs font-medium text-foreground">Data de encerramento</label>
             <TooltipProvider><Tooltip><TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent className="max-w-xs"><p className="text-xs">Último dia de medição do perfil.</p></TooltipContent></Tooltip></TooltipProvider>
           </div>
-          <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} />
+          <DateInput value={dataFim} onChange={setDataFim} onValidityChange={setDataFimValida} />
         </div>
 
         <div className="space-y-1">
@@ -540,7 +547,7 @@ export default function FichaBDForm({
             <label className="text-xs font-medium text-foreground">Data da consulta</label>
             <TooltipProvider><Tooltip><TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger><TooltipContent className="max-w-xs"><p className="text-xs">Data do retorno. Default: hoje.</p></TooltipContent></Tooltip></TooltipProvider>
           </div>
-          <Input type="date" value={dataConsulta} onChange={e => setDataConsulta(e.target.value)} />
+          <DateInput value={dataConsulta} onChange={setDataConsulta} onValidityChange={setDataConsultaValida} />
         </div>
 
         <div className="space-y-1">
@@ -665,7 +672,7 @@ export default function FichaBDForm({
       {/* Action buttons */}
       <div className="flex justify-end gap-3 print:hidden">
         <Button variant="outline" onClick={onCancel} disabled={saving}>Cancelar</Button>
-        <Button onClick={handleSave} disabled={!canSave || saving} className="bg-[#7C4DBA] hover:bg-[#7E69AB] text-white">
+        <Button onClick={handleSave} disabled={!canSave || saving || !todasDatasValidas} className="bg-[#7C4DBA] hover:bg-[#7E69AB] text-white">
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Salvar retorno
         </Button>
