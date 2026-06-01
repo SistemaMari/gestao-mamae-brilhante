@@ -1261,6 +1261,7 @@ export type Database = {
           peso_paciente_kg: number | null
           profissional_id: string
           tipo_perfil: string
+          tipo_pos_prandial: string
         }
         Insert: {
           consulta_id: string
@@ -1275,6 +1276,7 @@ export type Database = {
           peso_paciente_kg?: number | null
           profissional_id: string
           tipo_perfil?: string
+          tipo_pos_prandial?: string
         }
         Update: {
           consulta_id?: string
@@ -1289,6 +1291,7 @@ export type Database = {
           peso_paciente_kg?: number | null
           profissional_id?: string
           tipo_perfil?: string
+          tipo_pos_prandial?: string
         }
         Relationships: [
           {
