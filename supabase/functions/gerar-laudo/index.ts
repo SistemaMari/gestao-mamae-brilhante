@@ -140,6 +140,7 @@ Deno.serve(async (req) => {
       { data: consultas },
       { data: exames },
       { data: laudosAnteriores },
+      { data: perfilMaisRecente },
     ] = await Promise.all([
       supabaseAdmin.from("profissionais").select("*").eq("user_id", userId).single(),
       supabaseAdmin.from("pacientes").select("*").eq("id", paciente_id).single(),
@@ -155,6 +156,13 @@ Deno.serve(async (req) => {
         .eq("paciente_id", paciente_id)
         .neq("consulta_id", consulta_id)
         .order("created_at"),
+      supabaseAdmin
+        .from("perfis_glicemicos")
+        .select("tipo_perfil, tipo_pos_prandial, percentual_meta, decisao, data_inicio, data_fim")
+        .eq("paciente_id", paciente_id)
+        .order("data_fim", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     if (!profissional) return jsonResp({ error: "Profissional não encontrado" }, 404);
@@ -251,6 +259,17 @@ Deno.serve(async (req) => {
           origem_texto: "laudo_textos",
           tipo_consulta: tipoConsulta,
           desfecho_clinico: desfechoClinico,
+          // 35A — Pactuação pós-prandial: nos cenários que usam perfil glicêmico
+          // (2, 3, 4 e 7), expor a janela pactuada e a meta aplicada para que o
+          // Bloco 2 do laudo cite a meta correta (<140 mg/dL para 1h; <120 para 2h).
+          // Jejum e pré-prandiais inalterados.
+          pactuacao_pos_prandial: ["2", "3", "4", "7"].includes(cenarioId) && perfilMaisRecente
+            ? {
+                janela: perfilMaisRecente.tipo_pos_prandial as "1h" | "2h",
+                meta_mg_dl: perfilMaisRecente.tipo_pos_prandial === "2h" ? 120 : 140,
+                tipo_perfil: perfilMaisRecente.tipo_perfil,
+              }
+            : null,
           blocos_textos: resultado.textos,
           modulos_referencia: arquivosAlvo,
           dados_paciente: {
